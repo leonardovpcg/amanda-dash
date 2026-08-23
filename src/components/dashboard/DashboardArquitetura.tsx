@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   AMB_STEPS,
   CAT_COLORS,
@@ -39,6 +39,7 @@ import NovoProjeto from "./NovoProjeto";
 import LeadDrawer from "./LeadDrawer";
 import Avisos from "./Avisos";
 import NovoAtendimento from "./NovoAtendimento";
+import { useDeslizarAbas } from "./useDeslizarAbas";
 
 export type Tab = "funil" | "projetos" | "comissao" | "agenda" | "financeiro" | "posvenda";
 type Overlay = "projeto" | "novo" | "notif" | null;
@@ -56,6 +57,15 @@ export type ProjectVM = Project & {
 export type PriceResult = { term: string; value: string; unit: string; source: string };
 
 const deaccent = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+const TABS: [Tab, string][] = [
+  ["funil", "Funil"],
+  ["projetos", "Projetos"],
+  ["comissao", "Comissão"],
+  ["agenda", "Agenda"],
+  ["financeiro", "Financeiro"],
+  ["posvenda", "Pós-venda"],
+];
 
 export default function DashboardArquitetura({
   projetoLayout = "grade",
@@ -91,11 +101,14 @@ export default function DashboardArquitetura({
   };
 
   // ── navegação ────────────────────────────────────────────────────────────
-  const goTab = (t: Tab) => {
+  // Um único caminho para trocar de aba, usado pelo clique e pelo deslize, para
+  // os dois se comportarem igual. Volta ao topo instantaneamente: rolagem
+  // animada aqui só atrasaria a leitura da aba nova.
+  const mudarAba = useCallback((t: Tab) => {
     setTab(t);
-    if (t !== "projetos") setSelected(null);
-    if (t === "projetos") setSelected(null);
-  };
+    setSelected(null);
+    window.scrollTo(0, 0);
+  }, []);
 
   const selectProject = (id: string) => {
     setSelected(id);
@@ -348,14 +361,35 @@ export default function DashboardArquitetura({
       ? { display: "grid", gridTemplateColumns: "1fr", gap: 18 }
       : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 22 };
 
-  const TABS: [Tab, string][] = [
-    ["funil", "Funil"],
-    ["projetos", "Projetos"],
-    ["comissao", "Comissão"],
-    ["agenda", "Agenda"],
-    ["financeiro", "Financeiro"],
-    ["posvenda", "Pós-venda"],
-  ];
+  // ── deslizar entre abas (celular) ────────────────────────────────────────
+  const irParaVizinha = useCallback(
+    (direcao: 1 | -1) => {
+      const i = TABS.findIndex(([k]) => k === tab);
+      const j = i + direcao;
+      // sem dar a volta: parar na ponta deixa claro onde você está
+      if (j < 0 || j >= TABS.length) return;
+      mudarAba(TABS[j][0]);
+    },
+    [tab, mudarAba],
+  );
+
+  const refDeslize = useDeslizarAbas({
+    aoDeslizar: irParaVizinha,
+    ativo: !overlay && !openLead && !perfilAberto && !menuPerfil,
+  });
+
+  // mantém a aba ativa visível na faixa que rola
+  const refAbas = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const alvo = refAbas.current?.querySelector<HTMLElement>('[data-ativa="true"]');
+    if (!alvo) return;
+    const reduzirMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    alvo.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: reduzirMovimento ? "auto" : "smooth",
+    });
+  }, [tab]);
 
   return (
     <div
@@ -368,6 +402,7 @@ export default function DashboardArquitetura({
       }}
     >
       <div
+        ref={refDeslize}
         className="dash-shell"
         style={{
           background:
@@ -414,9 +449,16 @@ export default function DashboardArquitetura({
             )}
           </div>
 
-          <div className="dash-tabs">
+          <div className="dash-tabs" ref={refAbas} role="tablist">
             {TABS.map(([key, label]) => (
-              <button key={key} onClick={() => goTab(key)} style={tabStyle(tab === key)}>
+              <button
+                key={key}
+                role="tab"
+                aria-selected={tab === key}
+                data-ativa={tab === key}
+                onClick={() => mudarAba(key)}
+                style={tabStyle(tab === key)}
+              >
                 {label}
               </button>
             ))}

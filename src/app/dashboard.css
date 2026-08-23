@@ -725,3 +725,66 @@ textarea.dash-inline:focus {
     padding: 7px 13px 7px 9px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Ajustes de toque.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* sem o flash azul do Android ao tocar */
+.dash-root button,
+.dash-root a,
+.dash-root [draggable="true"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* rolagem horizontal não encadeia para a página nem dispara o gesto de
+   "voltar" do navegador quando chega na ponta */
+.dash-kanban,
+.dash-scroll-x,
+.dash-tabs {
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 767px) {
+  /* 100dvh acompanha a barra do navegador que aparece e some; 100vh não,
+     e sobra um pedaço rolável embaixo */
+  .dash-root {
+    min-height: 100dvh !important;
+  }
+  .dash-modal {
+    max-height: 100dvh;
+  }
+  .dash-notif,
+  .dash-perfil-menu {
+    max-height: 80dvh;
+  }
+
+  /* folhas na base respeitam a área do gesto do iPhone */
+  .dash-notif,
+  .dash-perfil-menu {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* alvos de toque: 24px e 36px são pequenos para o dedo */
+  .dash-btn-step {
+    /* flex: none senão o botão encolhe abaixo da largura pedida — ele é item
+       de um flex row e por padrão pode encolher */
+    flex: none;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 16px !important;
+  }
+  .dash-perfil-item {
+    padding: 14px 12px;
+  }
+  .dash-modal button[aria-label="Fechar"] {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 17px !important;
+  }
+  .dash-drawer button[aria-label="Fechar"] {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 17px !important;
+  }
+}
