@@ -1,26 +1,9 @@
 @import "tailwindcss";
+@import "./dashboard.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* NOTA: `./modernist.css` (design system Modernist, sincronizado antes) não é
+   mais importado. O "Dashboard Arquitetura" tem linguagem visual própria e
+   incompatível — Manrope/IBM Plex Mono contra Archivo, paleta sage/petróleo
+   contra vermelho, raio 26-36px contra raio 0. Importar os dois faria o
+   `body` e a tipografia base do Modernist brigarem com o dashboard.
+   O arquivo continua no repo, intacto, para você decidir o que fazer com ele. */

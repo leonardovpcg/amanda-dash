@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# export do Claude Design (nao e codigo)
+amanda-dash-handoff.zip

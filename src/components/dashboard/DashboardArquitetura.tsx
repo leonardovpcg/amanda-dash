@@ -1,0 +1,656 @@
+"use client";
+
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  AMB_STEPS,
+  CAT_COLORS,
+  LEADS,
+  PRICES,
+  PROJECTS,
+  STAGES,
+  STATUS_TONE,
+  chip,
+  money,
+  type Ambiente,
+  type Lead,
+  type Project,
+  type StageKey,
+} from "@/lib/dashboard/data";
+import {
+  assinarPerfil,
+  guardarPerfil,
+  lerPerfil,
+  lerPerfilNoServidor,
+  primeiroNome,
+  type Perfil,
+} from "@/lib/dashboard/perfil";
+import { MONO, NUM, tabStyle } from "./ui";
+import Avatar from "./Avatar";
+import PerfilMenu from "./PerfilMenu";
+import PerfilModal from "./PerfilModal";
+import Funil from "./Funil";
+import ProjetosLista from "./ProjetosLista";
+import ProjetoDetalhe from "./ProjetoDetalhe";
+import Comissao from "./Comissao";
+import Agenda from "./Agenda";
+import Financeiro from "./Financeiro";
+import PosVenda from "./PosVenda";
+import NovoProjeto from "./NovoProjeto";
+import LeadDrawer from "./LeadDrawer";
+import Avisos from "./Avisos";
+import NovoAtendimento from "./NovoAtendimento";
+
+export type Tab = "funil" | "projetos" | "comissao" | "agenda" | "financeiro" | "posvenda";
+type Overlay = "projeto" | "novo" | "notif" | null;
+
+export type ProjectVM = Project & {
+  badgeStyle: React.CSSProperties;
+  budgetLabel: string;
+  spentLabel: string;
+  saldoLabel: string;
+  ambienteTags: string[];
+  pct: number;
+  pctColor: string;
+};
+
+export type PriceResult = { term: string; value: string; unit: string; source: string };
+
+const deaccent = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+export default function DashboardArquitetura({
+  projetoLayout = "grade",
+}: {
+  /** Prop do design: "grade" (cartões) ou "lista" (coluna única). */
+  projetoLayout?: "grade" | "lista";
+}) {
+  const [tab, setTab] = useState<Tab>("funil");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>(PROJECTS);
+  const [leads, setLeads] = useState<Lead[]>(LEADS);
+
+  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [openLead, setOpenLead] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<StageKey | null>(null);
+
+  const [query, setQuery] = useState("");
+  const [result, setResult] = useState<PriceResult | null>(null);
+
+  const [origem, setOrigem] = useState("Loja");
+  const [ambPick, setAmbPick] = useState<string[]>(["Cozinha"]);
+
+  // ── perfil ───────────────────────────────────────────────────────────────
+  // Mora no localStorage, fora do React, então é lido como store externa.
+  const perfil = useSyncExternalStore(assinarPerfil, lerPerfil, lerPerfilNoServidor);
+  const [menuPerfil, setMenuPerfil] = useState(false);
+  const [perfilAberto, setPerfilAberto] = useState(false);
+
+  const salvarPerfil = (p: Perfil) => {
+    guardarPerfil(p);
+    setPerfilAberto(false);
+  };
+
+  // ── navegação ────────────────────────────────────────────────────────────
+  const goTab = (t: Tab) => {
+    setTab(t);
+    if (t !== "projetos") setSelected(null);
+    if (t === "projetos") setSelected(null);
+  };
+
+  const selectProject = (id: string) => {
+    setSelected(id);
+    setResult(null);
+    setQuery("");
+    window.scrollTo(0, 0);
+  };
+
+  const closeProject = () => {
+    setSelected(null);
+    window.scrollTo(0, 0);
+  };
+
+  const closeOverlay = () => {
+    setOverlay(null);
+    setOpenLead(null);
+  };
+
+  // ── funil ────────────────────────────────────────────────────────────────
+  const drop = (stage: StageKey) => {
+    const id = dragging;
+    setDragOver(null);
+    setDragging(null);
+    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, stage, idle: 0 } : l)));
+  };
+
+  const advanceLead = () => {
+    setLeads((ls) => {
+      const cur = ls.find((l) => l.id === openLead);
+      if (!cur) return ls;
+      const idx = STAGES.findIndex((st) => st[0] === cur.stage);
+      const next = STAGES[Math.min(idx + 1, STAGES.length - 1)][0];
+      return ls.map((l) => (l.id === openLead ? { ...l, stage: next, idle: 0 } : l));
+    });
+  };
+
+  const saveLead = (nome: string, valor: string) => {
+    setLeads((ls) => [
+      {
+        id: "n" + Date.now(),
+        name: nome.trim() || "Cliente sem nome",
+        value: parseInt(String(valor).replace(/\D/g, ""), 10) || 45000,
+        idle: 0,
+        ambientes: (ambPick.length ? ambPick.join(", ") : "A definir") + " · " + origem,
+        stage: "lead",
+      },
+      ...ls,
+    ]);
+    setOverlay(null);
+    setTab("funil");
+  };
+
+  // ── projeto selecionado ──────────────────────────────────────────────────
+  const updProj = useCallback(
+    (fn: (p: Project) => Project) => {
+      setProjects((ps) => ps.map((p) => (p.id === selected ? fn({ ...p }) : p)));
+    },
+    [selected],
+  );
+
+  const setField = <K extends keyof Project>(key: K, v: Project[K]) =>
+    updProj((p) => {
+      p[key] = v;
+      return p;
+    });
+
+  const setAmb = (i: number, j: number, v: string | number) =>
+    updProj((p) => {
+      p.ambientes = p.ambientes.map((a, k) =>
+        k === i ? (a.map((x, m) => (m === j ? v : x)) as Ambiente) : a,
+      );
+      return p;
+    });
+
+  const stepAmb = (i: number, dir: number) =>
+    updProj((p) => {
+      p.ambientes = p.ambientes.map((a, k) =>
+        k === i
+          ? (a.map((x, m) =>
+              m === 3 ? Math.max(0, Math.min(5, (x as number) + dir)) : x,
+            ) as Ambiente)
+          : a,
+      );
+      return p;
+    });
+
+  const addAmb = () =>
+    updProj((p) => {
+      p.ambientes = [...p.ambientes, ["Novo ambiente", "Descrever marcenaria", 0, 0, "a definir"]];
+      return p;
+    });
+
+  const addMaterial = (m: { name: string; spec: string; qty: string; unit: string }) => {
+    if (!m.name) return;
+    const qty = m.qty || "1 un";
+    const unit = parseInt(String(m.unit).replace(/\D/g, ""), 10) || 0;
+    const n = parseFloat(String(qty).replace(",", ".")) || 1;
+    updProj((p) => {
+      p.materials = [...p.materials, [m.name, m.spec || "—", "Materiais", qty, unit, Math.round(unit * n)]];
+      return p;
+    });
+  };
+
+  const saveProject = (fm: {
+    name: string;
+    client: string;
+    address: string;
+    budget: string;
+    deadline: string;
+  }) => {
+    const budget = parseInt(String(fm.budget).replace(/\D/g, ""), 10) || 0;
+    const picked = ambPick.length ? ambPick : ["Cozinha"];
+    const each = Math.round(budget / picked.length);
+    const id = "np" + Date.now();
+    const proj: Project = {
+      id,
+      name: fm.name.trim() || "Projeto sem nome",
+      client: fm.client.trim() || "Cliente a definir",
+      address: fm.address.trim() || "Endereço a definir",
+      status: "Aguardando aprovação",
+      stage: "Medição e projeto",
+      deadline: fm.deadline.trim() || "a definir",
+      budget: budget || 1,
+      spent: 0,
+      imageLabel: "render pendente",
+      ambientes: picked.map((a) => [a, "Descrever marcenaria", each, 0, "aguardando medição"]),
+      stages: [
+        ["Briefing", "hoje", "current"],
+        ["Projeto", "a definir", "todo"],
+        ["Aprovação", "a definir", "todo"],
+        ["Produção", "a definir", "todo"],
+        ["Entrega", "a definir", "todo"],
+        ["Montagem", "a definir", "todo"],
+      ],
+      budgetCats: [
+        ["Materiais", Math.round(budget * 0.35), 0],
+        ["Mão de obra", Math.round(budget * 0.25), 0],
+        ["Mobiliário", Math.round(budget * 0.25), 0],
+        ["Iluminação", Math.round(budget * 0.1), 0],
+        ["Decoração", Math.round(budget * 0.05), 0],
+      ],
+      materials: [],
+    };
+    setProjects((ps) => [proj, ...ps]);
+    setOverlay(null);
+    setTab("projetos");
+    setSelected(id);
+    window.scrollTo(0, 0);
+  };
+
+  // ── consulta de preço ────────────────────────────────────────────────────
+  const lookup = () => {
+    const q = (query || "MDF branco 18mm").toLowerCase();
+    const norm = deaccent(q);
+    const hit = PRICES.find((p) => norm.includes(deaccent(p[0])));
+    const row = hit ?? ["", "R$ 164,50", "por m² · faixa média de mercado", "Estimativa referencial · 6 fornecedores"];
+    setResult({ term: query || "MDF branco 18mm", value: row[1], unit: row[2], source: row[3] });
+  };
+
+  // ── derivados ────────────────────────────────────────────────────────────
+  const decorate = useCallback((p: Project): ProjectVM => {
+    const pct = Math.round((p.spent / p.budget) * 100);
+    return {
+      ...p,
+      badgeStyle: chip(STATUS_TONE[p.status]),
+      budgetLabel: money(p.budget),
+      spentLabel: money(p.spent),
+      saldoLabel: money(p.budget - p.spent),
+      ambienteTags: p.ambientes.map((a) => a[0]),
+      pct,
+      pctColor: pct > 92 ? "#A85C3C" : "#1F5560",
+    };
+  }, []);
+
+  const decorated = useMemo(() => projects.map(decorate), [projects, decorate]);
+  const sel = projects.find((p) => p.id === selected) ?? null;
+  const leadSel = leads.find((l) => l.id === openLead) ?? null;
+
+  const detail = useMemo(() => {
+    if (!sel) return null;
+    return {
+      ...decorate(sel),
+      ambienteCount: sel.ambientes.length,
+      rawBudget: sel.budget.toLocaleString("pt-BR"),
+      ambientesVM: sel.ambientes.map(([name, dtl, value, step, eta], i) => ({
+        name,
+        detail: dtl,
+        valueLabel: money(value),
+        eta,
+        rawValue: value.toLocaleString("pt-BR"),
+        status: AMB_STEPS[Math.min(step, 5)],
+        onName: (e: React.ChangeEvent<HTMLInputElement>) => setAmb(i, 0, e.target.value),
+        onDetail: (e: React.ChangeEvent<HTMLTextAreaElement>) => setAmb(i, 1, e.target.value),
+        onValue: (e: React.ChangeEvent<HTMLInputElement>) =>
+          setAmb(i, 2, parseInt(String(e.target.value).replace(/\D/g, ""), 10) || 0),
+        up: () => stepAmb(i, 1),
+        down: () => stepAmb(i, -1),
+        steps: AMB_STEPS.map((_, k) => ({
+          color: k <= step ? (step >= 5 ? "#6B7040" : "#1F5560") : "#EDEAE2",
+        })),
+      })),
+      stagesVM: sel.stages.map(([label, date, st], i) => ({
+        label,
+        date,
+        textColor: st === "todo" ? "#9A9689" : "#23231F",
+        dotStyle: {
+          width: st === "current" ? 15 : 13,
+          height: st === "current" ? 15 : 13,
+          borderRadius: 999,
+          flex: "none",
+          ...(st === "done"
+            ? { background: "#1F5560" }
+            : st === "current"
+              ? { background: "#FFFFFF", border: "3px solid #1F5560" }
+              : { background: "#FFFFFF", border: "2px solid #DDD9CE" }),
+        } as React.CSSProperties,
+        lineStyle: {
+          height: 2,
+          flex: 1,
+          background: st === "done" ? "#1F5560" : "#EDEAE2",
+          ...(i === 5 ? { display: "none" } : null),
+        } as React.CSSProperties,
+      })),
+      budgetVM: sel.budgetCats.map(([label, planned, spent], i) => ({
+        label,
+        plannedLabel: money(planned),
+        spentLabel: money(spent),
+        pct: Math.round((spent / planned) * 100),
+        color: CAT_COLORS[i % CAT_COLORS.length],
+      })),
+      materialsVM: sel.materials.map(([name, spec, category, qty, unit, total]) => ({
+        name,
+        spec,
+        category,
+        qty,
+        unitLabel: money(unit),
+        totalLabel: money(total),
+      })),
+      materialsCount: sel.materials.length,
+    };
+    // setAmb/stepAmb são estáveis o bastante para o escopo do protótipo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel, decorate]);
+
+  const showDetail = tab === "projetos" && !!sel;
+  const showList = tab === "projetos" && !sel;
+
+  const gridStyle: React.CSSProperties =
+    projetoLayout === "lista"
+      ? { display: "grid", gridTemplateColumns: "1fr", gap: 18 }
+      : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 22 };
+
+  const TABS: [Tab, string][] = [
+    ["funil", "Funil"],
+    ["projetos", "Projetos"],
+    ["comissao", "Comissão"],
+    ["agenda", "Agenda"],
+    ["financeiro", "Financeiro"],
+    ["posvenda", "Pós-venda"],
+  ];
+
+  return (
+    <div
+      className="dash-root"
+      style={{
+        fontFamily: "var(--font-manrope), Manrope, Helvetica, sans-serif",
+        color: "#23231F",
+        minHeight: "100vh",
+        background: "linear-gradient(150deg, #CFD2CD 0%, #C6CCC9 50%, #D2CFC6 100%)",
+      }}
+    >
+      <div
+        className="dash-shell"
+        style={{
+          background:
+            "linear-gradient(155deg, #F7F6F1 0%, #F2F0E8 32%, #EBEFE9 62%, #DFE9E4 82%, #D7E3DE 100%)",
+          boxShadow: "0 30px 70px rgba(46,52,48,.22), inset 0 1px 0 rgba(255,255,255,.7)",
+        }}
+      >
+        {/* ── barra superior ─────────────────────────────────────────────── */}
+        <div className="dash-topbar">
+          <div className="dash-brand">
+            <button
+              className="dash-brand-btn"
+              onClick={() => setMenuPerfil((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuPerfil}
+            >
+              <Avatar perfil={perfil} />
+              <span
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  letterSpacing: "-0.015em",
+                  maxWidth: 190,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {perfil.nome}
+              </span>
+              <span className="dash-brand-seta" aria-hidden>
+                ▾
+              </span>
+            </button>
+            {menuPerfil && (
+              <PerfilMenu
+                perfil={perfil}
+                onClose={() => setMenuPerfil(false)}
+                onEditar={() => {
+                  setMenuPerfil(false);
+                  setPerfilAberto(true);
+                }}
+              />
+            )}
+          </div>
+
+          <div className="dash-tabs">
+            {TABS.map(([key, label]) => (
+              <button key={key} onClick={() => goTab(key)} style={tabStyle(tab === key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="dash-actions">
+            <button
+              className="dash-btn-notif"
+              onClick={() => setOverlay("notif")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 999,
+                width: 40,
+                height: 40,
+                background: overlay === "notif" ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)",
+              }}
+              aria-label="Avisos"
+            >
+              <span
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 16,
+                  height: 16,
+                }}
+              >
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 999,
+                    border: "1.6px solid #4A473F",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -1,
+                    right: -2,
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    background: "#A85C3C",
+                    border: "1.5px solid #F4F3EE",
+                  }}
+                />
+              </span>
+            </button>
+            <button
+              className="dash-btn-new"
+              onClick={() => setOverlay("novo")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                border: "none",
+                background: overlay === "novo" ? "#1F5560" : "#23231F",
+                color: "#F4F3EE",
+                borderRadius: 999,
+                padding: "12px 22px",
+                fontSize: "13px",
+                fontWeight: 600,
+                transition: "all .18s ease",
+                boxShadow: "0 4px 14px rgba(35,35,31,.16)",
+              }}
+            >
+              <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: 400 }}>+</span>
+              <span>Novo atendimento</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── saudação e indicadores ─────────────────────────────────────── */}
+        <div className="dash-hero">
+          <div>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: "11px",
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                color: "#8C887C",
+              }}
+            >
+              Segunda, 24 de agosto de 2026
+            </div>
+            <h1
+              style={{
+                fontWeight: 500,
+                letterSpacing: "-0.04em",
+                lineHeight: 1.02,
+                margin: "14px 0 0",
+              }}
+            >
+              Bom dia, {primeiroNome(perfil.nome)}
+            </h1>
+            <div className="dash-hero-meta">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "#23231F",
+                  color: "#F4F3EE",
+                  borderRadius: 999,
+                  padding: "8px 16px",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                }}
+              >
+                Meta de agosto · 84%
+              </div>
+              <div
+                style={{
+                  width: 220,
+                  height: 10,
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,.65)",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ height: "100%", width: "84%", borderRadius: 999, background: "#1F5560" }} />
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: "11px", color: "#6E6A5F" }}>
+                faltam R$ 51.600
+              </div>
+            </div>
+          </div>
+          <div className="dash-hero-stats">
+            {[
+              ["18", "clientes no funil", undefined],
+              ["06", "projetos ativos", undefined],
+              ["21", "ambientes em produção", "#1F5560"],
+            ].map(([n, label, color]) => (
+              <div key={label}>
+                <div
+                  style={{
+                    fontSize: "44px",
+                    fontWeight: 500,
+                    letterSpacing: "-0.04em",
+                    lineHeight: 1,
+                    ...NUM,
+                    ...(color ? { color } : null),
+                  }}
+                >
+                  {n}
+                </div>
+                <div style={{ fontSize: "12.5px", color: "#6E6A5F", marginTop: 6 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {tab === "funil" && (
+          <Funil
+            leads={leads}
+            dragOver={dragOver}
+            dragging={dragging}
+            setDragOver={setDragOver}
+            setDragging={setDragging}
+            onDrop={drop}
+            onOpenLead={setOpenLead}
+          />
+        )}
+        {showList && (
+          <ProjetosLista
+            projects={decorated}
+            gridStyle={gridStyle}
+            onOpen={selectProject}
+            onNewProject={() => setOverlay("projeto")}
+          />
+        )}
+        {showDetail && detail && (
+          <ProjetoDetalhe
+            sel={detail}
+            onClose={closeProject}
+            onName={(e) => setField("name", e.target.value)}
+            onClient={(e) => setField("client", e.target.value)}
+            onAddress={(e) => setField("address", e.target.value)}
+            onDeadline={(e) => setField("deadline", e.target.value)}
+            onBudget={(e) =>
+              setField("budget", parseInt(String(e.target.value).replace(/\D/g, ""), 10) || 0)
+            }
+            onAddAmbiente={addAmb}
+            query={query}
+            onQuery={(e) => setQuery(e.target.value)}
+            onSearch={lookup}
+            result={result}
+            onAddMaterial={addMaterial}
+          />
+        )}
+        {tab === "comissao" && <Comissao />}
+        {tab === "agenda" && <Agenda />}
+        {tab === "financeiro" && <Financeiro projects={decorated} />}
+        {tab === "posvenda" && <PosVenda />}
+      </div>
+
+      {overlay === "projeto" && (
+        <NovoProjeto
+          ambPick={ambPick}
+          onToggleAmb={(a) =>
+            setAmbPick((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]))
+          }
+          onClose={closeOverlay}
+          onSave={saveProject}
+        />
+      )}
+      {leadSel && (
+        <LeadDrawer lead={leadSel} onClose={closeOverlay} onAdvance={advanceLead} />
+      )}
+      {overlay === "notif" && <Avisos onClose={closeOverlay} />}
+      {perfilAberto && (
+        <PerfilModal
+          perfil={perfil}
+          onClose={() => setPerfilAberto(false)}
+          onSave={salvarPerfil}
+        />
+      )}
+      {overlay === "novo" && (
+        <NovoAtendimento
+          origem={origem}
+          onOrigem={setOrigem}
+          ambPick={ambPick}
+          onToggleAmb={(a) =>
+            setAmbPick((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]))
+          }
+          onClose={closeOverlay}
+          onSave={saveLead}
+        />
+      )}
+    </div>
+  );
+}

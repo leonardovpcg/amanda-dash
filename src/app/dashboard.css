@@ -1,0 +1,727 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dashboard Arquitetura — base de estilo.
+   Portado de claude.ai/design/p/cc5e4c8d-83bf-493e-bcbd-045df09d76dd
+   (`Dashboard Arquitetura.dc.html`), sincronizado em 2026-08-22.
+
+   O design original é HTML com estilo inline. Os estilos que dependem de
+   estado do CSS — `style-hover` e `style-focus` do runtime do canvas — não
+   têm equivalente inline em React, então viram classes aqui. O restante do
+   estilo continua inline no JSX, fiel ao original.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+body {
+  margin: 0;
+  background: #cbcfcb;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dash-root,
+.dash-root * {
+  box-sizing: border-box;
+}
+
+.dash-root a {
+  color: #1f5560;
+  text-decoration: none;
+}
+.dash-root a:hover {
+  color: #2e7a88;
+}
+.dash-root button {
+  font-family: inherit;
+  cursor: pointer;
+}
+.dash-root input,
+.dash-root textarea {
+  font-family: inherit;
+}
+
+/* — scrollbars — */
+.dash-root * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 85, 96, 0.28) transparent;
+}
+.dash-root ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.dash-root ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dash-root ::-webkit-scrollbar-thumb {
+  background: rgba(31, 85, 96, 0.22);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.dash-root ::-webkit-scrollbar-thumb:hover {
+  background: rgba(31, 85, 96, 0.42);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dash-root ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* — campo editável inline (nome do projeto, ambientes, valores) — */
+.dash-inline {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  outline: none;
+  color: #23231f;
+  padding: 4px 8px;
+  margin-left: -8px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dash-inline:hover {
+  border-color: #e2ded4;
+  background: rgba(255, 255, 255, 0.7);
+}
+.dash-inline:focus {
+  border-color: #1f5560;
+  background: #ffffff;
+}
+/* a textarea do detalhe do ambiente escurece o texto ao focar */
+textarea.dash-inline:focus {
+  color: #23231f;
+}
+
+/* — campo de formulário — */
+.dash-field {
+  border: 1px solid #e2ded4;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+  color: #23231f;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dash-field:focus {
+  border-color: #1f5560;
+  background: #ffffff;
+}
+.dash-field::placeholder {
+  color: #a8a498;
+}
+
+/* variante menor, usada na linha "adicionar material" e na busca de preço */
+.dash-field-sm {
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-size: 13.5px;
+}
+.dash-field-search {
+  border: 1px solid #e0dcd2;
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 13.5px;
+  background: #fcfbf9;
+}
+
+/* — botões — */
+.dash-btn-dark {
+  border: none;
+  background: #23231f;
+  color: #f4f3ee;
+  font-weight: 600;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+.dash-btn-dark:hover {
+  background: #1f5560;
+}
+
+.dash-btn-ghost {
+  border: 1px solid #e0dcd2;
+  background: rgba(255, 255, 255, 0.8);
+  color: #4a473f;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.dash-btn-ghost:hover {
+  border-color: #c9c4b6;
+  color: #23231f;
+}
+
+.dash-btn-teal {
+  border: none;
+  background: #1f5560;
+  color: #f6f5f1;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+.dash-btn-teal:hover {
+  background: #2a6874;
+}
+
+/* pílula clara sobre fundo teal claro (ações de pós-venda e "adicionar à lista") */
+.dash-btn-soft {
+  border: 1px solid #c6d8d6;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #1f5560;
+  transition: border-color 0.15s ease;
+}
+.dash-btn-soft:hover {
+  border-color: #9fbfbc;
+}
+
+/* botão de contorno que fica teal no hover (+ Ambiente, − / +) */
+.dash-btn-outline {
+  border: 1px solid #e0dcd2;
+  background: rgba(255, 255, 255, 0.8);
+  color: #4a473f;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.dash-btn-outline:hover {
+  border-color: #1f5560;
+  color: #1f5560;
+}
+
+.dash-btn-step {
+  border: 1px solid #e2ded4;
+  background: rgba(255, 255, 255, 0.8);
+  color: #6e6a5f;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.dash-btn-step:hover {
+  border-color: #1f5560;
+  color: #1f5560;
+}
+
+.dash-btn-notif {
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  transition: background 0.18s ease;
+}
+.dash-btn-notif:hover {
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dash-btn-new:hover {
+  background: #1f5560 !important;
+  box-shadow: 0 8px 22px rgba(31, 85, 96, 0.28);
+}
+
+/* — cartão de projeto (levanta no hover) — */
+.dash-proj-card {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.dash-proj-card:hover {
+  box-shadow: 0 10px 30px rgba(35, 35, 31, 0.07);
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Responsivo.
+   O design original foi desenhado para desktop (grades de 4 e 6 colunas,
+   padding de 44px, drawer de 470px). Estas classes carregam o que precisa
+   mudar por tamanho de tela — o resto do estilo segue inline no JSX.
+   Breakpoints: <768px celular, 768-1100px tablet.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* — moldura — */
+.dash-root {
+  padding: 26px;
+}
+.dash-shell {
+  border-radius: 36px;
+  overflow: hidden;
+}
+
+/* — barra superior — */
+.dash-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 34px 0;
+  flex-wrap: wrap;
+}
+.dash-brand {
+  order: 1;
+}
+.dash-tabs {
+  order: 2;
+  display: flex;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  flex-wrap: wrap;
+}
+.dash-actions {
+  order: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* — saudação — */
+.dash-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 34px 44px 30px;
+  flex-wrap: wrap;
+}
+.dash-hero h1 {
+  font-size: 54px;
+}
+.dash-hero-stats {
+  display: flex;
+  gap: 44px;
+}
+.dash-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* — área de conteúdo de cada aba — */
+.dash-tabpad {
+  padding: 4px 44px 56px;
+}
+
+/* — grades — */
+.dash-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.dash-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.dash-grid-com {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+}
+
+/* — kanban — */
+.dash-kanban {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(190px, 1fr));
+  gap: 14px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+/* — tabelas largas: rolam dentro do painel, nunca empurram a página — */
+.dash-scroll-x {
+  overflow-x: auto;
+}
+.dash-scroll-x > * {
+  min-width: 620px;
+}
+
+/* — formulário dos modais — */
+.dash-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* — overlays — */
+.dash-modal-wrap {
+  padding: 32px;
+}
+.dash-modal {
+  width: 100%;
+  max-width: 620px;
+  max-height: 100%;
+  overflow: auto;
+  border-radius: 32px;
+}
+.dash-drawer {
+  width: 470px;
+  max-width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 34px 34px 40px;
+}
+.dash-notif {
+  position: absolute;
+  top: 92px;
+  right: 44px;
+  width: 372px;
+  border-radius: 26px;
+}
+
+/* ── tablet ─────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .dash-grid-com,
+  .dash-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero h1 {
+    font-size: 44px;
+  }
+  .dash-hero-stats {
+    gap: 32px;
+  }
+  .dash-tabpad {
+    padding: 4px 28px 48px;
+  }
+  .dash-topbar {
+    padding: 22px 28px 0;
+  }
+  .dash-hero {
+    padding: 28px 28px 26px;
+  }
+}
+
+/* ── celular ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .dash-root {
+    padding: 10px;
+  }
+  .dash-shell {
+    border-radius: 22px;
+  }
+
+  .dash-topbar {
+    gap: 14px;
+    padding: 16px 16px 0;
+  }
+  /* as abas descem para uma faixa própria, rolando na horizontal em vez de
+     quebrar em três linhas e comer 141px de altura */
+  .dash-actions {
+    order: 2;
+  }
+  .dash-tabs {
+    order: 3;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dash-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .dash-tabs button {
+    flex: none;
+    padding: 10px 16px !important;
+  }
+
+  .dash-hero {
+    gap: 22px;
+    padding: 22px 16px 22px;
+  }
+  .dash-hero h1 {
+    font-size: 34px;
+  }
+  .dash-hero-stats {
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .dash-hero-meta {
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .dash-hero-meta > div:nth-child(2) {
+    width: 100% !important;
+  }
+
+  .dash-tabpad {
+    padding: 4px 16px 44px;
+  }
+
+  .dash-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .dash-grid-3,
+  .dash-grid-2,
+  .dash-grid-com {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* uma etapa do funil por tela, com encaixe ao rolar */
+  .dash-kanban {
+    grid-template-columns: repeat(6, 82vw);
+    gap: 10px;
+    scroll-snap-type: x mandatory;
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+  .dash-kanban > div {
+    scroll-snap-align: center;
+  }
+
+  .dash-scroll-x {
+    margin-inline: -18px;
+    padding-inline: 18px;
+  }
+
+  .dash-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* modais e drawer ocupam a tela inteira */
+  .dash-modal-wrap {
+    padding: 0;
+    align-items: stretch !important;
+  }
+  .dash-modal {
+    max-width: 100%;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+  .dash-drawer {
+    width: 100%;
+    padding: 22px 18px 32px;
+  }
+  .dash-notif {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: auto;
+    border-radius: 22px 22px 0 0;
+    max-height: 80vh;
+    overflow: auto;
+  }
+}
+
+/* — texto que troca por tamanho de tela — */
+.dash-so-celular {
+  display: none;
+}
+
+/* — cabeçalho do detalhe de projeto — */
+.dash-proj-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-top: 24px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid #e6e3db;
+}
+.dash-proj-head-nums {
+  display: flex;
+  gap: 40px;
+  flex: none;
+}
+
+/* — grade de ambientes — */
+.dash-amb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+/* — linha de adicionar material — */
+.dash-mat-add {
+  display: grid;
+  grid-template-columns: 2.4fr 1.2fr 0.8fr 1fr 1fr;
+  gap: 16px;
+  padding: 18px 0 22px;
+  align-items: center;
+}
+
+@media (max-width: 767px) {
+  .dash-so-desktop {
+    display: none;
+  }
+  .dash-so-celular {
+    display: inline;
+  }
+
+  .dash-proj-head {
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 18px;
+    padding-bottom: 20px;
+  }
+  .dash-proj-head-nums {
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  /* o nome do projeto tem width fixo de 420px no design — no celular
+     ele precisa caber na tela */
+  .dash-proj-head input.dash-inline {
+    width: 100% !important;
+    max-width: 100%;
+  }
+  .dash-proj-head-nums input.dash-inline {
+    width: 120px !important;
+  }
+
+  .dash-amb-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dash-mat-add {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* — cartões de indicador do Funil —
+   São 4 num grid; no celular viram 2 colunas de ~156px, e o número de 44px
+   do design não cabe nessa largura (quebrava em 3 linhas, deixando o cartão
+   com 232px de altura). O !important existe porque o tamanho vem inline do
+   design, e inline vence classe. */
+@media (max-width: 767px) {
+  .dash-kpi {
+    padding: 16px 15px !important;
+  }
+  .dash-kpi-num {
+    font-size: 28px !important;
+    margin-top: 8px !important;
+  }
+  .dash-kpi-num span {
+    font-size: 15px !important;
+  }
+}
+
+/* — campo que ocupa a linha inteira do formulário —
+   Precisa virar span 1 no celular: com a grade em 1 coluna, um item com
+   span 2 faz o navegador criar uma segunda coluna implícita e a grade
+   volta a ter duas colunas, de larguras desiguais. */
+.dash-span2 {
+  grid-column: span 2;
+}
+@media (max-width: 767px) {
+  .dash-span2 {
+    grid-column: span 1;
+  }
+}
+
+/* — indicadores na faixa de tablet —
+   Entre 768 e 1100px as grades ainda são de 3 e 4 colunas, mas os cartões
+   caem para ~180-250px e os números do design (44px e 52px) quebram em duas
+   linhas. Faixa fechada nos dois lados para não colidir com a regra do
+   celular, que vem antes no arquivo. */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .dash-kpi {
+    padding: 18px 18px !important;
+  }
+  .dash-kpi-num {
+    font-size: 30px !important;
+  }
+  .dash-kpi-num span {
+    font-size: 16px !important;
+  }
+  .dash-kpi-num-lg {
+    font-size: 38px !important;
+  }
+  .dash-kpi-num-lg span {
+    font-size: 19px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Perfil — o bloco do avatar e nome vira botão, e abre o menu da conta.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.dash-brand {
+  position: relative;
+}
+
+.dash-brand-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 9px 16px 9px 12px;
+  color: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.dash-brand-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #ffffff;
+}
+.dash-brand-btn:focus-visible {
+  outline: 2px solid #1f5560;
+  outline-offset: 2px;
+}
+.dash-brand-seta {
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1;
+  color: #8c887c;
+  /* rotate(0deg) explícito, não `none`: dá um ponto de partida limpo para a
+     transição em vez de obrigar o navegador a decompor matriz. */
+  transform: rotate(0deg);
+  transition: transform 0.15s ease;
+}
+/* a seta segue o estado ARIA do botão — se um sair de sincronia, aparece */
+.dash-brand-btn[aria-expanded="true"] .dash-brand-seta {
+  transform: rotate(180deg);
+}
+
+.dash-perfil-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 61;
+  width: 290px;
+  padding: 16px 16px 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(252, 251, 248, 0.96);
+  box-shadow: 0 26px 60px rgba(38, 42, 38, 0.24);
+  backdrop-filter: blur(14px);
+}
+
+.dash-perfil-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  padding: 11px 12px;
+  transition: background 0.15s ease;
+}
+.dash-perfil-item:hover:not(:disabled) {
+  background: rgba(31, 85, 96, 0.07);
+}
+.dash-perfil-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  /* no celular o menu vira folha na base, como os avisos */
+  .dash-perfil-menu {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 80vh;
+    overflow: auto;
+    border-radius: 22px 22px 0 0;
+    padding: 18px 18px 24px;
+  }
+  .dash-brand-btn {
+    gap: 9px;
+    padding: 7px 13px 7px 9px;
+  }
+}
