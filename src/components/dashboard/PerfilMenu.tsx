@@ -79,7 +79,7 @@ export default function PerfilMenu({
               onClick={it.onClick}
               disabled={it.pendente}
               style={{
-                color: it.tom === "sair" ? "#A85C3C" : "#23231F",
+                color: it.tom === "sair" ? "#9C2B22" : "#23231F",
               }}
             >
               <span style={{ fontSize: "13.5px", fontWeight: 600, letterSpacing: "-0.01em" }}>

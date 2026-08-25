@@ -5,11 +5,11 @@
 export const money = (n: number) =>
   "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-export type ToneName = "petrol" | "clay" | "sand" | "olive";
+export type ToneName = "terracota" | "clay" | "sand" | "olive";
 
 export const TONES: Record<ToneName, { bg: string; fg: string; bd: string }> = {
-  petrol: { bg: "#EAF1F1", fg: "#1F5560", bd: "#D3E3E2" },
-  clay: { bg: "#FAF0EA", fg: "#A85C3C", bd: "#EEDDD2" },
+  terracota: { bg: "#F8EDE5", fg: "#A84B1C", bd: "#EEDCCE" },
+  clay: { bg: "#FAEAE7", fg: "#9C2B22", bd: "#F1D6D1" },
   sand: { bg: "#F1F0EA", fg: "#6E6A5F", bd: "#E3E0D6" },
   olive: { bg: "#F1F2E8", fg: "#6B7040", bd: "#E1E3D2" },
 };
@@ -30,7 +30,7 @@ export const chip = (tone?: ToneName): React.CSSProperties => {
 };
 
 export const STATUS_TONE: Record<string, ToneName> = {
-  "Em andamento": "petrol",
+  "Em andamento": "terracota",
   "Aguardando aprovação": "clay",
   Concluído: "sand",
 };
@@ -44,7 +44,7 @@ export const AMB_STEPS = [
   "Concluído",
 ];
 
-export const CAT_COLORS = ["#1F5560", "#2E7A88", "#A85C3C", "#8C8A62", "#B9A88A"];
+export const CAT_COLORS = ["#8E3A12", "#A84B1C", "#C0663C", "#8C8A62", "#B9A88A"];
 
 export type StageKey = "lead" | "visita" | "projeto" | "orcamento" | "negociacao" | "fechado";
 
@@ -341,8 +341,8 @@ export const PROJECTS: Project[] = [
 
 /** [cliente, detalhe, valor, comissão, situação, tom] */
 export const COMMISSIONS: [string, string, number, number, string, ToneName][] = [
-  ["Helô Bandeira", "Cozinha + dormitório · assinado 04 ago", 58000, 2320, "Recebida", "petrol"],
-  ["Sr. Aurélio Braga", "Casa de praia · 3 ambientes", 71000, 2840, "Recebida", "petrol"],
+  ["Helô Bandeira", "Cozinha + dormitório · assinado 04 ago", 58000, 2320, "Recebida", "terracota"],
+  ["Sr. Aurélio Braga", "Casa de praia · 3 ambientes", 71000, 2840, "Recebida", "terracota"],
   ["Família Moretti", "Aditivo home office", 36000, 1440, "A liberar", "clay"],
   ["Marcos Iório", "Closet + lavanderia", 41400, 1656, "A liberar", "clay"],
   ["Studio Anelli", "Escritório · 1ª parcela", 44000, 1760, "Prevista", "sand"],
@@ -366,7 +366,7 @@ export const AGENDA: [string, string, AgendaItem[]][] = [
     "Visitas técnicas",
     "Medições e visitas agendadas",
     [
-      ["25", "ago", "Juliana Beltrão", "Medição final · cozinha e lavanderia", "09:00 · Perdizes", "#1F5560"],
+      ["25", "ago", "Juliana Beltrão", "Medição final · cozinha e lavanderia", "09:00 · Perdizes", "#A84B1C"],
       ["27", "ago", "Sr. Aurélio Braga", "Medição inicial · 3 ambientes", "14:30 · Camburi (deslocamento)", "#6E6A5F"],
       ["29", "ago", "Marina Sampaio", "Primeira visita · cozinha e closet", "10:30 · Vila Nova Conceição", "#6E6A5F"],
       ["02", "set", "Estúdio Faro", "Conferência de medidas do mezanino", "16:00 · Vila Madalena", "#6E6A5F"],
@@ -376,8 +376,8 @@ export const AGENDA: [string, string, AgendaItem[]][] = [
     "Retornos a fazer",
     "Follow-up de propostas enviadas",
     [
-      ["22", "ago", "Paulo Andrade", "Proposta enviada há 14 dias, sem resposta", "atrasado 4 dias", "#A85C3C"],
-      ["23", "ago", "Ana Lúcia Verona", "Revisar orçamento da cozinha gourmet", "hoje", "#A85C3C"],
+      ["22", "ago", "Paulo Andrade", "Proposta enviada há 14 dias, sem resposta", "atrasado 4 dias", "#9C2B22"],
+      ["23", "ago", "Ana Lúcia Verona", "Revisar orçamento da cozinha gourmet", "hoje", "#9C2B22"],
       ["26", "ago", "Família Ferraz", "Retomar contato · lead há 9 dias", "em 4 dias", "#6E6A5F"],
       ["28", "ago", "Dra. Renata Sampaio", "Negociação de condições de pagamento", "em 6 dias", "#6E6A5F"],
     ],
@@ -386,10 +386,10 @@ export const AGENDA: [string, string, AgendaItem[]][] = [
     "Entregas e montagens",
     "Logística confirmada com a fábrica",
     [
-      ["10", "set", "Residência Alvorada", "Montagem lavanderia · equipe 2 montadores", "confirmado", "#1F5560"],
-      ["12", "set", "Clínica Vértice", "Montagem recepção · balcão curvo", "confirmado", "#1F5560"],
-      ["18", "set", "Residência Alvorada", "Montagem cozinha · 3 dias de obra", "a confirmar frete", "#A85C3C"],
-      ["28", "set", "Clínica Vértice", "Entrega sala clínica 2", "confirmado", "#1F5560"],
+      ["10", "set", "Residência Alvorada", "Montagem lavanderia · equipe 2 montadores", "confirmado", "#A84B1C"],
+      ["12", "set", "Clínica Vértice", "Montagem recepção · balcão curvo", "confirmado", "#A84B1C"],
+      ["18", "set", "Residência Alvorada", "Montagem cozinha · 3 dias de obra", "a confirmar frete", "#9C2B22"],
+      ["28", "set", "Clínica Vértice", "Entrega sala clínica 2", "confirmado", "#A84B1C"],
     ],
   ],
 ];
@@ -398,16 +398,16 @@ export const AGENDA: [string, string, AgendaItem[]][] = [
 export const ASSIST: [string, string, string, string, string, ToneName][] = [
   ["Família Nogueira", "Closet · Ipanema", "Regulagem de porta de correr desalinhada", "12 ago", "Peça solicitada", "clay"],
   ["Marcos Iório", "Lavanderia · Pinheiros", "Troca de corrediça com ruído", "05 ago", "Prazo vencido", "clay"],
-  ["Helô Bandeira", "Cozinha · Santana", "Retoque de acabamento no rodapé", "18 ago", "Agendada 30 ago", "petrol"],
+  ["Helô Bandeira", "Cozinha · Santana", "Retoque de acabamento no rodapé", "18 ago", "Agendada 30 ago", "terracota"],
   ["Clínica Vértice", "Sala clínica 1 · Itaim", "Ajuste de dobradiça em armário técnico", "20 ago", "Em análise", "sand"],
 ];
 
 /** [cliente, escopo, até, restante, cor] */
 export const WARRANTIES: [string, string, string, string, string][] = [
-  ["Família Nogueira", "Suíte e closet · marcenaria completa", "jun 2031", "58 meses", "#1F5560"],
-  ["Marcos Iório", "Closet e lavanderia", "out 2026", "2 meses", "#A85C3C"],
-  ["Helô Bandeira", "Cozinha e dormitório", "ago 2031", "60 meses", "#1F5560"],
-  ["Condomínio Aurora", "Armários de área comum", "nov 2026", "3 meses", "#A85C3C"],
+  ["Família Nogueira", "Suíte e closet · marcenaria completa", "jun 2031", "58 meses", "#A84B1C"],
+  ["Marcos Iório", "Closet e lavanderia", "out 2026", "2 meses", "#9C2B22"],
+  ["Helô Bandeira", "Cozinha e dormitório", "ago 2031", "60 meses", "#A84B1C"],
+  ["Condomínio Aurora", "Armários de área comum", "nov 2026", "3 meses", "#9C2B22"],
 ];
 
 /** [cliente, nota, ação] */
@@ -441,9 +441,9 @@ export const AMB_OPTS = [
 
 /** [título, detalhe, tempo, cor] */
 export const NOTICES: [string, string, string, string][] = [
-  ["Paulo Andrade sem retorno", "Proposta de R$ 42.000 enviada há 14 dias, negociação parada.", "atrasado 4 dias", "#A85C3C"],
-  ["Fábrica confirmou entrega", "Clínica Vértice · balcão da recepção sai em 09 set.", "há 2 h", "#1F5560"],
-  ["Aprovação pendente", "Camila e Rui Tavares precisam assinar o executivo até 31 ago.", "hoje, 08:40", "#A85C3C"],
+  ["Paulo Andrade sem retorno", "Proposta de R$ 42.000 enviada há 14 dias, negociação parada.", "atrasado 4 dias", "#9C2B22"],
+  ["Fábrica confirmou entrega", "Clínica Vértice · balcão da recepção sai em 09 set.", "há 2 h", "#A84B1C"],
+  ["Aprovação pendente", "Camila e Rui Tavares precisam assinar o executivo até 31 ago.", "hoje, 08:40", "#9C2B22"],
   ["Assistência agendada", "Helô Bandeira · retoque de rodapé em 30 ago, 10:00.", "ontem", "#6B7040"],
 ];
 

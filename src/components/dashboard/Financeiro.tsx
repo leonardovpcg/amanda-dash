@@ -6,7 +6,7 @@ import { MONO, NUM, cardTitle, mono, panel } from "./ui";
 /** Totais fixos no design original (protótipo). */
 const TOTAIS: [string, string, string | undefined][] = [
   ["Total contratado", "R$ 1,84 mi", undefined],
-  ["Total faturado", "R$ 1,12 mi", "#1F5560"],
+  ["Total faturado", "R$ 1,12 mi", "#A84B1C"],
   ["A faturar", "R$ 720 mil", undefined],
 ];
 
@@ -38,7 +38,7 @@ export default function Financeiro({ projects }: { projects: ProjectVM[] }) {
           <div style={cardTitle}>Orçado vs. gasto por projeto</div>
           <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
             {[
-              ["#1F5560", "Gasto"],
+              ["#A84B1C", "Gasto"],
               ["#F0EDE5", "Orçado"],
             ].map(([c, label]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>

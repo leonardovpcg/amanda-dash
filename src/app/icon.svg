@@ -1,0 +1,20 @@
+<!-- Ícone da aba: o mesmo símbolo de src/components/dashboard/LogoTerracota.tsx.
+     Se a geometria mudar lá, mudar aqui também. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 108 108">
+  <g fill="#C0663C">
+    <path d="M34.12 6 H57.5 L87.69 36.19 L76 47.88 Z"/>
+    <path d="M62 6 H68 L92.94 30.94 L89.94 33.94 Z"/>
+  </g>
+  <g fill="#8E2C0B" transform="rotate(90 50 50)">
+    <path d="M34.12 6 H57.5 L87.69 36.19 L76 47.88 Z"/>
+    <path d="M62 6 H68 L92.94 30.94 L89.94 33.94 Z"/>
+  </g>
+  <g fill="#C0663C" transform="rotate(180 50 50)">
+    <path d="M34.12 6 H57.5 L87.69 36.19 L76 47.88 Z"/>
+    <path d="M62 6 H68 L92.94 30.94 L89.94 33.94 Z"/>
+  </g>
+  <g fill="#8E2C0B" transform="rotate(270 50 50)">
+    <path d="M34.12 6 H57.5 L87.69 36.19 L76 47.88 Z"/>
+    <path d="M62 6 H68 L92.94 30.94 L89.94 33.94 Z"/>
+  </g>
+</svg>

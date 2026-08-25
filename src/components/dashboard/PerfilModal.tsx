@@ -195,9 +195,9 @@ export default function PerfilModal({
           <div
             style={{
               margin: "18px 34px 0",
-              border: "1px solid #EEDDD2",
-              background: "#FAF0EA",
-              color: "#A85C3C",
+              border: "1px solid #F1D6D1",
+              background: "#FAEAE7",
+              color: "#9C2B22",
               borderRadius: 14,
               padding: "12px 16px",
               fontSize: "13px",

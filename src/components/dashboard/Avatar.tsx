@@ -38,7 +38,7 @@ export default function Avatar({
         width: size,
         height: size,
         borderRadius: 999,
-        background: "#1F5560",
+        background: "#A84B1C",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

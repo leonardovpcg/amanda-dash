@@ -11,7 +11,7 @@
 
 body {
   margin: 0;
-  background: #cbcfcb;
+  background: #cfc7bf;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -21,11 +21,11 @@ body {
 }
 
 .dash-root a {
-  color: #1f5560;
+  color: #a84b1c;
   text-decoration: none;
 }
 .dash-root a:hover {
-  color: #2e7a88;
+  color: #c0663c;
 }
 .dash-root button {
   font-family: inherit;
@@ -39,7 +39,7 @@ body {
 /* — scrollbars — */
 .dash-root * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(31, 85, 96, 0.28) transparent;
+  scrollbar-color: rgba(168, 75, 28, 0.28) transparent;
 }
 .dash-root ::-webkit-scrollbar {
   width: 10px;
@@ -49,13 +49,13 @@ body {
   background: transparent;
 }
 .dash-root ::-webkit-scrollbar-thumb {
-  background: rgba(31, 85, 96, 0.22);
+  background: rgba(168, 75, 28, 0.22);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 .dash-root ::-webkit-scrollbar-thumb:hover {
-  background: rgba(31, 85, 96, 0.42);
+  background: rgba(168, 75, 28, 0.42);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -79,7 +79,7 @@ body {
   background: rgba(255, 255, 255, 0.7);
 }
 .dash-inline:focus {
-  border-color: #1f5560;
+  border-color: #a84b1c;
   background: #ffffff;
 }
 /* a textarea do detalhe do ambiente escurece o texto ao focar */
@@ -99,7 +99,7 @@ textarea.dash-inline:focus {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .dash-field:focus {
-  border-color: #1f5560;
+  border-color: #a84b1c;
   background: #ffffff;
 }
 .dash-field::placeholder {
@@ -123,13 +123,13 @@ textarea.dash-inline:focus {
 /* — botões — */
 .dash-btn-dark {
   border: none;
-  background: #23231f;
+  background: #6b7040;
   color: #f4f3ee;
   font-weight: 600;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 .dash-btn-dark:hover {
-  background: #1f5560;
+  background: #a84b1c;
 }
 
 .dash-btn-ghost {
@@ -144,30 +144,30 @@ textarea.dash-inline:focus {
   color: #23231f;
 }
 
-.dash-btn-teal {
+.dash-btn-terra {
   border: none;
-  background: #1f5560;
+  background: #a84b1c;
   color: #f6f5f1;
   font-weight: 600;
   transition: background 0.15s ease;
 }
-.dash-btn-teal:hover {
-  background: #2a6874;
+.dash-btn-terra:hover {
+  background: #8e3a12;
 }
 
-/* pílula clara sobre fundo teal claro (ações de pós-venda e "adicionar à lista") */
+/* pílula clara sobre tinta terracota (ações de pós-venda e "adicionar à lista") */
 .dash-btn-soft {
-  border: 1px solid #c6d8d6;
+  border: 1px solid #ebd3c2;
   border-radius: 999px;
   font-weight: 600;
-  color: #1f5560;
+  color: #a84b1c;
   transition: border-color 0.15s ease;
 }
 .dash-btn-soft:hover {
-  border-color: #9fbfbc;
+  border-color: #d9af93;
 }
 
-/* botão de contorno que fica teal no hover (+ Ambiente, − / +) */
+/* botão de contorno que fica terracota no hover (+ Ambiente, − / +) */
 .dash-btn-outline {
   border: 1px solid #e0dcd2;
   background: rgba(255, 255, 255, 0.8);
@@ -176,8 +176,8 @@ textarea.dash-inline:focus {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .dash-btn-outline:hover {
-  border-color: #1f5560;
-  color: #1f5560;
+  border-color: #a84b1c;
+  color: #a84b1c;
 }
 
 .dash-btn-step {
@@ -187,8 +187,8 @@ textarea.dash-inline:focus {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .dash-btn-step:hover {
-  border-color: #1f5560;
-  color: #1f5560;
+  border-color: #a84b1c;
+  color: #a84b1c;
 }
 
 .dash-btn-notif {
@@ -200,8 +200,8 @@ textarea.dash-inline:focus {
 }
 
 .dash-btn-new:hover {
-  background: #1f5560 !important;
-  box-shadow: 0 8px 22px rgba(31, 85, 96, 0.28);
+  background: #a84b1c !important;
+  box-shadow: 0 8px 22px rgba(168, 75, 28, 0.28);
 }
 
 /* — cartão de projeto (levanta no hover) — */
@@ -239,8 +239,33 @@ textarea.dash-inline:focus {
   padding: 26px 34px 0;
   flex-wrap: wrap;
 }
-.dash-brand {
+/* a marca ocupa o canto superior esquerdo; o perfil foi para o grupo da
+   direita, junto dos avisos e do botão de novo atendimento */
+.dash-logo {
   order: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: none;
+}
+.dash-logo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.05;
+}
+.dash-logo-nome {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #23231f;
+}
+.dash-logo-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.025em;
+  color: #a84b1c;
 }
 .dash-tabs {
   order: 2;
@@ -401,6 +426,11 @@ textarea.dash-inline:focus {
      quebrar em três linhas e comer 141px de altura */
   .dash-actions {
     order: 2;
+  }
+  /* no celular a marca fica só no símbolo — a assinatura não cabe ao lado
+     dos avisos, do botão de atendimento e do perfil */
+  .dash-logo-texto {
+    display: none;
   }
   .dash-tabs {
     order: 3;
@@ -640,11 +670,11 @@ textarea.dash-inline:focus {
 .dash-brand-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 7px;
   border: 1px solid rgba(255, 255, 255, 0.85);
   background: rgba(255, 255, 255, 0.5);
   border-radius: 999px;
-  padding: 9px 16px 9px 12px;
+  padding: 9px 13px 9px 9px;
   color: inherit;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -653,7 +683,7 @@ textarea.dash-inline:focus {
   border-color: #ffffff;
 }
 .dash-brand-btn:focus-visible {
-  outline: 2px solid #1f5560;
+  outline: 2px solid #a84b1c;
   outline-offset: 2px;
 }
 .dash-brand-seta {
@@ -674,7 +704,9 @@ textarea.dash-inline:focus {
 .dash-perfil-menu {
   position: absolute;
   top: calc(100% + 10px);
-  left: 0;
+  /* ancorado à direita: a pílula do perfil fica no canto direito da barra,
+     e um menu de 290px alinhado à esquerda dela sairia da tela */
+  right: 0;
   z-index: 61;
   width: 290px;
   padding: 16px 16px 14px;
@@ -699,7 +731,7 @@ textarea.dash-inline:focus {
   transition: background 0.15s ease;
 }
 .dash-perfil-item:hover:not(:disabled) {
-  background: rgba(31, 85, 96, 0.07);
+  background: rgba(168, 75, 28, 0.07);
 }
 .dash-perfil-item:disabled {
   opacity: 0.45;

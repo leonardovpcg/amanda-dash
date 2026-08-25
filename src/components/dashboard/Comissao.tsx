@@ -20,7 +20,7 @@ export default function Comissao() {
     short,
     label: "R$ " + Math.round(v / 1000) + "k",
     pct: Math.round((v / maxMonth) * 100),
-    color: short === "Ago" ? "#1F5560" : "#D9D5C8",
+    color: short === "Ago" ? "#A84B1C" : "#D9D5C8",
   }));
 
   return (
@@ -28,11 +28,11 @@ export default function Comissao() {
       {/* ── destaque do mês ─────────────────────────────────────────────── */}
       <div
         style={{
-          background: "linear-gradient(140deg, #23231F 0%, #1F5560 70%)",
+          background: "linear-gradient(140deg, #23231F 0%, #8E3A12 72%)",
           borderRadius: 30,
           padding: "40px 42px",
-          boxShadow: "0 14px 40px rgba(31,85,96,.22)",
-          color: "#F1F5F4",
+          boxShadow: "0 14px 40px rgba(168,75,28,.22)",
+          color: "#FBF2EC",
         }}
       >
         <div
@@ -45,7 +45,7 @@ export default function Comissao() {
           }}
         >
           <div>
-            <div style={mono(10.5, "#9EBDBE", { ls: "0.09em", upper: true })}>
+            <div style={mono(10.5, "#D6A488", { ls: "0.09em", upper: true })}>
               Vendido em agosto de 2026
             </div>
             <div
@@ -60,7 +60,7 @@ export default function Comissao() {
             >
               R$ 268.400
             </div>
-            <div style={{ fontSize: "14px", color: "#BBD3D2", marginTop: 8 }}>
+            <div style={{ fontSize: "14px", color: "#E9C9B6", marginTop: 8 }}>
               6 contratos fechados · ticket médio R$ 44.733
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function Comissao() {
               ["Comissão recebida", "R$ 6.180", "R$ 4.556 a liberar"],
             ].map(([label, value, note]) => (
               <div key={label}>
-                <div style={mono(10.5, "#9EBDBE", { ls: "0.09em", upper: true })}>{label}</div>
+                <div style={mono(10.5, "#D6A488", { ls: "0.09em", upper: true })}>{label}</div>
                 <div
                   style={{
                     fontSize: "32px",
@@ -82,7 +82,7 @@ export default function Comissao() {
                 >
                   {value}
                 </div>
-                <div style={{ fontSize: "12.5px", color: "#BBD3D2", marginTop: 4 }}>{note}</div>
+                <div style={{ fontSize: "12.5px", color: "#E9C9B6", marginTop: 4 }}>{note}</div>
               </div>
             ))}
           </div>
@@ -90,7 +90,7 @@ export default function Comissao() {
         <div style={{ marginTop: 34 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
             <div style={{ fontSize: "13.5px", fontWeight: 600 }}>Meta do mês · R$ 320.000</div>
-            <div style={{ fontSize: "13.5px", color: "#BBD3D2", ...NUM }}>
+            <div style={{ fontSize: "13.5px", color: "#E9C9B6", ...NUM }}>
               84% da meta · faltam R$ 51.600
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function Comissao() {
           >
             <div style={{ height: "100%", width: "84%", borderRadius: 999, background: "#E8E3D6" }} />
           </div>
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9EBDBE", marginTop: 10 }}>
+          <div style={{ fontFamily: MONO, fontSize: "11px", color: "#D6A488", marginTop: 10 }}>
             9 dias úteis restantes · 2 propostas em negociação cobrem a diferença
           </div>
         </div>

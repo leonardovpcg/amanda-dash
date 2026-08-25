@@ -20,7 +20,7 @@ const KPIS: [string, React.ReactNode, string | undefined][] = [
     </>,
     undefined,
   ],
-  ["Parados há + de 7 dias", "05", "#A85C3C"],
+  ["Parados há + de 7 dias", "05", "#9C2B22"],
 ];
 
 export default function Funil({
@@ -108,8 +108,8 @@ export default function Funil({
                 padding: "14px 12px",
                 minHeight: 280,
                 transition: "background .15s ease, border-color .15s ease",
-                border: "1px solid " + (active ? "rgba(31,85,96,.35)" : "rgba(255,255,255,.8)"),
-                background: active ? "rgba(31,85,96,.10)" : "rgba(255,255,255,.38)",
+                border: "1px solid " + (active ? "rgba(168,75,28,.35)" : "rgba(255,255,255,.8)"),
+                background: active ? "rgba(168,75,28,.10)" : "rgba(255,255,255,.38)",
               }}
             >
               <div
@@ -189,7 +189,7 @@ export default function Funil({
                           padding: "3px 7px",
                           borderRadius: 6,
                           ...(c.idle >= 7
-                            ? { background: "#FAF0EA", color: "#A85C3C" }
+                            ? { background: "#FAEAE7", color: "#9C2B22" }
                             : { background: "#F2F0EA", color: "#8C887C" }),
                         }}
                       >

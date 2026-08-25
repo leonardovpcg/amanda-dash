@@ -5,7 +5,7 @@ import { MONO, NUM, cardTitle, mono, panel } from "./ui";
 
 /** Indicadores fixos no design original (protótipo). */
 const KPIS: [string, string, string, string | undefined][] = [
-  ["Assistências abertas", "04", "1 com prazo vencido", "#A85C3C"],
+  ["Assistências abertas", "04", "1 com prazo vencido", "#9C2B22"],
   ["Garantias em vigência", "11", "2 vencem em 60 dias", undefined],
   ["Indicação e recompra", "07", "clientes prontos para contato", undefined],
 ];
@@ -123,7 +123,7 @@ export default function PosVenda() {
               <button
                 className="dash-btn-soft"
                 style={{
-                  background: "#F3F7F6",
+                  background: "#FBF2EC",
                   padding: "8px 14px",
                   fontSize: "12px",
                   whiteSpace: "nowrap",

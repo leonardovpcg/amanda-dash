@@ -14,7 +14,7 @@ const KPIS: [string, React.ReactNode, string, string | undefined][] = [
     "R$ 1,12 mi já faturados",
     undefined,
   ],
-  ["Prazos nos próximos 30 dias", "03", "Montagem mais próxima em 9 dias", "#A85C3C"],
+  ["Prazos nos próximos 30 dias", "03", "Montagem mais próxima em 9 dias", "#9C2B22"],
 ];
 
 export default function ProjetosLista({

@@ -146,7 +146,7 @@ export default function ProjetoDetalhe({
                 fontWeight: 600,
                 marginTop: 6,
                 letterSpacing: "-0.02em",
-                color: "#1F5560",
+                color: "#A84B1C",
                 whiteSpace: "nowrap",
                 ...NUM,
               }}
@@ -270,7 +270,7 @@ export default function ProjetoDetalhe({
                   marginTop: 11,
                 }}
               >
-                <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#1F5560" }}>
+                <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#A84B1C" }}>
                   {a.status}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -384,7 +384,7 @@ export default function ProjetoDetalhe({
               style={{ flex: 1 }}
             />
             <button
-              className="dash-btn-teal"
+              className="dash-btn-terra"
               onClick={onSearch}
               style={{
                 borderRadius: 12,
@@ -406,7 +406,7 @@ export default function ProjetoDetalhe({
                 padding: "20px 22px",
               }}
             >
-              <div style={mono(10, "#6D8B8C", { ls: "0.08em", upper: true })}>
+              <div style={mono(10, "#9C7B62", { ls: "0.08em", upper: true })}>
                 Valor de referência
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8 }}>
@@ -415,7 +415,7 @@ export default function ProjetoDetalhe({
                     fontSize: "30px",
                     fontWeight: 600,
                     letterSpacing: "-0.03em",
-                    color: "#1F5560",
+                    color: "#A84B1C",
                     ...NUM,
                   }}
                 >
@@ -426,7 +426,7 @@ export default function ProjetoDetalhe({
               <div style={{ fontSize: "13px", color: "#23231F", marginTop: 10, fontWeight: 500 }}>
                 {result.term}
               </div>
-              <div style={{ fontFamily: MONO, fontSize: "11px", color: "#7E8E8C", marginTop: 4 }}>
+              <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9C8878", marginTop: 4 }}>
                 {result.source}
               </div>
               <button

@@ -3,7 +3,7 @@
 
 /* NOTA: `./modernist.css` (design system Modernist, sincronizado antes) não é
    mais importado. O "Dashboard Arquitetura" tem linguagem visual própria e
-   incompatível — Manrope/IBM Plex Mono contra Archivo, paleta sage/petróleo
+   incompatível — Manrope/IBM Plex Mono contra Archivo, paleta areia/terracota
    contra vermelho, raio 26-36px contra raio 0. Importar os dois faria o
    `body` e a tipografia base do Modernist brigarem com o dashboard.
    O arquivo continua no repo, intacto, para você decidir o que fazer com ele. */

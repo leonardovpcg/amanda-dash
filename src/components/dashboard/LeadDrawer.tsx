@@ -30,10 +30,10 @@ export default function LeadDrawer({
     ambientes: parts[0],
     origem: parts[1] || "Loja",
     stageLabel: STAGES[stageIdx][1],
-    badgeStyle: chip(lead.stage === "fechado" ? "olive" : lead.idle >= 7 ? "clay" : "petrol"),
+    badgeStyle: chip(lead.stage === "fechado" ? "olive" : lead.idle >= 7 ? "clay" : "terracota"),
     valueLabel: money(lead.value),
     idleText: lead.idle === 0 ? "hoje" : lead.idle + (lead.idle === 1 ? " dia" : " dias"),
-    idleColor: lead.idle >= 7 ? "#A85C3C" : "#23231F",
+    idleColor: lead.idle >= 7 ? "#9C2B22" : "#23231F",
     phone: "(11) 9" + (7000 + stageIdx * 111) + "-" + (1000 + (lead.value % 9000)),
     email: first + "@email.com",
     next: NEXT_STEPS[stageIdx][0],
@@ -52,7 +52,7 @@ export default function LeadDrawer({
               ? "atualizado hoje"
               : "há " + lead.idle + " dias"
             : "há " + (lead.idle + i * 6) + " dias",
-        color: i === 0 ? "#1F5560" : "#C9C4B6",
+        color: i === 0 ? "#A84B1C" : "#C9C4B6",
       })),
   };
 
@@ -201,14 +201,14 @@ export default function LeadDrawer({
 
         <div
           style={{
-            border: "1px solid rgba(31,85,96,.2)",
-            background: "rgba(31,85,96,.07)",
+            border: "1px solid rgba(168,75,28,.2)",
+            background: "rgba(168,75,28,.07)",
             borderRadius: 20,
             padding: "20px 22px",
             marginTop: 12,
           }}
         >
-          <div style={mono(10, "#6D8B8C", { ls: "0.08em", upper: true })}>Próximo passo</div>
+          <div style={mono(10, "#9C7B62", { ls: "0.08em", upper: true })}>Próximo passo</div>
           <div
             style={{
               fontSize: "14.5px",

@@ -26,6 +26,7 @@ import {
 } from "@/lib/dashboard/perfil";
 import { MONO, NUM, tabStyle } from "./ui";
 import Avatar from "./Avatar";
+import LogoTerracota from "./LogoTerracota";
 import PerfilMenu from "./PerfilMenu";
 import PerfilModal from "./PerfilModal";
 import Funil from "./Funil";
@@ -279,7 +280,7 @@ export default function DashboardArquitetura({
       saldoLabel: money(p.budget - p.spent),
       ambienteTags: p.ambientes.map((a) => a[0]),
       pct,
-      pctColor: pct > 92 ? "#A85C3C" : "#1F5560",
+      pctColor: pct > 92 ? "#9C2B22" : "#A84B1C",
     };
   }, []);
 
@@ -307,7 +308,7 @@ export default function DashboardArquitetura({
         up: () => stepAmb(i, 1),
         down: () => stepAmb(i, -1),
         steps: AMB_STEPS.map((_, k) => ({
-          color: k <= step ? (step >= 5 ? "#6B7040" : "#1F5560") : "#EDEAE2",
+          color: k <= step ? (step >= 5 ? "#6B7040" : "#A84B1C") : "#EDEAE2",
         })),
       })),
       stagesVM: sel.stages.map(([label, date, st], i) => ({
@@ -320,15 +321,15 @@ export default function DashboardArquitetura({
           borderRadius: 999,
           flex: "none",
           ...(st === "done"
-            ? { background: "#1F5560" }
+            ? { background: "#A84B1C" }
             : st === "current"
-              ? { background: "#FFFFFF", border: "3px solid #1F5560" }
+              ? { background: "#FFFFFF", border: "3px solid #A84B1C" }
               : { background: "#FFFFFF", border: "2px solid #DDD9CE" }),
         } as React.CSSProperties,
         lineStyle: {
           height: 2,
           flex: 1,
-          background: st === "done" ? "#1F5560" : "#EDEAE2",
+          background: st === "done" ? "#A84B1C" : "#EDEAE2",
           ...(i === 5 ? { display: "none" } : null),
         } as React.CSSProperties,
       })),
@@ -398,7 +399,7 @@ export default function DashboardArquitetura({
         fontFamily: "var(--font-manrope), Manrope, Helvetica, sans-serif",
         color: "#23231F",
         minHeight: "100vh",
-        background: "linear-gradient(150deg, #CFD2CD 0%, #C6CCC9 50%, #D2CFC6 100%)",
+        background: "linear-gradient(150deg, #D6CEC5 0%, #CDC2B7 50%, #D6C9BD 100%)",
       }}
     >
       <div
@@ -406,48 +407,13 @@ export default function DashboardArquitetura({
         className="dash-shell"
         style={{
           background:
-            "linear-gradient(155deg, #F7F6F1 0%, #F2F0E8 32%, #EBEFE9 62%, #DFE9E4 82%, #D7E3DE 100%)",
+            "linear-gradient(155deg, #FAF8F3 0%, #F6F2EA 32%, #F4ECE3 62%, #EEE0D4 82%, #E8D6C7 100%)",
           boxShadow: "0 30px 70px rgba(46,52,48,.22), inset 0 1px 0 rgba(255,255,255,.7)",
         }}
       >
         {/* ── barra superior ─────────────────────────────────────────────── */}
         <div className="dash-topbar">
-          <div className="dash-brand">
-            <button
-              className="dash-brand-btn"
-              onClick={() => setMenuPerfil((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={menuPerfil}
-            >
-              <Avatar perfil={perfil} />
-              <span
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.015em",
-                  maxWidth: 190,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {perfil.nome}
-              </span>
-              <span className="dash-brand-seta" aria-hidden>
-                ▾
-              </span>
-            </button>
-            {menuPerfil && (
-              <PerfilMenu
-                perfil={perfil}
-                onClose={() => setMenuPerfil(false)}
-                onEditar={() => {
-                  setMenuPerfil(false);
-                  setPerfilAberto(true);
-                }}
-              />
-            )}
-          </div>
+          <LogoTerracota />
 
           <div className="dash-tabs" ref={refAbas} role="tablist">
             {TABS.map(([key, label]) => (
@@ -505,7 +471,7 @@ export default function DashboardArquitetura({
                     width: 7,
                     height: 7,
                     borderRadius: 999,
-                    background: "#A85C3C",
+                    background: "#9C2B22",
                     border: "1.5px solid #F4F3EE",
                   }}
                 />
@@ -519,7 +485,7 @@ export default function DashboardArquitetura({
                 alignItems: "center",
                 gap: 8,
                 border: "none",
-                background: overlay === "novo" ? "#1F5560" : "#23231F",
+                background: overlay === "novo" ? "#A84B1C" : "#6B7040",
                 color: "#F4F3EE",
                 borderRadius: 999,
                 padding: "12px 22px",
@@ -530,8 +496,39 @@ export default function DashboardArquitetura({
               }}
             >
               <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: 400 }}>+</span>
-              <span>Novo atendimento</span>
+              {/* no celular o rótulo curto libera os ~130px que a marca e a
+                  pílula do perfil precisam para caber na mesma linha */}
+              <span className="dash-so-desktop">Novo atendimento</span>
+              <span className="dash-so-celular">Novo</span>
             </button>
+
+            <div className="dash-brand">
+              {/* só avatar e seta: a marca ocupa o canto esquerdo, e o nome
+                  já aparece na saudação e no cabeçalho do próprio menu */}
+              <button
+                className="dash-brand-btn"
+                onClick={() => setMenuPerfil((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={menuPerfil}
+                aria-label={`Conta de ${perfil.nome}`}
+                title={perfil.nome}
+              >
+                <Avatar perfil={perfil} />
+                <span className="dash-brand-seta" aria-hidden>
+                  ▾
+                </span>
+              </button>
+              {menuPerfil && (
+                <PerfilMenu
+                  perfil={perfil}
+                  onClose={() => setMenuPerfil(false)}
+                  onEditar={() => {
+                    setMenuPerfil(false);
+                    setPerfilAberto(true);
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -565,7 +562,7 @@ export default function DashboardArquitetura({
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  background: "#23231F",
+                  background: "#6B7040",
                   color: "#F4F3EE",
                   borderRadius: 999,
                   padding: "8px 16px",
@@ -584,7 +581,7 @@ export default function DashboardArquitetura({
                   overflow: "hidden",
                 }}
               >
-                <div style={{ height: "100%", width: "84%", borderRadius: 999, background: "#1F5560" }} />
+                <div style={{ height: "100%", width: "84%", borderRadius: 999, background: "#A84B1C" }} />
               </div>
               <div style={{ fontFamily: MONO, fontSize: "11px", color: "#6E6A5F" }}>
                 faltam R$ 51.600
@@ -595,7 +592,7 @@ export default function DashboardArquitetura({
             {[
               ["18", "clientes no funil", undefined],
               ["06", "projetos ativos", undefined],
-              ["21", "ambientes em produção", "#1F5560"],
+              ["21", "ambientes em produção", "#A84B1C"],
             ].map(([n, label, color]) => (
               <div key={label}>
                 <div
