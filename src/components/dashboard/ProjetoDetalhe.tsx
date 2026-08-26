@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, type ChangeEvent, type CSSProperties } from "react";
+import type { Briefing } from "@/lib/briefing/tipos";
+import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
 import type { ProjectVM, PriceResult } from "./DashboardArquitetura";
+import BriefingResumo from "./BriefingResumo";
+import Orcamento from "./Orcamento";
 import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 
 type AmbienteVM = {
@@ -25,7 +29,19 @@ export type DetalheVM = ProjectVM & {
   ambientesVM: AmbienteVM[];
   stagesVM: { label: string; date: string; textColor: string; dotStyle: CSSProperties; lineStyle: CSSProperties }[];
   budgetVM: { label: string; plannedLabel: string; spentLabel: string; pct: number; color: string }[];
-  materialsVM: { name: string; spec: string; category: string; qty: string; unitLabel: string; totalLabel: string }[];
+  /** Composição por bloco do orçamento; `null` quando o projeto não tem um. */
+  composicaoVM:
+    | { label: string; custoLabel: string; vendaLabel: string; pct: number; color: string }[]
+    | null;
+  materialsVM: {
+    name: string;
+    spec: string;
+    category: string;
+    qty: string;
+    unitLabel: string;
+    totalLabel: string;
+    doOrcamento: boolean;
+  }[];
   materialsCount: number;
 };
 
@@ -45,6 +61,9 @@ export default function ProjetoDetalhe({
   onSearch,
   result,
   onAddMaterial,
+  onOrcamento,
+  briefing,
+  onAbrirBriefing,
 }: {
   sel: DetalheVM;
   onClose: () => void;
@@ -59,6 +78,10 @@ export default function ProjetoDetalhe({
   onSearch: () => void;
   result: PriceResult | null;
   onAddMaterial: (m: { name: string; spec: string; qty: string; unit: string }) => void;
+  onOrcamento: (a: OrcamentoAmbiente[]) => void;
+  /** Briefing do lead que originou este projeto, quando existe o vínculo. */
+  briefing: Briefing | null;
+  onAbrirBriefing: () => void;
 }) {
   const [mf, setMf] = useState({ name: "", spec: "", qty: "", unit: "" });
 
@@ -113,30 +136,52 @@ export default function ProjetoDetalhe({
         <div className="dash-proj-head-nums">
           <div style={{ flex: "none" }}>
             <div style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>Contrato</div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 4,
-                marginTop: 6,
-                flexWrap: "nowrap",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <span style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.02em" }}>R$</span>
-              <input
-                className="dash-inline"
-                value={sel.rawBudget}
-                onChange={onBudget}
+            {sel.doOrcamento ? (
+              // Com orçamento lançado o contrato deixa de ser digitável: quem
+              // manda no número passa a ser o painel de orçamento lá embaixo.
+              <>
+                <div
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 600,
+                    marginTop: 6,
+                    letterSpacing: "-0.02em",
+                    whiteSpace: "nowrap",
+                    ...NUM,
+                  }}
+                >
+                  {sel.budgetLabel}
+                </div>
+                <div style={{ ...mono(10, "#A84B1C"), marginTop: 3 }}>do orçamento · com ART</div>
+              </>
+            ) : (
+              <div
                 style={{
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.02em",
-                  width: 118,
-                  ...NUM,
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 4,
+                  marginTop: 6,
+                  flexWrap: "nowrap",
+                  whiteSpace: "nowrap",
                 }}
-              />
-            </div>
+              >
+                <span style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.02em" }}>
+                  R$
+                </span>
+                <input
+                  className="dash-inline"
+                  value={sel.rawBudget}
+                  onChange={onBudget}
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
+                    width: 118,
+                    ...NUM,
+                  }}
+                />
+              </div>
+            )}
           </div>
           <div>
             <div style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>Faturado</div>
@@ -300,6 +345,17 @@ export default function ProjetoDetalhe({
         </div>
       </div>
 
+      {/* ── briefing do cliente ─────────────────────────────────────────── */}
+      <BriefingResumo briefing={briefing} onAbrir={onAbrirBriefing} />
+
+      {/* ── orçamento quantitativo ──────────────────────────────────────── */}
+      <Orcamento
+        ambientes={sel.orcamento}
+        onChange={onOrcamento}
+        projeto={{ nome: sel.name, cliente: sel.client, endereco: sel.address }}
+        briefing={briefing}
+      />
+
       {/* ── linha do tempo ──────────────────────────────────────────────── */}
       <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>
         <div style={cardTitle}>Linha do tempo do projeto</div>
@@ -334,14 +390,28 @@ export default function ProjetoDetalhe({
       {/* ── orçamento por categoria + consulta de preço ─────────────────── */}
       <div className="dash-grid-2" style={{ marginTop: 20 }}>
         <div style={{ ...panel, padding: "28px 30px" }}>
-          <div style={cardTitle}>Orçamento por categoria</div>
+          <div style={cardTitle}>
+            {sel.composicaoVM ? "Composição do orçamento" : "Orçamento por categoria"}
+          </div>
+          {sel.composicaoVM && (
+            <div style={{ fontSize: "12.5px", color: "#8C887C", marginTop: 6 }}>
+              custo de compra × preço de venda · a barra é a margem
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 24 }}>
-            {sel.budgetVM.map((c, i) => (
+            {(sel.composicaoVM ??
+              sel.budgetVM.map((c) => ({
+                label: c.label,
+                custoLabel: c.spentLabel,
+                vendaLabel: c.plannedLabel,
+                pct: c.pct,
+                color: c.color,
+              }))).map((c, i) => (
               <div key={i}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <div style={{ fontSize: "13.5px", fontWeight: 500 }}>{c.label}</div>
                   <div style={{ fontSize: "13px", color: "#6E6A5F", ...NUM }}>
-                    {c.spentLabel} <span style={{ color: "#B4AFA1" }}>/ {c.plannedLabel}</span>
+                    {c.custoLabel} <span style={{ color: "#B4AFA1" }}>/ {c.vendaLabel}</span>
                   </div>
                 </div>
                 <div
@@ -461,7 +531,7 @@ export default function ProjetoDetalhe({
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <div style={cardTitle}>Itens e materiais do projeto</div>
           <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689" }}>
-            {sel.materialsCount} itens
+            {sel.materialsCount} itens{sel.composicaoVM ? " · • do orçamento, a preço de custo" : ""}
           </div>
         </div>
         <div className="dash-scroll-x">
@@ -497,7 +567,15 @@ export default function ProjetoDetalhe({
               <div style={{ fontSize: "13.5px", fontWeight: 500 }}>{m.name}</div>
               <div style={{ fontSize: "12px", color: "#8C887C", marginTop: 2 }}>{m.spec}</div>
             </div>
-            <div style={{ fontSize: "13px", color: "#4A473F" }}>{m.category}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: "13px", color: "#4A473F" }}>{m.category}</span>
+              {m.doOrcamento && (
+                <span
+                  title="veio do orçamento quantitativo"
+                  style={{ width: 5, height: 5, borderRadius: 999, background: "#A84B1C", flex: "none" }}
+                />
+              )}
+            </div>
             <div style={{ fontSize: "13px", color: "#4A473F", ...NUM }}>{m.qty}</div>
             <div style={{ fontSize: "13px", textAlign: "right", color: "#4A473F", ...NUM }}>
               {m.unitLabel}

@@ -2,6 +2,10 @@
 
 import { MONO, NUM, mono, panel, sectionTitle } from "./ui";
 import { STAGES, money, type Lead, type StageKey } from "@/lib/dashboard/data";
+import type { Progresso } from "@/lib/briefing/tipos";
+
+/** O que o cartão precisa saber do briefing daquele lead. */
+export type SinalDeBriefing = { existe: boolean; progresso: Progresso };
 
 /** Os quatro indicadores do topo são fixos no design original (protótipo). */
 const KPIS: [string, React.ReactNode, string | undefined][] = [
@@ -31,8 +35,11 @@ export default function Funil({
   setDragging,
   onDrop,
   onOpenLead,
+  briefings,
 }: {
   leads: Lead[];
+  /** Indexado por id do lead. Ausente = ainda ninguém abriu o briefing. */
+  briefings: Record<string, SinalDeBriefing>;
   dragOver: StageKey | null;
   dragging: string | null;
   setDragOver: (s: StageKey | null) => void;
@@ -171,6 +178,7 @@ export default function Funil({
                     <div style={{ fontSize: "11.5px", color: "#8C887C", marginTop: 2 }}>
                       {c.ambientes}
                     </div>
+                    <SeloDeBriefing sinal={briefings[c.id]} />
                     <div
                       style={{
                         display: "flex",
@@ -203,6 +211,45 @@ export default function Funil({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Selo de briefing no cartão do funil.
+ *
+ * Responde de relance a pergunta que ela faz toda segunda: de quais clientes
+ * eu ainda não sei nada? Vermelho quando falta essencial — é o mesmo código de
+ * cor das pendências do orçamento.
+ */
+function SeloDeBriefing({ sinal }: { sinal?: SinalDeBriefing }) {
+  const base: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    fontFamily: MONO,
+    fontSize: "9.5px",
+    padding: "2px 7px",
+    borderRadius: 6,
+    marginTop: 8,
+  };
+
+  if (!sinal?.existe) {
+    return <div style={{ ...base, background: "#F2F0EA", color: "#A8A498" }}>sem briefing</div>;
+  }
+  const { resolvidas, total, essenciaisAbertas } = sinal.progresso;
+  const alerta = essenciaisAbertas > 0;
+  return (
+    <div
+      style={{
+        ...base,
+        ...(alerta ? { background: "#FAEAE7", color: "#9C2B22" } : { background: "#F1F2E8", color: "#6B7040" }),
+      }}
+    >
+      <span style={NUM}>
+        briefing {resolvidas}/{total}
+      </span>
+      {alerta && <span>· falta essencial</span>}
     </div>
   );
 }

@@ -2,6 +2,9 @@
 // Portado de claude.ai/design/p/cc5e4c8d-83bf-493e-bcbd-045df09d76dd
 // (arquivo `Dashboard Arquitetura.dc.html`). Valores são de protótipo.
 
+import { ORCAMENTO_SEED } from "@/lib/orcamento/seed";
+import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
+
 export const money = (n: number) =>
   "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -64,6 +67,14 @@ export type Lead = {
   idle: number;
   ambientes: string;
   stage: StageKey;
+  /**
+   * Projeto já aberto para este lead, quando existe.
+   *
+   * É o vínculo que faltava entre o funil e o orçamento: com ele, o valor
+   * mostrado no cartão do funil deixa de ser estimativa digitada e passa a
+   * ser o total com ART calculado no projeto.
+   */
+  projetoId?: string;
 };
 
 export const LEADS: Lead[] = [
@@ -76,7 +87,7 @@ export const LEADS: Lead[] = [
   { id: "l7", name: "Camila e Rui Tavares", value: 76000, idle: 11, ambientes: "Cozinha, closet, home", stage: "projeto" },
   { id: "l8", name: "Bruno Kertész", value: 44000, idle: 2, ambientes: "Closet + banheiro", stage: "orcamento" },
   { id: "l9", name: "Ana Lúcia Verona", value: 88000, idle: 8, ambientes: "Cozinha gourmet", stage: "orcamento" },
-  { id: "l10", name: "Família Moretti", value: 132000, idle: 1, ambientes: "Casa completa · 5 ambientes", stage: "negociacao" },
+  { id: "l10", name: "Família Moretti", value: 132000, idle: 1, ambientes: "Casa completa · 5 ambientes", stage: "negociacao", projetoId: "p1" },
   { id: "l11", name: "Dra. Renata Sampaio", value: 96000, idle: 5, ambientes: "Clínica · recepção e salas", stage: "negociacao" },
   { id: "l12", name: "Paulo Andrade", value: 42000, idle: 14, ambientes: "Dormitório + home office", stage: "negociacao" },
   { id: "l13", name: "Helô Bandeira", value: 58000, idle: 0, ambientes: "Cozinha + dormitório", stage: "fechado" },
@@ -107,6 +118,12 @@ export type Project = {
   stages: ProjectStage[];
   budgetCats: BudgetCat[];
   materials: Material[];
+  /**
+   * Orçamento quantitativo do projeto — o que era uma aba por ambiente na
+   * planilha. Vazio enquanto ninguém orçou; o total dele ainda não substitui
+   * `budget`, que continua sendo o valor de contrato digitado.
+   */
+  orcamento: OrcamentoAmbiente[];
 };
 
 export const PROJECTS: Project[] = [
@@ -151,6 +168,8 @@ export const PROJECTS: Project[] = [
       ["Perfil de LED embutido", "Linear 2700K, 24 V", "Iluminação", "38 m", 210, 7980],
       ["Montagem dormitório", "Equipe 2 montadores · 3 dias", "Mão de obra", "1 un", 4800, 4800],
     ],
+    // Importado da planilha `Modelo_orçamentoquantitativo.xlsx`.
+    orcamento: ORCAMENTO_SEED,
   },
   {
     id: "p2",
@@ -189,6 +208,7 @@ export const PROJECTS: Project[] = [
       ["Puxador perfil embutido", "Alumínio anodizado", "Ferragens", "26 m", 148, 3848],
       ["Pendentes de vidro", "Fumê, sobre bancada", "Iluminação", "3 un", 1450, 4350],
     ],
+    orcamento: [],
   },
   {
     id: "p3",
@@ -228,6 +248,7 @@ export const PROJECTS: Project[] = [
       ["Poltronas de espera", "Estofado bouclé areia", "Mobiliário", "12 un", 2380, 28560],
       ["Luminária de trilho", "Preto fosco, 3000K", "Iluminação", "24 un", 540, 12960],
     ],
+    orcamento: [],
   },
   {
     id: "p4",
@@ -265,6 +286,7 @@ export const PROJECTS: Project[] = [
       ["Fibra sintética", "Trama natural, área externa", "Mobiliário", "6 un", 1980, 11880],
       ["MDF hidrófugo", "18 mm · verde, área úmida", "Materiais", "18 chapas", 468, 8424],
     ],
+    orcamento: [],
   },
   {
     id: "p5",
@@ -301,6 +323,7 @@ export const PROJECTS: Project[] = [
       ["MDF preto TX", "18 mm · estantes e nichos", "Materiais", "16 chapas", 342, 5472],
       ["Estrutura metálica", "Guarda-corpo mezanino", "Mão de obra", "11 m", 940, 10340],
     ],
+    orcamento: [],
   },
   {
     id: "p6",
@@ -336,8 +359,12 @@ export const PROJECTS: Project[] = [
       ["Papel de parede texturizado", "Linho off-white", "Materiais", "38 m²", 172, 6536],
       ["Cabeceira estofada", "Veludo verde-oliva, 2,00 m", "Mobiliário", "1 un", 8400, 8400],
     ],
+    orcamento: [],
   },
 ];
+
+/** Percentual de comissão sobre o valor vendido. */
+export const TAXA_COMISSAO = 0.04;
 
 /** [cliente, detalhe, valor, comissão, situação, tom] */
 export const COMMISSIONS: [string, string, number, number, string, ToneName][] = [

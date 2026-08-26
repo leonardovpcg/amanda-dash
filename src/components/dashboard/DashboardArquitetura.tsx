@@ -24,6 +24,21 @@ import {
   primeiroNome,
   type Perfil,
 } from "@/lib/dashboard/perfil";
+import { assinarCatalogo, lerCatalogo, lerCatalogoNoServidor } from "@/lib/orcamento/catalogo";
+import { composicao, materiais, temOrcamento, valorDeContrato } from "@/lib/orcamento/derivar";
+import {
+  assinarBriefings,
+  assinarRoteiro,
+  atualizarBriefing,
+  briefingInicial,
+  guardarBriefing,
+  lerBriefings,
+  lerBriefingsNoServidor,
+  lerRoteiro,
+  lerRoteiroNoServidor,
+  progressoDoBriefing,
+} from "@/lib/briefing/armazem";
+import type { Briefing as TBriefing } from "@/lib/briefing/tipos";
 import { MONO, NUM, tabStyle } from "./ui";
 import Avatar from "./Avatar";
 import LogoTerracota from "./LogoTerracota";
@@ -36,16 +51,29 @@ import Comissao from "./Comissao";
 import Agenda from "./Agenda";
 import Financeiro from "./Financeiro";
 import PosVenda from "./PosVenda";
+import Ajustes from "./Ajustes";
 import NovoProjeto from "./NovoProjeto";
 import LeadDrawer from "./LeadDrawer";
 import Avisos from "./Avisos";
+import Briefing from "./Briefing";
 import NovoAtendimento from "./NovoAtendimento";
 import { useDeslizarAbas } from "./useDeslizarAbas";
 
-export type Tab = "funil" | "projetos" | "comissao" | "agenda" | "financeiro" | "posvenda";
+export type Tab =
+  | "funil"
+  | "projetos"
+  | "comissao"
+  | "agenda"
+  | "financeiro"
+  | "posvenda"
+  | "ajustes";
 type Overlay = "projeto" | "novo" | "notif" | null;
 
 export type ProjectVM = Project & {
+  /** Valor de contrato em uso: do orçamento quando existe, senão o digitado. */
+  contrato: number;
+  /** `true` quando `contrato` veio do orçamento e não do campo do cabeçalho. */
+  doOrcamento: boolean;
   badgeStyle: React.CSSProperties;
   budgetLabel: string;
   spentLabel: string;
@@ -66,6 +94,7 @@ const TABS: [Tab, string][] = [
   ["agenda", "Agenda"],
   ["financeiro", "Financeiro"],
   ["posvenda", "Pós-venda"],
+  ["ajustes", "Ajustes"],
 ];
 
 export default function DashboardArquitetura({
@@ -93,6 +122,12 @@ export default function DashboardArquitetura({
   // ── perfil ───────────────────────────────────────────────────────────────
   // Mora no localStorage, fora do React, então é lido como store externa.
   const perfil = useSyncExternalStore(assinarPerfil, lerPerfil, lerPerfilNoServidor);
+  // A tabela de valores também: preço novo recalcula todo orçamento aberto.
+  const catalogo = useSyncExternalStore(assinarCatalogo, lerCatalogo, lerCatalogoNoServidor);
+  // Briefing: o roteiro (raro de mudar) e as respostas (mudam a cada reunião).
+  const roteiro = useSyncExternalStore(assinarRoteiro, lerRoteiro, lerRoteiroNoServidor);
+  const briefings = useSyncExternalStore(assinarBriefings, lerBriefings, lerBriefingsNoServidor);
+  const [briefingLead, setBriefingLead] = useState<string | null>(null);
   const [menuPerfil, setMenuPerfil] = useState(false);
   const [perfilAberto, setPerfilAberto] = useState(false);
 
@@ -127,6 +162,37 @@ export default function DashboardArquitetura({
     setOverlay(null);
     setOpenLead(null);
   };
+
+  // ── briefing ─────────────────────────────────────────────────────────────
+  /**
+   * Abrir já grava.
+   *
+   * O briefing nasce com os ambientes que dá para adivinhar do texto do lead,
+   * e gravar na abertura evita o estado meio-termo de um briefing que existe na
+   * tela mas não no armazém.
+   */
+  const abrirBriefing = (leadId: string) => {
+    if (!briefings[leadId]) {
+      const lead = leads.find((l) => l.id === leadId);
+      guardarBriefing(leadId, briefingInicial(lead?.ambientes ?? "", roteiro));
+    }
+    setBriefingLead(leadId);
+  };
+
+  const salvarBriefing = (fn: (b: TBriefing) => TBriefing) => {
+    if (briefingLead) atualizarBriefing(briefingLead, fn);
+  };
+
+  const sinaisDeBriefing = useMemo(() => {
+    const m: Record<string, { existe: boolean; progresso: ReturnType<typeof progressoDoBriefing> }> = {};
+    for (const l of leads) {
+      m[l.id] = {
+        existe: Boolean(briefings[l.id]),
+        progresso: progressoDoBriefing(briefings[l.id], roteiro),
+      };
+    }
+    return m;
+  }, [leads, briefings, roteiro]);
 
   // ── funil ────────────────────────────────────────────────────────────────
   const drop = (stage: StageKey) => {
@@ -252,6 +318,16 @@ export default function DashboardArquitetura({
         ["Decoração", Math.round(budget * 0.05), 0],
       ],
       materials: [],
+      // Um ambiente vazio por cômodo escolhido — a mesma ideia de duplicar a
+      // aba "Modelo", só que já sem as fórmulas quebradas dela.
+      orcamento: picked.map((a, i) => ({
+        id: id + "-a" + i,
+        nome: a,
+        chapas: [],
+        fita: [],
+        acessorios: [],
+        maoDeObra: [],
+      })),
     };
     setProjects((ps) => [proj, ...ps]);
     setOverlay(null);
@@ -270,23 +346,47 @@ export default function DashboardArquitetura({
   };
 
   // ── derivados ────────────────────────────────────────────────────────────
-  const decorate = useCallback((p: Project): ProjectVM => {
-    const pct = Math.round((p.spent / p.budget) * 100);
-    return {
-      ...p,
-      badgeStyle: chip(STATUS_TONE[p.status]),
-      budgetLabel: money(p.budget),
-      spentLabel: money(p.spent),
-      saldoLabel: money(p.budget - p.spent),
-      ambienteTags: p.ambientes.map((a) => a[0]),
-      pct,
-      pctColor: pct > 92 ? "#9C2B22" : "#A84B1C",
-    };
-  }, []);
+  const decorate = useCallback(
+    (p: Project): ProjectVM => {
+      // Com orçamento lançado, o contrato é o total com ART; sem ele, continua
+      // valendo o número digitado no cabeçalho do projeto.
+      const contrato = valorDeContrato(p.orcamento, p.budget, catalogo);
+      const pct = Math.round((p.spent / contrato) * 100);
+      return {
+        ...p,
+        contrato,
+        doOrcamento: temOrcamento(p.orcamento),
+        badgeStyle: chip(STATUS_TONE[p.status]),
+        budgetLabel: money(contrato),
+        spentLabel: money(p.spent),
+        saldoLabel: money(contrato - p.spent),
+        ambienteTags: p.ambientes.map((a) => a[0]),
+        pct,
+        pctColor: pct > 92 ? "#9C2B22" : "#A84B1C",
+      };
+    },
+    [catalogo],
+  );
 
   const decorated = useMemo(() => projects.map(decorate), [projects, decorate]);
+
+  // O funil mostra o valor do orçamento quando o lead já virou projeto. Sem
+  // vínculo, continua a estimativa que ela digitou ao cadastrar o contato.
+  const leadsVM = useMemo(
+    () =>
+      leads.map((l) => {
+        if (!l.projetoId) return l;
+        const p = decorated.find((x) => x.id === l.projetoId);
+        return p?.doOrcamento ? { ...l, value: Math.round(p.contrato) } : l;
+      }),
+    [leads, decorated],
+  );
   const sel = projects.find((p) => p.id === selected) ?? null;
-  const leadSel = leads.find((l) => l.id === openLead) ?? null;
+  // O briefing mora no lead; o projeto chega nele pelo vínculo criado no funil.
+  const leadDoProjeto = leads.find((l) => l.projetoId === selected) ?? null;
+  // Da lista já decorada, não da crua: senão o cartão do funil mostra o valor
+  // do orçamento e a gaveta do mesmo lead mostra a estimativa antiga.
+  const leadSel = leadsVM.find((l) => l.id === openLead) ?? null;
 
   const detail = useMemo(() => {
     if (!sel) return null;
@@ -333,6 +433,18 @@ export default function DashboardArquitetura({
           ...(i === 5 ? { display: "none" } : null),
         } as React.CSSProperties,
       })),
+      // Com orçamento, o painel de categorias vira composição por bloco: custo
+      // contra venda, que é a conta que ela realmente faz. A barra desenha a
+      // margem. Sem orçamento, segue orçado × gasto por categoria.
+      composicaoVM: temOrcamento(sel.orcamento)
+        ? composicao(sel.orcamento, catalogo).map((c, i) => ({
+            label: c.label,
+            custoLabel: money(c.custo),
+            vendaLabel: money(c.venda),
+            pct: Math.round(c.margem * 100),
+            color: CAT_COLORS[i % CAT_COLORS.length],
+          }))
+        : null,
       budgetVM: sel.budgetCats.map(([label, planned, spent], i) => ({
         label,
         plannedLabel: money(planned),
@@ -340,19 +452,33 @@ export default function DashboardArquitetura({
         pct: Math.round((spent / planned) * 100),
         color: CAT_COLORS[i % CAT_COLORS.length],
       })),
-      materialsVM: sel.materials.map(([name, spec, category, qty, unit, total]) => ({
-        name,
-        spec,
-        category,
-        qty,
-        unitLabel: money(unit),
-        totalLabel: money(total),
-      })),
-      materialsCount: sel.materials.length,
+      // As linhas do orçamento entram na lista de compras junto com os itens
+      // lançados à mão, agrupadas por item e marcadas com a origem.
+      materialsVM: [
+        ...materiais(sel.orcamento, catalogo).map((m) => ({
+          name: m.nome,
+          spec: m.spec,
+          category: m.categoria,
+          qty: m.qtd,
+          unitLabel: money(m.unitario),
+          totalLabel: money(m.total),
+          doOrcamento: true,
+        })),
+        ...sel.materials.map(([name, spec, category, qty, unit, total]) => ({
+          name,
+          spec,
+          category,
+          qty,
+          unitLabel: money(unit),
+          totalLabel: money(total),
+          doOrcamento: false,
+        })),
+      ],
+      materialsCount: materiais(sel.orcamento, catalogo).length + sel.materials.length,
     };
     // setAmb/stepAmb são estáveis o bastante para o escopo do protótipo
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sel, decorate]);
+  }, [sel, decorate, catalogo]);
 
   const showDetail = tab === "projetos" && !!sel;
   const showList = tab === "projetos" && !sel;
@@ -615,7 +741,8 @@ export default function DashboardArquitetura({
 
         {tab === "funil" && (
           <Funil
-            leads={leads}
+            leads={leadsVM}
+            briefings={sinaisDeBriefing}
             dragOver={dragOver}
             dragging={dragging}
             setDragOver={setDragOver}
@@ -649,12 +776,16 @@ export default function DashboardArquitetura({
             onSearch={lookup}
             result={result}
             onAddMaterial={addMaterial}
+            onOrcamento={(orcamento) => setField("orcamento", orcamento)}
+            briefing={leadDoProjeto ? (briefings[leadDoProjeto.id] ?? null) : null}
+            onAbrirBriefing={() => leadDoProjeto && abrirBriefing(leadDoProjeto.id)}
           />
         )}
-        {tab === "comissao" && <Comissao />}
+        {tab === "comissao" && <Comissao projects={decorated} />}
         {tab === "agenda" && <Agenda />}
         {tab === "financeiro" && <Financeiro projects={decorated} />}
         {tab === "posvenda" && <PosVenda />}
+        {tab === "ajustes" && <Ajustes />}
       </div>
 
       {overlay === "projeto" && (
@@ -668,7 +799,22 @@ export default function DashboardArquitetura({
         />
       )}
       {leadSel && (
-        <LeadDrawer lead={leadSel} onClose={closeOverlay} onAdvance={advanceLead} />
+        <LeadDrawer
+          lead={leadSel}
+          onClose={closeOverlay}
+          onAdvance={advanceLead}
+          briefing={sinaisDeBriefing[leadSel.id]}
+          onBriefing={() => abrirBriefing(leadSel.id)}
+        />
+      )}
+      {briefingLead && (
+        <Briefing
+          cliente={leads.find((l) => l.id === briefingLead)?.name ?? "Cliente"}
+          briefing={briefings[briefingLead] ?? briefingInicial("", roteiro)}
+          roteiro={roteiro}
+          onChange={salvarBriefing}
+          onClose={() => setBriefingLead(null)}
+        />
       )}
       {overlay === "notif" && <Avisos onClose={closeOverlay} />}
       {perfilAberto && (

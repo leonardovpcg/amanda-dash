@@ -1,6 +1,7 @@
 "use client";
 
 import { NEXT_STEPS, STAGES, chip, money, type Lead } from "@/lib/dashboard/data";
+import type { SinalDeBriefing } from "./Funil";
 import { MONO, NUM, mono } from "./ui";
 
 const box: React.CSSProperties = {
@@ -13,10 +14,14 @@ export default function LeadDrawer({
   lead,
   onClose,
   onAdvance,
+  briefing,
+  onBriefing,
 }: {
   lead: Lead;
   onClose: () => void;
   onAdvance: () => void;
+  briefing?: SinalDeBriefing;
+  onBriefing: () => void;
 }) {
   const stageIdx = STAGES.findIndex((s) => s[0] === lead.stage);
   const first = lead.name
@@ -118,7 +123,10 @@ export default function LeadDrawer({
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 26 }}>
+        {/* ── briefing ──────────────────────────────────────────────── */}
+        <BlocoDeBriefing sinal={briefing} onAbrir={onBriefing} />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
           <div style={{ ...box, padding: "18px 20px" }}>
             <div style={mono(10, "#9A9689", { ls: "0.08em", upper: true })}>Valor estimado</div>
             <div
@@ -238,6 +246,61 @@ export default function LeadDrawer({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Bloco de briefing da gaveta.
+ *
+ * O botão é a entrada principal do modo reunião — ela abre a gaveta do cliente
+ * antes de sentar com ele. As essenciais em aberto aparecem como aviso, não
+ * como bloqueio: quem decide se dá para orçar assim é ela, não o dashboard.
+ */
+function BlocoDeBriefing({ sinal, onAbrir }: { sinal?: SinalDeBriefing; onAbrir: () => void }) {
+  const existe = Boolean(sinal?.existe);
+  const p = sinal?.progresso;
+  const faltam = p?.essenciaisAbertas ?? 0;
+
+  return (
+    <div style={{ ...box, padding: "18px 20px", marginTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={mono(10, "#9A9689", { ls: "0.08em", upper: true })}>Briefing comercial</div>
+          <div style={{ fontSize: "14px", fontWeight: 600, marginTop: 7, ...NUM }}>
+            {existe && p ? `${p.resolvidas} de ${p.total} respondidas` : "ainda não iniciado"}
+          </div>
+        </div>
+        <button
+          className="dash-btn-terra"
+          onClick={onAbrir}
+          style={{ borderRadius: 999, padding: "10px 17px", fontSize: "12.5px", flex: "none" }}
+        >
+          {existe ? "Continuar" : "Iniciar"}
+        </button>
+      </div>
+
+      {existe && p && p.total > 0 && (
+        <>
+          <div
+            style={{ height: 6, borderRadius: 999, background: "#EDEAE2", marginTop: 12, overflow: "hidden" }}
+          >
+            <div style={{ height: "100%", width: p.pct + "%", background: "#A84B1C", borderRadius: 999 }} />
+          </div>
+          <div
+            style={{
+              fontFamily: MONO,
+              fontSize: "10.5px",
+              marginTop: 8,
+              color: faltam ? "#9C2B22" : "#6B7040",
+            }}
+          >
+            {faltam
+              ? `${faltam} essencia${faltam === 1 ? "l" : "is"} em aberto para orçar`
+              : "nada essencial em aberto"}
+          </div>
+        </>
+      )}
     </div>
   );
 }

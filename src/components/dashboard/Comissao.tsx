@@ -1,11 +1,29 @@
 "use client";
 
-import { COMMISSIONS, MONTHLY, chip, money } from "@/lib/dashboard/data";
+import { COMMISSIONS, MONTHLY, TAXA_COMISSAO, chip, money } from "@/lib/dashboard/data";
+import type { ProjectVM } from "./DashboardArquitetura";
 import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 
 const COM_COLS = "2fr 1fr 1fr 1.1fr";
+const ORC_COLS = "2fr 1fr 1fr";
 
-export default function Comissao() {
+export default function Comissao({ projects }: { projects: ProjectVM[] }) {
+  // Os contratos da lista abaixo são histórico fechado e ficam como estão. O
+  // que o orçamento acrescenta é a projeção: projeto com orçamento lançado já
+  // sabe quanto vai gerar de comissão, mesmo antes de virar contrato assinado.
+  const orcados = projects
+    .filter((p) => p.doOrcamento)
+    .map((p) => ({
+      id: p.id,
+      nome: p.name,
+      cliente: p.client,
+      status: p.status,
+      badgeStyle: p.badgeStyle,
+      valor: p.contrato,
+      valorLabel: money(p.contrato),
+      comissaoLabel: money(p.contrato * TAXA_COMISSAO),
+    }));
+  const totalOrcado = orcados.reduce((a, o) => a + o.valor, 0);
   const commissions = COMMISSIONS.map(([client, detail, value, com, status, tone]) => ({
     client,
     detail,
@@ -110,6 +128,79 @@ export default function Comissao() {
           </div>
         </div>
       </div>
+
+      {/* ── projeção vinda dos orçamentos ─────────────────────────────── */}
+      {orcados.length > 0 && (
+        <div style={{ ...panel, padding: "28px 30px 14px", marginTop: 20 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14 }}>
+            <div>
+              <div style={cardTitle}>Comissão projetada dos orçamentos</div>
+              <div style={{ fontSize: "12.5px", color: "#8C887C", marginTop: 6 }}>
+                {Math.round(TAXA_COMISSAO * 100)}% sobre o valor com ART, antes de assinar
+              </div>
+            </div>
+            <div style={{ textAlign: "right", flex: "none" }}>
+              <div style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>Se todos fecharem</div>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                  color: "#A84B1C",
+                  marginTop: 5,
+                  ...NUM,
+                }}
+              >
+                {money(totalOrcado * TAXA_COMISSAO)}
+              </div>
+            </div>
+          </div>
+          <div className="dash-scroll-x">
+            <div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: ORC_COLS,
+                  gap: 14,
+                  padding: "18px 0 12px",
+                  borderBottom: "1px solid #EDEAE2",
+                }}
+              >
+                <div style={colLabel()}>Projeto</div>
+                <div style={colLabel("right")}>Orçado com ART</div>
+                <div style={colLabel("right")}>Comissão</div>
+              </div>
+              {orcados.map((o) => (
+                <div
+                  key={o.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: ORC_COLS,
+                    gap: 14,
+                    padding: "15px 0",
+                    borderBottom: "1px solid #F4F1EA",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                      <span style={{ fontSize: "13.5px", fontWeight: 500 }}>{o.nome}</span>
+                      <span style={o.badgeStyle}>{o.status}</span>
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#8C887C", marginTop: 2 }}>{o.cliente}</div>
+                  </div>
+                  <div style={{ fontSize: "13px", textAlign: "right", color: "#4A473F", ...NUM }}>
+                    {o.valorLabel}
+                  </div>
+                  <div style={{ fontSize: "13px", textAlign: "right", fontWeight: 600, ...NUM }}>
+                    {o.comissaoLabel}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="dash-grid-com" style={{ marginTop: 20 }}>
         {/* ── comissão por contrato ─────────────────────────────────────── */}
