@@ -457,18 +457,39 @@ textarea.dash-inline:focus {
   }
 
   .dash-topbar {
-    gap: 14px;
-    padding: 16px 16px 0;
+    gap: 10px;
+    padding: 14px 14px 0;
   }
   /* as abas descem para uma faixa própria, rolando na horizontal em vez de
      quebrar em três linhas e comer 141px de altura */
   .dash-actions {
     order: 2;
   }
-  /* no celular a marca fica só no símbolo — a assinatura não cabe ao lado
-     dos avisos, do botão de atendimento e do perfil */
-  .dash-logo-texto {
+  /* A marca aparece com o nome; só a assinatura fica de fora.
+     A conta em 375px: sobram ~327px úteis na barra, e "Móveis Planejados"
+     pede os mesmos 109px de "TERRACOTA" — o bloco não encolhe por tirar só
+     um dos dois. Para caber a assinatura seria preciso derrubar o rótulo do
+     botão de novo atendimento, que numa ferramenta de trabalho vale mais que
+     um descritivo que ela lê todo dia. O espaço para o nome veio de enxugar
+     a barra inteira: gaps, padding, o símbolo e a pílula do perfil. */
+  .dash-logo {
+    gap: 8px;
+  }
+  .dash-logo svg {
+    width: 30px;
+    height: 30px;
+  }
+  .dash-logo-nome {
+    /* acompanha a largura da tela em vez de quebrar num tamanho fixo */
+    font-size: clamp(11px, 3.1vw, 13px);
+    letter-spacing: 0.1em;
+  }
+  .dash-logo-tag {
     display: none;
+  }
+
+  .dash-btn-new {
+    padding: 11px 15px !important;
   }
   .dash-tabs {
     order: 3;
@@ -590,7 +611,7 @@ textarea.dash-inline:focus {
 /* — grade de ambientes — */
 .dash-amb-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 16px;
   margin-top: 22px;
 }
@@ -1384,7 +1405,7 @@ textarea.dash-inline:focus {
 /* — briefing no detalhe do projeto: duas colunas até caber — */
 .dash-brief-resumo {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 12px 34px;
   margin-top: 22px;
   align-items: start;
@@ -1601,5 +1622,43 @@ textarea.dash-inline:focus {
   }
   .dash-busca button {
     width: 100%;
+  }
+}
+
+/* — pílula do perfil no celular —
+   Precisa ficar no fim do arquivo: `.dash-brand-btn` é declarada mais acima,
+   e media query não soma especificidade — a regra base venceria por ordem.
+   Sem a seta e com padding justo, sobram os ~25px que o nome da marca pede. */
+@media (max-width: 767px) {
+  .dash-brand-btn {
+    padding: 6px;
+    gap: 0;
+  }
+  .dash-brand-seta {
+    display: none;
+  }
+}
+
+/* — telas muito estreitas (iPhone SE e afins) —
+   Abaixo de 340px a marca com nome já não cabe ao lado das três ações, e a
+   barra quebra em duas linhas. Entre perder o nome da marca e perder o rótulo
+   do botão de novo atendimento, some o nome: numa ferramenta de trabalho a
+   ação vale mais que a assinatura. */
+@media (max-width: 340px) {
+  .dash-logo-nome {
+    display: none;
+  }
+}
+
+/* — linha-resumo do ambiente em tela estreita —
+   Botão, nome, pílula de pendências e valor não cabem numa fileira só abaixo
+   de ~480px, e o valor saía pela direita do cartão. Deixar quebrar é melhor
+   que cortar justamente o número. */
+@media (max-width: 480px) {
+  .dash-orc-head {
+    flex-wrap: wrap;
+  }
+  .dash-orc-head > *:last-child {
+    margin-left: auto;
   }
 }

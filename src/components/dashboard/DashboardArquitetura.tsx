@@ -486,7 +486,13 @@ export default function DashboardArquitetura({
   const gridStyle: React.CSSProperties =
     projetoLayout === "lista"
       ? { display: "grid", gridTemplateColumns: "1fr", gap: 18 }
-      : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 22 };
+      : {
+          display: "grid",
+          // `min(340px, 100%)` e não `340px`: numa tela de 320 a faixa não
+          // conseguiria encolher e o cartão vazaria para fora do viewport.
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(340px, 100%), 1fr))",
+          gap: 22,
+        };
 
   // ── deslizar entre abas (celular) ────────────────────────────────────────
   const irParaVizinha = useCallback(
