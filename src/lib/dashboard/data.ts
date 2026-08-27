@@ -115,6 +115,13 @@ export type Project = {
    * `budget`, que continua sendo o valor de contrato digitado.
    */
   orcamento: OrcamentoAmbiente[];
+  /**
+   * Valor congelado na assinatura, quando o contrato já existe.
+   *
+   * Manda em cima do orçamento calculado: reajustar a tabela de valores muda
+   * proposta aberta, nunca contrato fechado.
+   */
+  contratoAssinado?: number;
 };
 
 /* Os seis projetos de protótipo saíram: projetos, ambientes e orçamento vêm
@@ -122,40 +129,9 @@ export type Project = {
    que os componentes recebem — e continuará valendo quando houver uma ficha de
    cliente de verdade por trás de `client`. */
 
-/**
- * Percentual de comissão sobre o valor vendido.
- *
- * Hoje é 2% em toda venda. No banco isso vira a tabela `faixas_comissao`
- * com uma linha só — de zero a sem teto —, porque faixa por valor de venda é
- * o passo seguinte natural e acrescentar linha sai mais barato que migrar
- * coluna.
- */
-export const TAXA_COMISSAO = 0.02;
-
-/**
- * [cliente, detalhe, valor, situação, tom]
- *
- * A comissão não é guardada aqui: sai de `valor × TAXA_COMISSAO` na tela.
- * Guardar os dois deixaria a taxa e o valor discordarem no dia em que uma
- * das duas mudasse — foi assim que a aba "Resumo" da planilha ficou errada.
- */
-export const COMMISSIONS: [string, string, number, string, ToneName][] = [
-  ["Helô Bandeira", "Cozinha + dormitório · assinado 04 ago", 58000, "Recebida", "terracota"],
-  ["Sr. Aurélio Braga", "Casa de praia · 3 ambientes", 71000, "Recebida", "terracota"],
-  ["Família Moretti", "Aditivo home office", 36000, "A liberar", "clay"],
-  ["Marcos Iório", "Closet + lavanderia", 41400, "A liberar", "clay"],
-  ["Studio Anelli", "Escritório · 1ª parcela", 44000, "Prevista", "sand"],
-  ["Bruno Kertész", "Closet + banheiro", 18000, "Prevista", "sand"],
-];
-
-export const MONTHLY: [string, number][] = [
-  ["Mar", 196000],
-  ["Abr", 241000],
-  ["Mai", 178000],
-  ["Jun", 312000],
-  ["Jul", 287000],
-  ["Ago", 268400],
-];
+/* A comissão e o histórico mensal de protótipo saíram: a taxa vem de
+   `faixas_comissao` e os contratos de `src/lib/dados/contratos.ts`, que é o
+   mesmo caminho de `v_comissoes` no banco. */
 
 /** [dia, mês, título, detalhe, meta, cor da meta] */
 export type AgendaItem = [string, string, string, string, string, string];

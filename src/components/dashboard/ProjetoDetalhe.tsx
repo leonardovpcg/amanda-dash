@@ -5,6 +5,7 @@ import type { Briefing } from "@/lib/briefing/tipos";
 import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
 import type { ProjectVM, PriceResult } from "./DashboardArquitetura";
 import BriefingResumo from "./BriefingResumo";
+import ContratoPainel from "./ContratoPainel";
 import Orcamento from "./Orcamento";
 import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 
@@ -24,6 +25,7 @@ type AmbienteVM = {
 
 export type DetalheVM = ProjectVM & {
   ambienteCount: number;
+  orcamentoTotal: number;
   rawBudget: string;
   ambientesVM: AmbienteVM[];
   stagesVM: { label: string; date: string; textColor: string; dotStyle: CSSProperties; lineStyle: CSSProperties }[];
@@ -342,6 +344,9 @@ export default function ProjetoDetalhe({
         projeto={{ nome: sel.name, cliente: sel.client, endereco: sel.address }}
         briefing={briefing}
       />
+
+      {/* ── contrato e recebimentos ───────────────────────── */}
+      <ContratoPainel projetoId={sel.id} valorSugerido={sel.orcamentoTotal} />
 
       {/* ── linha do tempo ──────────────────────────────────────────────── */}
       <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>

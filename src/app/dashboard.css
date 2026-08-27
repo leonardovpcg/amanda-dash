@@ -1700,3 +1700,50 @@ textarea.dash-inline:focus {
     font-size: 13px !important;
   }
 }
+
+/* — editor da meta do mês —
+   O campo cresce, o botão não. Em telas estreitas o "Remover" cai para a
+   linha de baixo em vez de espremer o campo do valor. */
+.dash-meta-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.dash-meta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid #f4f1ea;
+}
+.dash-meta-item:last-child {
+  border-bottom: none;
+}
+
+/* — formulários de contrato e de recebimento —
+   Duas colunas no desktop, uma no celular. `minmax(0, 1fr)` porque item de
+   grade tem `min-width: auto` e o campo de data do iOS estoura a coluna. */
+.dash-contrato-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.dash-receb-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+@media (max-width: 767px) {
+  .dash-contrato-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-receb-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

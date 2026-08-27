@@ -40,6 +40,23 @@ import {
 } from "@/lib/briefing/armazem";
 import type { Briefing as TBriefing } from "@/lib/briefing/tipos";
 import {
+  assinarContratos,
+  assinarMetas,
+  lerContratos,
+  lerContratosNoServidor,
+  lerMetas,
+  lerMetasNoServidor,
+} from "@/lib/dados/contratos";
+import {
+  assinarRelogio,
+  dataPorExtenso,
+  lerRelogio,
+  lerRelogioNoServidor,
+  mesCorrente,
+  nomeDoMes,
+  saudacao,
+} from "@/lib/dados/relogio";
+import {
   assinarFunil,
   criarAtendimento,
   lerFunil,
@@ -67,7 +84,7 @@ import LogoTerracota from "./LogoTerracota";
 import PerfilMenu from "./PerfilMenu";
 import PerfilModal from "./PerfilModal";
 import Funil from "./Funil";
-import ProjetosLista from "./ProjetosLista";
+import ProjetosLista, { type KpiDeProjetos } from "./ProjetosLista";
 import ProjetoDetalhe from "./ProjetoDetalhe";
 import Comissao from "./Comissao";
 import Agenda from "./Agenda";
@@ -107,6 +124,32 @@ export type ProjectVM = Project & {
 
 export type PriceResult = { term: string; value: string; unit: string; source: string };
 
+/**
+ * "R$ 1,84 mi" — o número grande dos cartões de indicador.
+ *
+ * O cartão tem 52px de fonte e uns 265px de largura no celular; "R$ 1.840.000"
+ * não cabe. A unidade vai num `span` menor, como no design.
+ */
+function moneyCurto(n: number) {
+  const [valor, unidade] =
+    n >= 1_000_000 ? [n / 1_000_000, "mi"] : n >= 100_000 ? [n / 1000, "mil"] : [n, ""];
+  const texto =
+    "R$ " +
+    valor.toLocaleString("pt-BR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: unidade ? 2 : 0,
+    });
+  if (!unidade) return texto;
+  return (
+    <>
+      {texto}{" "}
+      <span style={{ fontSize: "clamp(17px, 3.4vw, 26px)", fontWeight: 500, color: "#6E6A5F" }}>
+        {unidade}
+      </span>
+    </>
+  );
+}
+
 const deaccent = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 const TABS: [Tab, string][] = [
@@ -126,6 +169,12 @@ export default function DashboardArquitetura({
   projetoLayout?: "grade" | "lista";
 }) {
   const [tab, setTab] = useState<Tab>("funil");
+  // A data e a saudação vêm do aparelho dela. No servidor o snapshot é nulo,
+  // senão a hidratação quebra ao discordar da hora do navegador.
+  const agora = useSyncExternalStore(assinarRelogio, lerRelogio, lerRelogioNoServidor);
+  const metas = useSyncExternalStore(assinarMetas, lerMetas, lerMetasNoServidor);
+  // Contratos assinados: é deles que sai o "Faturado" de cada projeto.
+  const contratos = useSyncExternalStore(assinarContratos, lerContratos, lerContratosNoServidor);
   const [selected, setSelected] = useState<string | null>(null);
   // Projetos, ambientes e orçamento vêm do banco. `ambientes` e o orçamento
   // são a mesma tabela agora: no protótipo eram duas listas que podiam
@@ -324,10 +373,11 @@ export default function DashboardArquitetura({
   // ── derivados ────────────────────────────────────────────────────────────
   const decorate = useCallback(
     (p: Project): ProjectVM => {
-      // Com orçamento lançado, o contrato é o total com ART; sem ele, continua
-      // valendo o número digitado no cabeçalho do projeto.
-      const contrato = valorDeContrato(p.orcamento, p.budget, catalogo);
-      const pct = Math.round((p.spent / contrato) * 100);
+      // Assinado manda em tudo. Sem contrato, com orçamento lançado vale o
+      // total com ART; sem nenhum dos dois, o número digitado no cabeçalho.
+      const contrato = p.contratoAssinado ?? valorDeContrato(p.orcamento, p.budget, catalogo);
+      // Sem contrato nenhum o denominador é zero e a conta dá NaN.
+      const pct = contrato > 0 ? Math.round((p.spent / contrato) * 100) : 0;
       return {
         ...p,
         contrato,
@@ -344,9 +394,13 @@ export default function DashboardArquitetura({
     [catalogo],
   );
 
-  // Tradução para a forma que os componentes já recebiam. `spent` fica em
-  // zero até `recebimentos` existir: faturamento inventado seria pior que
-  // faturamento zerado.
+  // Um contrato por projeto — o banco garante com `unique` em `projeto_id`.
+  const contratoPorProjeto = useMemo(
+    () => new Map(contratos.map((c) => [c.projetoId, c])),
+    [contratos],
+  );
+
+  // Tradução para a forma que os componentes já recebiam.
   const projects: Project[] = useMemo(
     () =>
       doBanco.map((p) => ({
@@ -358,7 +412,7 @@ export default function DashboardArquitetura({
         stage: p.etapa,
         deadline: prazoLegivel(p.prazo),
         budget: p.valorPrevisto,
-        spent: 0,
+        spent: contratoPorProjeto.get(p.id)?.recebido ?? 0,
         imageLabel: "render pendente",
         ambientes: p.ambientes.map(
           (a) =>
@@ -368,11 +422,106 @@ export default function DashboardArquitetura({
         budgetCats: [],
         materials: [],
         orcamento: orcamentoDoProjeto(p),
+        contratoAssinado: contratoPorProjeto.get(p.id)?.valor,
       })),
-    [doBanco],
+    [doBanco, contratoPorProjeto],
   );
 
   const decorated = useMemo(() => projects.map(decorate), [projects, decorate]);
+
+  // ── números do topo ──────────────────────────────────────────────────────
+  // Contados do que está no banco. Antes eram fixos (18 / 06 / 21), e o
+  // dashboard mostrava movimento que não existia.
+  const numerosDoTopo = useMemo(() => {
+    // "Fechado / Perdido" é o fim da linha nos dois sentidos: quem já assinou
+    // virou projeto e quem se perdeu não volta. Nenhum dos dois é atendimento
+    // em aberto.
+    const noFunil = funil.filter((l) => l.etapa !== "fechado").length;
+    const ativos = doBanco.filter(
+      (p) => p.situacao === "aguardando" || p.situacao === "andamento",
+    );
+    // Produção, entrega e montagem — as três etapas em que a fábrica está com
+    // o ambiente na mão. Só de projeto ativo: ambiente de projeto cancelado
+    // parado no meio do caminho não está em produção nenhuma.
+    const emProducao = ativos.reduce(
+      (soma, p) => soma + p.ambientes.filter((a) => a.etapa >= 2 && a.etapa <= 4).length,
+      0,
+    );
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return [
+      [pad(noFunil), "clientes no funil", undefined],
+      [pad(ativos.length), "projetos ativos", undefined],
+      [pad(emProducao), "ambientes em produção", "#A84B1C"],
+    ] as [string, string, string | undefined][];
+  }, [funil, doBanco]);
+
+  // ── indicadores da aba de projetos ──────────────────────────────────────
+  // Eram fixos no design (06 projetos, R$ 1,84 mi, 03 prazos). Contados do
+  // mesmo lugar de onde sai o resto da tela, para não haver dois números.
+  const kpisDeProjetos: KpiDeProjetos[] = useMemo(() => {
+    const ativos = decorated.filter(
+      (p) => p.status !== "Concluído" && p.status !== "Cancelado",
+    );
+    const ambientes = ativos.reduce(
+      (n, p) => n + p.ambientes.filter((a) => a[3] >= 2 && a[3] <= 4).length,
+      0,
+    );
+    // Só projeto com contrato assinado entra em "em execução". Proposta
+    // aberta é expectativa, e somá-la aqui inflaria o número da loja.
+    const emExecucao = ativos.filter((p) => p.contratoAssinado !== undefined);
+    const contratado = emExecucao.reduce((t, p) => t + p.contrato, 0);
+    const faturado = emExecucao.reduce((t, p) => t + p.spent, 0);
+
+    // Prazos: contados em dias corridos a partir de hoje. Prazo vencido conta
+    // junto — some da tela justo quando ela mais precisa ver.
+    const hoje = agora ? new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()) : null;
+    const dias = (iso: string | null) => {
+      if (!iso || !hoje) return null;
+      const [a, m, d] = iso.split("-").map(Number);
+      return Math.round((new Date(a, m - 1, d).getTime() - hoje.getTime()) / 86_400_000);
+    };
+    const prazos = ativos
+      .map((p) => dias(doBanco.find((x) => x.id === p.id)?.prazo ?? null))
+      .filter((n): n is number => n !== null && n <= 30)
+      .sort((x, y) => x - y);
+    const maisProximo = prazos[0];
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return [
+      {
+        label: "Projetos ativos",
+        valor: pad(ativos.length),
+        nota: `${ambientes} ${ambientes === 1 ? "ambiente" : "ambientes"} em andamento`,
+      },
+      {
+        label: "Contratos em execução",
+        valor: moneyCurto(contratado),
+        nota: faturado > 0 ? `${money(faturado)} já faturados` : "nada faturado ainda",
+      },
+      {
+        label: "Prazos nos próximos 30 dias",
+        valor: pad(prazos.length),
+        nota:
+          maisProximo === undefined
+            ? "nenhum prazo marcado"
+            : maisProximo < 0
+              ? `o mais próximo venceu há ${Math.abs(maisProximo)} dias`
+              : maisProximo === 0
+                ? "há um prazo hoje"
+                : `o mais próximo em ${maisProximo} ${maisProximo === 1 ? "dia" : "dias"}`,
+        cor: prazos.length > 0 ? "#9C2B22" : undefined,
+      },
+    ];
+  }, [decorated, doBanco, agora]);
+
+  // A meta do mês corrente. Enquanto ela não definir uma em Ajustes, a barra
+  // some: 0% de meta nenhuma seria uma cobrança inventada.
+  const metaDoMes = useMemo(() => {
+    const mes = mesCorrente(agora);
+    const m = metas.find((x) => x.mes === mes);
+    if (!m || !(m.meta > 0)) return null;
+    return { ...m, rotulo: nomeDoMes(mes), pct: Math.min(100, Math.round(m.pct)) };
+  }, [metas, agora]);
 
   // O funil mostra o valor do orçamento quando o lead já virou projeto. Sem
   // vínculo, continua a estimativa que ela digitou ao cadastrar o contato.
@@ -402,6 +551,10 @@ export default function DashboardArquitetura({
     return {
       ...decorate(sel),
       ambienteCount: sel.ambientes.length,
+      // O total vivo do orçamento, separado do valor do contrato: com contrato
+      // assinado os dois divergem quando a tabela é reajustada depois, e o
+      // painel de contrato mostra a diferença em vez de escondê-la.
+      orcamentoTotal: orcamentoCalculado?.totalComArt ?? 0,
       rawBudget: sel.budget.toLocaleString("pt-BR"),
       prazoISO: doBanco.find((p) => p.id === sel.id)?.prazo ?? "",
       // O valor do ambiente é calculado do orçamento, não digitado: era a
@@ -689,7 +842,7 @@ export default function DashboardArquitetura({
                 color: "#8C887C",
               }}
             >
-              Segunda, 24 de agosto de 2026
+              {dataPorExtenso(agora)}
             </div>
             <h1
               style={{
@@ -699,46 +852,61 @@ export default function DashboardArquitetura({
                 margin: "14px 0 0",
               }}
             >
-              Bom dia, {primeiroNome(perfil.nome)}
+              {saudacao(agora)}, {primeiroNome(perfil.nome)}
             </h1>
             <div className="dash-hero-meta">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  background: "#6B7040",
-                  color: "#F4F3EE",
-                  borderRadius: 999,
-                  padding: "8px 16px",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                }}
-              >
-                Meta de agosto · 84%
-              </div>
-              <div
-                style={{
-                  width: 220,
-                  height: 10,
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,.65)",
-                  overflow: "hidden",
-                }}
-              >
-                <div style={{ height: "100%", width: "84%", borderRadius: 999, background: "#A84B1C" }} />
-              </div>
-              <div style={{ fontFamily: MONO, fontSize: "11px", color: "#6E6A5F" }}>
-                faltam R$ 51.600
-              </div>
+              {metaDoMes ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      background: "#6B7040",
+                      color: "#F4F3EE",
+                      borderRadius: 999,
+                      padding: "8px 16px",
+                      fontSize: "12.5px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Meta de {metaDoMes.rotulo} · {metaDoMes.pct}%
+                  </div>
+                  <div
+                    style={{
+                      width: 220,
+                      height: 10,
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,.65)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: metaDoMes.pct + "%",
+                        borderRadius: 999,
+                        background: metaDoMes.pct >= 100 ? "#6B7040" : "#A84B1C",
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontFamily: MONO, fontSize: "11px", color: "#6E6A5F" }}>
+                    {metaDoMes.falta > 0 ? "faltam " + money(metaDoMes.falta) : "meta batida"}
+                  </div>
+                </>
+              ) : (
+                <button
+                  className="dash-btn-link"
+                  onClick={() => mudarAba("ajustes")}
+                  style={{ fontSize: "12.5px", color: "#6E6A5F" }}
+                >
+                  Defina a meta do mês em Ajustes →
+                </button>
+              )}
             </div>
           </div>
           <div className="dash-hero-stats">
-            {[
-              ["18", "clientes no funil", undefined],
-              ["06", "projetos ativos", undefined],
-              ["21", "ambientes em produção", "#A84B1C"],
-            ].map(([n, label, color]) => (
+            {numerosDoTopo.map(([n, label, color]) => (
               <div key={label}>
                 <div
                   style={{
@@ -773,6 +941,7 @@ export default function DashboardArquitetura({
         {showList && (
           <ProjetosLista
             projects={decorated}
+            kpis={kpisDeProjetos}
             gridStyle={gridStyle}
             onOpen={selectProject}
             onNewProject={() => setOverlay("projeto")}

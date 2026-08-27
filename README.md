@@ -55,16 +55,22 @@ user**, e entre com ele na tela inicial.
 | Clientes, leads e interações | Supabase, tabelas próprias |
 | Briefings preenchidos | Supabase, três tabelas normalizadas |
 | Projetos, ambientes e orçamentos | Supabase, tabelas próprias |
-| Contratos, comissão e financeiro | ainda com dados de protótipo |
+| Contratos, parcelas e recebimentos | Supabase, tabelas próprias |
+| Meta do mês | Supabase, `metas` |
+| Agenda, pós-venda e avisos | ainda com dados de protótipo |
 | Perfil (nome e foto) | ainda no `localStorage` |
 
 O app abre vazio: os dados de protótipo saíram. Cadastre pelo "+ Novo
 atendimento" ou "+ Novo projeto".
 
-Duas telas ficam parcialmente mudas até `contratos` e `recebimentos` terem
-interface: **"Faturado" mostra R$ 0** em todo projeto, porque não há
-recebimento registrado, e Comissão e Financeiro seguem com números de
-exemplo.
+Nada no painel é digitado duas vezes. Os números do topo — clientes no funil,
+projetos ativos, ambientes em produção — são contados das mesmas tabelas que
+as abas mostram. Comissão e Financeiro saem de contrato assinado; enquanto
+não houver nenhum, mostram zero em vez de exemplo.
+
+O contrato é registrado no painel do projeto, logo abaixo do orçamento, e é
+ele que destrava "Faturado", a comissão e a meta do mês. A meta é definida em
+**Ajustes › Meta do mês**; sem ela o topo não mostra barra nenhuma.
 
 ## Scripts
 

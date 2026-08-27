@@ -3,30 +3,29 @@
 import type { ProjectVM } from "./DashboardArquitetura";
 import { MONO, NUM, mono, panel, sectionTitle } from "./ui";
 
-/** Indicadores fixos no design original (protótipo). */
-const KPIS: [string, React.ReactNode, string, string | undefined][] = [
-  ["Projetos ativos", "06", "21 ambientes em andamento", undefined],
-  [
-    "Contratos em execução",
-    <>
-      R$ 1,84{" "}
-      <span style={{ fontSize: "clamp(17px, 3.4vw, 26px)", fontWeight: 500, color: "#6E6A5F" }}>
-        mi
-      </span>
-    </>,
-    "R$ 1,12 mi já faturados",
-    undefined,
-  ],
-  ["Prazos nos próximos 30 dias", "03", "Montagem mais próxima em 9 dias", "#9C2B22"],
-];
+/**
+ * Os três indicadores do topo, contados do banco.
+ *
+ * Eram fixos no design (06 / R$ 1,84 mi / 03). O cálculo mora em
+ * `DashboardArquitetura`, onde estão os projetos crus com o prazo em data —
+ * aqui só chega o resultado pronto.
+ */
+export type KpiDeProjetos = {
+  label: string;
+  valor: React.ReactNode;
+  nota: string;
+  cor?: string;
+};
 
 export default function ProjetosLista({
   projects,
+  kpis,
   gridStyle,
   onOpen,
   onNewProject,
 }: {
   projects: ProjectVM[];
+  kpis: KpiDeProjetos[];
   gridStyle: React.CSSProperties;
   onOpen: (id: string) => void;
   onNewProject: () => void;
@@ -34,7 +33,7 @@ export default function ProjetosLista({
   return (
     <div className="dash-tabpad" style={{ maxWidth: 1440 }}>
       <div className="dash-grid-3">
-        {KPIS.map(([label, value, note, color], i) => (
+        {kpis.map(({ label, valor: value, nota: note, cor: color }, i) => (
           <div key={i} style={{ ...panel, padding: "26px 28px 24px" }}>
             <div style={mono(11, "#8C887C", { ls: "0.08em", upper: true })}>{label}</div>
             <div
