@@ -42,13 +42,33 @@ export const MARCOS: [TipoDeMarco, string][] = [
 
 export type SituacaoDoProjeto = "aguardando" | "andamento" | "concluido" | "cancelado";
 
+/**
+ * Os três marcos de fábrica de um ambiente.
+ *
+ * Correspondem às etapas 2, 3 e 4 do cartão: produção, entrega, montagem.
+ * `previsto` ela digita; `realizado` é consequência de avançar a etapa —
+ * dois lugares para dizer a mesma coisa é como as duas fontes começam a
+ * discordar.
+ */
+export type TipoDeMarcoDeAmbiente = "producao" | "entrega" | "montagem";
+
+export const MARCOS_DE_AMBIENTE: [TipoDeMarcoDeAmbiente, string, number][] = [
+  ["producao", "Produção", 2],
+  ["entrega", "Entrega", 3],
+  ["montagem", "Montagem", 4],
+];
+
+export type MarcoDeAmbiente = { previsto: string | null; realizado: string | null };
+
 export type AmbienteDoBanco = {
   id: string;
   nome: string;
   detalhe: string;
   /** 0..5, os passos de AMB_STEPS. */
   etapa: number;
+  /** @deprecated Texto livre que virou `marcos`. Não é mais lido pela tela. */
   eta: string;
+  marcos: Partial<Record<TipoDeMarcoDeAmbiente, MarcoDeAmbiente>>;
   ordem: number;
   origemBriefing: string | null;
   orcamento: {
@@ -141,7 +161,7 @@ async function buscar() {
     return;
   }
 
-  const [ps, ambs, linhas, marcos] = await Promise.all([
+  const [ps, ambs, linhas, marcos, marcosAmb] = await Promise.all([
     supabase
       .from("projetos")
       .select(
@@ -157,11 +177,12 @@ async function buscar() {
       .select("id, ambiente_id, bloco, item_id, espessura, qnt, ordem")
       .order("ordem"),
     supabase.from("projeto_marcos").select("projeto_id, tipo, previsto, realizado"),
+    supabase.from("ambiente_marcos").select("ambiente_id, tipo, previsto, realizado"),
   ]);
 
   if (minha !== geracao) return;
 
-  const falha = ps.error ?? ambs.error ?? linhas.error ?? marcos.error;
+  const falha = ps.error ?? ambs.error ?? linhas.error ?? marcos.error ?? marcosAmb.error;
   if (falha) {
     erro = "Não foi possível carregar os projetos: " + falha.message;
     carregando = false;
@@ -183,6 +204,18 @@ async function buscar() {
     else o.maoDeObra.push({ servicoId: l.item_id, qnt });
   }
 
+  const marcosPorAmbiente = new Map<string, AmbienteDoBanco["marcos"]>();
+  for (const m of (marcosAmb.data ?? []) as {
+    ambiente_id: string;
+    tipo: TipoDeMarcoDeAmbiente;
+    previsto: string | null;
+    realizado: string | null;
+  }[]) {
+    const atual = marcosPorAmbiente.get(m.ambiente_id) ?? {};
+    atual[m.tipo] = { previsto: m.previsto, realizado: m.realizado };
+    marcosPorAmbiente.set(m.ambiente_id, atual);
+  }
+
   const ambientesPorProjeto = new Map<string, AmbienteDoBanco[]>();
   for (const linha of (ambs.data ?? []) as unknown as LinhaAmbiente[]) {
     const lista = ambientesPorProjeto.get(linha.projeto_id) ?? [];
@@ -192,6 +225,7 @@ async function buscar() {
       detalhe: linha.detalhe ?? "",
       etapa: linha.etapa,
       eta: linha.eta ?? "",
+      marcos: marcosPorAmbiente.get(linha.id) ?? {},
       ordem: linha.ordem,
       origemBriefing: linha.origem_briefing,
       orcamento: porAmbiente.get(linha.id) ?? {
@@ -423,6 +457,40 @@ async function sincronizar(id: string): Promise<void> {
     }
   }
 
+  // ── marcos de ambiente ───────────────────────────────────────────────
+  // Depois do laço dos ambientes, não dentro: ambiente recém-criado precisa
+  // existir no banco antes do marco que aponta para ele.
+  for (const a of atual.ambientes) {
+    const antigo = antes?.ambientes.find((x) => x.id === a.id);
+    for (const [tipo] of MARCOS_DE_AMBIENTE) {
+      const agora = a.marcos[tipo];
+      const era = antigo?.marcos[tipo];
+      if (igual(agora, era)) continue;
+      // Marco sem data nenhuma não é marco: some em vez de virar linha vazia.
+      if (!agora || (!agora.previsto && !agora.realizado)) {
+        if (!era) continue;
+        const { error } = await supabase
+          .from("ambiente_marcos")
+          .delete()
+          .eq("ambiente_id", a.id)
+          .eq("tipo", tipo);
+        if (error) return falhar("Não foi possível limpar o prazo: " + error.message);
+        continue;
+      }
+      const { error } = await supabase.from("ambiente_marcos").upsert(
+        {
+          dono,
+          ambiente_id: a.id,
+          tipo,
+          previsto: agora.previsto,
+          realizado: agora.realizado,
+        },
+        { onConflict: "ambiente_id,tipo" },
+      );
+      if (error) return falhar("Não foi possível salvar o prazo: " + error.message);
+    }
+  }
+
   // ── marcos ───────────────────────────────────────────────────────────
   for (const [tipo] of MARCOS) {
     const agora = atual.marcos[tipo];
@@ -520,6 +588,94 @@ export async function criarProjeto(dados: {
   return null;
 }
 
+/**
+ * Avança ou recua a etapa do ambiente, acertando os marcos junto.
+ *
+ * A regra é uma só: **o marco está realizado quando a etapa já passou dele.**
+ * Produção é a etapa 2, então produção só está feita a partir da etapa 3;
+ * montagem é a 4, e só está feita em "Concluído". É este passo que grava a
+ * data da montagem — e é dela que a garantia conta.
+ *
+ * Fica na camada de dados, e não no componente, porque é regra de negócio:
+ * quem avançar a etapa por outro caminho precisa acertar o marco do mesmo
+ * jeito.
+ */
+export function avancarAmbiente(
+  projetoId: string,
+  indice: number,
+  direcao: number,
+  hoje: string,
+): void {
+  atualizarProjeto(projetoId, (p) => ({
+    ...p,
+    ambientes: p.ambientes.map((a, k) => {
+      if (k !== indice) return a;
+      const etapa = Math.max(0, Math.min(5, a.etapa + direcao));
+      if (etapa === a.etapa) return a;
+      const marcos = { ...a.marcos };
+      for (const [tipo, , naEtapa] of MARCOS_DE_AMBIENTE) {
+        const feito = etapa > naEtapa;
+        const atual = marcos[tipo];
+        // Recuar apaga a data de realizado, mas nunca a de previsto: ela recua
+        // a etapa para corrigir um clique errado, não para desmarcar a entrega
+        // que já estava combinada com a fábrica.
+        if (feito && !atual?.realizado) {
+          marcos[tipo] = { previsto: atual?.previsto ?? null, realizado: hoje };
+        } else if (!feito && atual?.realizado) {
+          marcos[tipo] = { previsto: atual.previsto, realizado: null };
+        }
+      }
+      return { ...a, etapa, marcos };
+    }),
+  }));
+}
+
+/** A data prevista de um marco do ambiente. Campo vazio remove o marco. */
+export function definirPrevisto(
+  projetoId: string,
+  indice: number,
+  tipo: TipoDeMarcoDeAmbiente,
+  previsto: string,
+): void {
+  atualizarProjeto(projetoId, (p) => ({
+    ...p,
+    ambientes: p.ambientes.map((a, k) =>
+      k === indice
+        ? {
+            ...a,
+            marcos: {
+              ...a.marcos,
+              [tipo]: { previsto: previsto || null, realizado: a.marcos[tipo]?.realizado ?? null },
+            },
+          }
+        : a,
+    ),
+  }));
+}
+
+/**
+ * A legenda de prazo do cartão do ambiente.
+ *
+ * Mostra o próximo marco ainda não realizado que tenha data. Sem data
+ * nenhuma, cai no nome da etapa — que é o que o cartão já dizia antes de
+ * `ambiente_marcos` ganhar tela.
+ */
+export function legendaDoAmbiente(a: AmbienteDoBanco, nomeDaEtapa: string): string {
+  for (const [tipo, rotulo] of MARCOS_DE_AMBIENTE) {
+    const m = a.marcos[tipo];
+    if (m?.previsto && !m.realizado) return `${diaCurto(m.previsto)} · ${rotulo.toLowerCase()}`;
+  }
+  return nomeDaEtapa;
+}
+
+const MES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "2026-09-18" → "18 set". */
+export function diaCurto(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${Number(d)} ${MES_CURTO[Number(m) - 1] ?? ""}`;
+}
+
 /** Ambiente novo dentro de um projeto que já existe. */
 export function adicionarAmbiente(projetoId: string, nome = "Novo ambiente"): void {
   atualizarProjeto(projetoId, (p) => ({
@@ -532,6 +688,7 @@ export function adicionarAmbiente(projetoId: string, nome = "Novo ambiente"): vo
         detalhe: "",
         etapa: 0,
         eta: "",
+        marcos: {},
         ordem: p.ambientes.length,
         origemBriefing: null,
         orcamento: { chapas: [], fita: [], acessorios: [], maoDeObra: [] },
@@ -584,6 +741,7 @@ export function aplicarOrcamento(projetoId: string, novos: OrcamentoAmbiente[]):
           detalhe: antigo?.detalhe ?? "",
           etapa: antigo?.etapa ?? 0,
           eta: antigo?.eta ?? "",
+          marcos: antigo?.marcos ?? {},
           ordem: i,
           origemBriefing: n.origemBriefing ?? antigo?.origemBriefing ?? null,
           orcamento: {

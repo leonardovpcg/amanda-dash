@@ -16,6 +16,13 @@ type AmbienteVM = {
   valueLabel: string;
   eta: string;
   status: string;
+  prazos: {
+    tipo: string;
+    rotulo: string;
+    previsto: string;
+    feito: boolean;
+    onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  }[];
   onName: (e: ChangeEvent<HTMLInputElement>) => void;
   onDetail: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   up: () => void;
@@ -295,6 +302,49 @@ export default function ProjetoDetalhe({
                   />
                 ))}
               </div>
+
+              {/* ── prazos de fábrica ──────────────────────────────────
+                  Produção, entrega e montagem. Ela preenche à mão — não há
+                  integração com a fábrica, e foi decisão dela não sincronizar
+                  com calendário nenhum.
+
+                  Estas três datas são o que alimenta a coluna "Entregas e
+                  montagens" da agenda; a de montagem, quando a etapa chega a
+                  "Concluído", é de onde a garantia começa a contar. */}
+              <div className="dash-amb-prazos">
+                {a.prazos.map((m) => (
+                  <label key={m.tipo} style={{ display: "block", minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: "9.5px",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: m.feito ? "#6B7040" : "#9A9689",
+                      }}
+                    >
+                      {m.rotulo}
+                      {m.feito ? " ✓" : ""}
+                    </span>
+                    <input
+                      className="dash-field dash-field-sm"
+                      type="date"
+                      value={m.previsto}
+                      onChange={m.onChange}
+                      aria-label={"Previsão de " + m.rotulo.toLowerCase() + " · " + a.name}
+                      style={{
+                        width: "100%",
+                        marginTop: 3,
+                        padding: "6px 8px",
+                        fontSize: "11.5px",
+                        borderRadius: 9,
+                        ...NUM,
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+
               <div
                 style={{
                   display: "flex",
@@ -419,9 +469,10 @@ export default function ProjetoDetalhe({
         </div>
 
         <div style={{ ...panel, padding: "28px 30px" }}>
-          <div style={cardTitle}>Consulta de preço de material</div>
+          <div style={cardTitle}>Consulta de preço</div>
           <div style={{ fontSize: "13px", color: "#6E6A5F", marginTop: 6 }}>
-            Digite o material e busque um valor de referência de mercado.
+            Procura na sua tabela de valores. O preço é o mesmo que entraria no orçamento —
+            custo × multiplicador.
           </div>
           <div className="dash-busca">
             <input
@@ -431,7 +482,7 @@ export default function ProjetoDetalhe({
               onKeyDown={(e) => {
                 if (e.key === "Enter") onSearch();
               }}
-              placeholder="ex: MDF branco 18mm, porcelanato 90x90"
+              placeholder="ex: off white 18, corrediça, montagem"
               style={{ flex: 1, minWidth: 0 }}
             />
             <button
@@ -444,66 +495,58 @@ export default function ProjetoDetalhe({
                 whiteSpace: "nowrap",
               }}
             >
-              Buscar preço
+              Buscar
             </button>
           </div>
-          {result && (
+
+          {result && result.achados.length === 0 && (
+            <div style={{ fontSize: "13px", color: "#6E6A5F", marginTop: 18, lineHeight: 1.5 }}>
+              Nada com &quot;{result.termo}&quot; na tabela. Itens novos entram em{" "}
+              <strong style={{ fontWeight: 600 }}>Ajustes › Tabela de valores</strong>.
+            </div>
+          )}
+
+          {result && result.achados.length > 0 && (
             <div
               style={{
                 marginTop: 18,
                 border: "1px solid rgba(255,255,255,.9)",
                 background: "rgba(243,247,246,.85)",
                 borderRadius: 20,
-                padding: "20px 22px",
+                padding: "18px 22px",
               }}
             >
               <div style={mono(10, "#9C7B62", { ls: "0.08em", upper: true })}>
-                Valor de referência
+                {result.achados.length === 1
+                  ? "1 item na sua tabela"
+                  : `${result.achados.length} itens na sua tabela`}
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8 }}>
-                <div
-                  style={{
-                    fontSize: "30px",
-                    fontWeight: 600,
-                    letterSpacing: "-0.03em",
-                    color: "#A84B1C",
-                    ...NUM,
-                  }}
-                >
-                  {result.value}
+              {result.achados.map((a) => (
+                <div key={a.id} className="dash-busca-item">
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600, letterSpacing: "-0.005em" }}>
+                      {a.nome}
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9C8878", marginTop: 3 }}>
+                      {a.bloco} · {a.unidade} · custo {a.custoLabel} × {a.markupLabel}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "17px",
+                      fontWeight: 600,
+                      letterSpacing: "-0.02em",
+                      color: "#A84B1C",
+                      flex: "none",
+                      ...NUM,
+                    }}
+                  >
+                    {a.vendaLabel}
+                  </div>
                 </div>
-                <div style={{ fontSize: "13px", color: "#4A473F" }}>{result.unit}</div>
-              </div>
-              <div style={{ fontSize: "13px", color: "#23231F", marginTop: 10, fontWeight: 500 }}>
-                {result.term}
-              </div>
-              <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9C8878", marginTop: 4 }}>
-                {result.source}
-              </div>
-              <button
-                className="dash-btn-soft"
-                style={{
-                  marginTop: 16,
-                  background: "#FFFFFF",
-                  padding: "9px 16px",
-                  fontSize: "12.5px",
-                }}
-              >
-                Adicionar à lista do projeto
-              </button>
+              ))}
             </div>
           )}
-          <div
-            style={{
-              fontFamily: MONO,
-              fontSize: "10.5px",
-              color: "#A8A498",
-              marginTop: 16,
-              lineHeight: 1.6,
-            }}
-          >
-            protótipo · valores simulados, sem integração com fornecedores
-          </div>
         </div>
       </div>
 

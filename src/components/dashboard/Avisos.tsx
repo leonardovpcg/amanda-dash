@@ -1,9 +1,20 @@
 "use client";
 
-import { NOTICES } from "@/lib/dashboard/data";
+/* ═══════════════════════════════════════════════════════════════════════════
+   O painel do sino.
+
+   Sem "marcar como lido": os avisos não são mensagens, são condições. Um
+   aviso some quando o motivo dele deixa de valer — o retorno foi feito, a
+   entrada foi registrada, a visita foi marcada como feita. Um botão de
+   dispensar só esconderia o problema.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+import { useAvisos } from "@/lib/dados/avisos";
 import { MONO, cardTitle } from "./ui";
 
 export default function Avisos({ onClose }: { onClose: () => void }) {
+  const avisos = useAvisos();
+
   return (
     <div
       onClick={onClose}
@@ -28,38 +39,51 @@ export default function Avisos({ onClose }: { onClose: () => void }) {
       >
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <div style={cardTitle}>Avisos de hoje</div>
-          <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9A9689" }}>4 novos</div>
-        </div>
-        {NOTICES.map(([title, detail, time, color], i) => (
-          <div
-            key={i}
-            style={{ display: "flex", gap: 13, padding: "15px 0", borderTop: "1px solid #F0EDE5" }}
-          >
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                flex: "none",
-                marginTop: 6,
-                background: color,
-              }}
-            />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "13.5px", fontWeight: 600, letterSpacing: "-0.005em" }}>
-                {title}
-              </div>
-              <div
-                style={{ fontSize: "12.5px", color: "#6E6A5F", marginTop: 3, lineHeight: 1.45 }}
-              >
-                {detail}
-              </div>
-              <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9A9689", marginTop: 5 }}>
-                {time}
-              </div>
-            </div>
+          <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9A9689" }}>
+            {avisos.length === 0 ? "nada" : avisos.length}
           </div>
-        ))}
+        </div>
+
+        {avisos.length === 0 ? (
+          <div style={{ fontSize: "13px", color: "#6E6A5F", padding: "18px 0 12px", lineHeight: 1.5 }}>
+            Nada exigindo atenção: nenhum lead parado, nenhum prazo vencido e nenhum contrato
+            sem entrada.
+          </div>
+        ) : (
+          <div className="dash-notif-lista">
+            {avisos.map((a) => (
+              <div
+                key={a.id}
+                style={{ display: "flex", gap: 13, padding: "15px 0", borderTop: "1px solid #F0EDE5" }}
+              >
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    flex: "none",
+                    marginTop: 6,
+                    background: a.cor,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "13.5px", fontWeight: 600, letterSpacing: "-0.005em" }}>
+                    {a.titulo}
+                  </div>
+                  <div
+                    style={{ fontSize: "12.5px", color: "#6E6A5F", marginTop: 3, lineHeight: 1.45 }}
+                  >
+                    {a.detalhe}
+                  </div>
+                  <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9A9689", marginTop: 5 }}>
+                    {a.quando}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           className="dash-btn-ghost"
           onClick={onClose}
@@ -72,7 +96,7 @@ export default function Avisos({ onClose }: { onClose: () => void }) {
             fontSize: "12.5px",
           }}
         >
-          Marcar tudo como lido
+          Fechar
         </button>
       </div>
     </div>

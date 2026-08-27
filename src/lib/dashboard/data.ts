@@ -133,74 +133,10 @@ export type Project = {
    `faixas_comissao` e os contratos de `src/lib/dados/contratos.ts`, que é o
    mesmo caminho de `v_comissoes` no banco. */
 
-/** [dia, mês, título, detalhe, meta, cor da meta] */
-export type AgendaItem = [string, string, string, string, string, string];
-
-export const AGENDA: [string, string, AgendaItem[]][] = [
-  [
-    "Visitas técnicas",
-    "Medições e visitas agendadas",
-    [
-      ["25", "ago", "Juliana Beltrão", "Medição final · cozinha e lavanderia", "09:00 · Perdizes", "#A84B1C"],
-      ["27", "ago", "Sr. Aurélio Braga", "Medição inicial · 3 ambientes", "14:30 · Camburi (deslocamento)", "#6E6A5F"],
-      ["29", "ago", "Marina Sampaio", "Primeira visita · cozinha e closet", "10:30 · Vila Nova Conceição", "#6E6A5F"],
-      ["02", "set", "Estúdio Faro", "Conferência de medidas do mezanino", "16:00 · Vila Madalena", "#6E6A5F"],
-    ],
-  ],
-  [
-    "Retornos a fazer",
-    "Follow-up de propostas enviadas",
-    [
-      ["22", "ago", "Paulo Andrade", "Proposta enviada há 14 dias, sem resposta", "atrasado 4 dias", "#9C2B22"],
-      ["23", "ago", "Ana Lúcia Verona", "Revisar orçamento da cozinha gourmet", "hoje", "#9C2B22"],
-      ["26", "ago", "Família Ferraz", "Retomar contato · lead há 9 dias", "em 4 dias", "#6E6A5F"],
-      ["28", "ago", "Dra. Renata Sampaio", "Negociação de condições de pagamento", "em 6 dias", "#6E6A5F"],
-    ],
-  ],
-  [
-    "Entregas e montagens",
-    "Logística confirmada com a fábrica",
-    [
-      ["10", "set", "Residência Alvorada", "Montagem lavanderia · equipe 2 montadores", "confirmado", "#A84B1C"],
-      ["12", "set", "Clínica Vértice", "Montagem recepção · balcão curvo", "confirmado", "#A84B1C"],
-      ["18", "set", "Residência Alvorada", "Montagem cozinha · 3 dias de obra", "a confirmar frete", "#9C2B22"],
-      ["28", "set", "Clínica Vértice", "Entrega sala clínica 2", "confirmado", "#A84B1C"],
-    ],
-  ],
-];
-
-/** [cliente, ambiente, problema, aberto em, situação, tom] */
-export const ASSIST: [string, string, string, string, string, ToneName][] = [
-  ["Família Nogueira", "Closet · Ipanema", "Regulagem de porta de correr desalinhada", "12 ago", "Peça solicitada", "clay"],
-  ["Marcos Iório", "Lavanderia · Pinheiros", "Troca de corrediça com ruído", "05 ago", "Prazo vencido", "clay"],
-  ["Helô Bandeira", "Cozinha · Santana", "Retoque de acabamento no rodapé", "18 ago", "Agendada 30 ago", "terracota"],
-  ["Clínica Vértice", "Sala clínica 1 · Itaim", "Ajuste de dobradiça em armário técnico", "20 ago", "Em análise", "sand"],
-];
-
-/** [cliente, escopo, até, restante, cor] */
-export const WARRANTIES: [string, string, string, string, string][] = [
-  ["Família Nogueira", "Suíte e closet · marcenaria completa", "jun 2031", "58 meses", "#A84B1C"],
-  ["Marcos Iório", "Closet e lavanderia", "out 2026", "2 meses", "#9C2B22"],
-  ["Helô Bandeira", "Cozinha e dormitório", "ago 2031", "60 meses", "#A84B1C"],
-  ["Condomínio Aurora", "Armários de área comum", "nov 2026", "3 meses", "#9C2B22"],
-];
-
-/** [cliente, nota, ação] */
-export const REFERRALS: [string, string, string][] = [
-  ["Família Nogueira", "Entregue há 2 meses · NPS 9", "Pedir indicação"],
-  ["Marcos Iório", "Mencionou reforma do home office", "Oferecer projeto"],
-  ["Condomínio Aurora", "Segundo bloco em obras", "Propor recompra"],
-  ["Helô Bandeira", "Indicou 1 cliente em julho", "Agradecer e reativar"],
-];
-
-/** [chave de busca, valor, unidade, fonte] */
-export const PRICES: [string, string, string, string][] = [
-  ["mdf", "R$ 289,00", "por chapa 18 mm (2,75 × 1,85 m)", "Média de 5 fornecedores · atualizado hoje"],
-  ["porcelanato", "R$ 132,90", "por m² · acetinado 90x90", "Média de 7 fornecedores · atualizado hoje"],
-  ["marmore", "R$ 1.180,00", "por m² · chapa polida", "Média de 3 marmorarias · atualizado hoje"],
-  ["corrediça", "R$ 96,00", "por par · soft close 500 mm", "Média de 4 fornecedores · atualizado hoje"],
-  ["led", "R$ 210,00", "por metro linear instalado", "Média de 4 fornecedores · atualizado hoje"],
-];
+/* Agenda, assistências, garantias, indicações e a lista de preços de
+   protótipo saíram. Agenda vem de `v_agenda` e `v_retornos`; pós-venda de
+   `assistencias`, `v_garantias` e `v_indicacoes`; a consulta de preço passou
+   a procurar na tabela de valores dela, em `src/lib/orcamento/consultar.ts`. */
 
 export const ORIGENS = ["Loja", "Indicação", "Instagram", "Arquiteto parceiro", "Site"];
 
@@ -214,13 +150,9 @@ export const AMB_OPTS = [
   "Área gourmet",
 ];
 
-/** [título, detalhe, tempo, cor] */
-export const NOTICES: [string, string, string, string][] = [
-  ["Paulo Andrade sem retorno", "Proposta de R$ 42.000 enviada há 14 dias, negociação parada.", "atrasado 4 dias", "#9C2B22"],
-  ["Fábrica confirmou entrega", "Clínica Vértice · balcão da recepção sai em 09 set.", "há 2 h", "#A84B1C"],
-  ["Aprovação pendente", "Camila e Rui Tavares precisam assinar o executivo até 31 ago.", "hoje, 08:40", "#9C2B22"],
-  ["Assistência agendada", "Helô Bandeira · retoque de rodapé em 30 ago, 10:00.", "ontem", "#6B7040"],
-];
+/* Os avisos de protótipo saíram: agora são derivados das condições que já
+   estão no banco, em `src/lib/dados/avisos.ts`. Sem tabela de propósito —
+   aviso guardado precisaria de alguém para apagá-lo quando o motivo passa. */
 
 /** Próximo passo sugerido por etapa do funil. */
 export const NEXT_STEPS: [string, string][] = [

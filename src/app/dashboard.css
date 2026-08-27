@@ -1747,3 +1747,104 @@ textarea.dash-inline:focus {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* — prazos de fábrica no cartão do ambiente —
+   Três datas lado a lado. `minmax(0, 1fr)` porque o seletor nativo de data
+   tem largura mínima própria e estoura a coluna sem isso. */
+.dash-amb-prazos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* — agenda — */
+.dash-agenda-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.dash-agenda-item {
+  display: flex;
+  gap: 14px;
+  padding: 15px 0;
+  border-top: 1px solid #f4f1ea;
+}
+.dash-agenda-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+@media (max-width: 767px) {
+  .dash-agenda-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Sem isto o campo com `grid-column: span 2` estoura a grade de uma coluna. */
+  .dash-agenda-form > * {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* — pós-venda — */
+.dash-assist-linha {
+  display: grid;
+  grid-template-columns: 1.5fr 2fr 1fr 1.2fr;
+  gap: 16px;
+  padding: 17px 0;
+  border-top: 1px solid #f4f1ea;
+  align-items: center;
+}
+.dash-assist-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dash-assist-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.dash-pos-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid #f4f1ea;
+}
+@media (max-width: 767px) {
+  .dash-assist-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-assist-form > * {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* — lista de avisos —
+   Rola dentro do painel: com muitos avisos, a lista crescia até passar da
+   altura da tela e o botão de fechar saía do alcance. */
+.dash-notif-lista {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+}
+
+/* — resultado da consulta de preço — */
+.dash-busca-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid rgba(156, 123, 98, 0.14);
+}
+.dash-busca-item:first-of-type {
+  border-top: none;
+  padding-top: 14px;
+}

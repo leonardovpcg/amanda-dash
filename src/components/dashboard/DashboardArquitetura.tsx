@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import {
   AMB_STEPS,
   CAT_COLORS,
-  PRICES,
   STAGES,
   STATUS_TONE,
   chip,
@@ -17,6 +16,7 @@ import {
 import {
   assinarPerfil,
   guardarPerfil,
+  nomeExibido,
   lerPerfil,
   lerPerfilNoServidor,
   primeiroNome,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/dashboard/perfil";
 import { brl, calcularProjeto } from "@/lib/orcamento/calculo";
 import { assinarCatalogo, lerCatalogo, lerCatalogoNoServidor } from "@/lib/orcamento/catalogo";
+import { consultarPreco } from "@/lib/orcamento/consultar";
 import { composicao, materiais, temOrcamento, valorDeContrato } from "@/lib/orcamento/derivar";
 import {
   assinarBriefings,
@@ -52,6 +53,7 @@ import {
   dataPorExtenso,
   lerRelogio,
   lerRelogioNoServidor,
+  hojeISO,
   mesCorrente,
   nomeDoMes,
   saudacao,
@@ -64,8 +66,12 @@ import {
   moverEtapa,
 } from "@/lib/dados/funil";
 import {
+  MARCOS_DE_AMBIENTE,
   adicionarAmbiente,
   aplicarOrcamento,
+  avancarAmbiente,
+  definirPrevisto,
+  legendaDoAmbiente,
   assinarProjetos,
   atualizarProjeto,
   criarProjeto,
@@ -94,9 +100,11 @@ import Ajustes from "./Ajustes";
 import NovoProjeto from "./NovoProjeto";
 import LeadDrawer from "./LeadDrawer";
 import Avisos from "./Avisos";
+import { useAvisos } from "@/lib/dados/avisos";
 import Briefing from "./Briefing";
 import NovoAtendimento from "./NovoAtendimento";
 import { useDeslizarAbas } from "./useDeslizarAbas";
+import { assinarSessao, lerSessao, lerSessaoNoServidor } from "@/lib/supabase/sessao";
 
 export type Tab =
   | "funil"
@@ -122,7 +130,18 @@ export type ProjectVM = Project & {
   pctColor: string;
 };
 
-export type PriceResult = { term: string; value: string; unit: string; source: string };
+export type PriceResult = {
+  termo: string;
+  achados: {
+    id: string;
+    nome: string;
+    bloco: string;
+    unidade: string;
+    custoLabel: string;
+    vendaLabel: string;
+    markupLabel: string;
+  }[];
+};
 
 /**
  * "R$ 1,84 mi" — o número grande dos cartões de indicador.
@@ -150,8 +169,6 @@ function moneyCurto(n: number) {
   );
 }
 
-const deaccent = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
-
 const TABS: [Tab, string][] = [
   ["funil", "Funil"],
   ["projetos", "Projetos"],
@@ -173,6 +190,8 @@ export default function DashboardArquitetura({
   // senão a hidratação quebra ao discordar da hora do navegador.
   const agora = useSyncExternalStore(assinarRelogio, lerRelogio, lerRelogioNoServidor);
   const metas = useSyncExternalStore(assinarMetas, lerMetas, lerMetasNoServidor);
+  // O ponto vermelho do sino era fixo. Agora só aparece quando há o que ver.
+  const avisos = useAvisos();
   // Contratos assinados: é deles que sai o "Faturado" de cada projeto.
   const contratos = useSyncExternalStore(assinarContratos, lerContratos, lerContratosNoServidor);
   const [selected, setSelected] = useState<string | null>(null);
@@ -213,6 +232,10 @@ export default function DashboardArquitetura({
   // ── perfil ───────────────────────────────────────────────────────────────
   // Mora no localStorage, fora do React, então é lido como store externa.
   const perfil = useSyncExternalStore(assinarPerfil, lerPerfil, lerPerfilNoServidor);
+  // Sem nome cadastrado, o cabeçalho cai no e-mail da conta. O nome fixo que
+  // estava no código só ficava certo por acaso.
+  const sessao = useSyncExternalStore(assinarSessao, lerSessao, lerSessaoNoServidor);
+  const nome = nomeExibido(perfil, sessao.sessao?.user.email);
   // A tabela de valores também: preço novo recalcula todo orçamento aberto.
   const catalogo = useSyncExternalStore(assinarCatalogo, lerCatalogo, lerCatalogoNoServidor);
   // Briefing: o roteiro (raro de mudar) e as respostas (mudam a cada reunião).
@@ -328,13 +351,11 @@ export default function DashboardArquitetura({
       ambientes: p.ambientes.map((a, k) => (k === i ? { ...a, [campo]: v } : a)),
     }));
 
-  const stepAmb = (i: number, dir: number) =>
-    editar((p) => ({
-      ...p,
-      ambientes: p.ambientes.map((a, k) =>
-        k === i ? { ...a, etapa: Math.max(0, Math.min(5, a.etapa + dir)) } : a,
-      ),
-    }));
+  // Avançar a etapa grava o marco realizado junto — a regra mora na camada de
+  // dados, porque é dela que a garantia conta.
+  const stepAmb = (i: number, dir: number) => {
+    if (selected) avancarAmbiente(selected, i, dir, hojeISO(agora));
+  };
 
   const addAmb = () => {
     if (selected) adicionarAmbiente(selected);
@@ -362,12 +383,26 @@ export default function DashboardArquitetura({
 
 
   // ── consulta de preço ────────────────────────────────────────────────────
+  // Procura na tabela de valores dela, não numa lista de médias de mercado
+  // que não tinha fornecedor nenhum atrás.
   const lookup = () => {
-    const q = (query || "MDF branco 18mm").toLowerCase();
-    const norm = deaccent(q);
-    const hit = PRICES.find((p) => norm.includes(deaccent(p[0])));
-    const row = hit ?? ["", "R$ 164,50", "por m² · faixa média de mercado", "Estimativa referencial · 6 fornecedores"];
-    setResult({ term: query || "MDF branco 18mm", value: row[1], unit: row[2], source: row[3] });
+    const termo = query.trim();
+    if (!termo) {
+      setResult(null);
+      return;
+    }
+    setResult({
+      termo,
+      achados: consultarPreco(catalogo, termo).map((a) => ({
+        id: a.id,
+        nome: a.nome,
+        bloco: a.bloco,
+        unidade: a.unidade,
+        custoLabel: brl(a.custo),
+        vendaLabel: brl(a.venda),
+        markupLabel: a.markup.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "×",
+      })),
+    });
   };
 
   // ── derivados ────────────────────────────────────────────────────────────
@@ -416,7 +451,13 @@ export default function DashboardArquitetura({
         imageLabel: "render pendente",
         ambientes: p.ambientes.map(
           (a) =>
-            [a.nome, a.detalhe, 0, a.etapa, a.eta || AMB_STEPS[Math.min(a.etapa, 5)]] as Ambiente,
+            [
+              a.nome,
+              a.detalhe,
+              0,
+              a.etapa,
+              legendaDoAmbiente(a, AMB_STEPS[Math.min(a.etapa, 5)]),
+            ] as Ambiente,
         ),
         stages: linhaDoTempo(p),
         budgetCats: [],
@@ -559,14 +600,26 @@ export default function DashboardArquitetura({
       prazoISO: doBanco.find((p) => p.id === sel.id)?.prazo ?? "",
       // O valor do ambiente é calculado do orçamento, não digitado: era a
       // segunda fonte que podia discordar do painel logo abaixo.
-      ambientesVM: sel.ambientes.map(([name, dtl, , step, eta], i) => {
+      ambientesVM: sel.ambientes.map(([name, dtl, , step], i) => {
         const calc = orcamentoCalculado?.ambientes[i];
+        const cru = doBanco.find((p) => p.id === sel.id)?.ambientes[i];
         return {
           name,
           detail: dtl,
           valueLabel: calc ? brl(calc.totalComArt) : money(0),
-          eta,
+          // A legenda era texto livre; agora é o próximo prazo de fábrica em
+          // aberto, e cai no nome da etapa quando não há data marcada.
+          eta: cru ? legendaDoAmbiente(cru, AMB_STEPS[Math.min(step, 5)]) : AMB_STEPS[Math.min(step, 5)],
           status: AMB_STEPS[Math.min(step, 5)],
+          prazos: MARCOS_DE_AMBIENTE.map(([tipo, rotulo, naEtapa]) => ({
+            tipo,
+            rotulo,
+            previsto: cru?.marcos[tipo]?.previsto ?? "",
+            feito: step > naEtapa,
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+              if (selected) definirPrevisto(selected, i, tipo, e.target.value);
+            },
+          })),
           onName: (e: React.ChangeEvent<HTMLInputElement>) => setAmb(i, "nome", e.target.value),
           onDetail: (e: React.ChangeEvent<HTMLTextAreaElement>) =>
             setAmb(i, "detalhe", e.target.value),
@@ -741,7 +794,7 @@ export default function DashboardArquitetura({
                 height: 40,
                 background: overlay === "notif" ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)",
               }}
-              aria-label="Avisos"
+              aria-label={avisos.length > 0 ? `Avisos · ${avisos.length}` : "Avisos"}
             >
               <span
                 style={{
@@ -761,18 +814,20 @@ export default function DashboardArquitetura({
                     border: "1.6px solid #4A473F",
                   }}
                 />
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -1,
-                    right: -2,
-                    width: 7,
-                    height: 7,
-                    borderRadius: 999,
-                    background: "#9C2B22",
-                    border: "1.5px solid #F4F3EE",
-                  }}
-                />
+                {avisos.length > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -1,
+                      right: -2,
+                      width: 7,
+                      height: 7,
+                      borderRadius: 999,
+                      background: "#9C2B22",
+                      border: "1.5px solid #F4F3EE",
+                    }}
+                  />
+                )}
               </span>
             </button>
             <button
@@ -808,10 +863,10 @@ export default function DashboardArquitetura({
                 onClick={() => setMenuPerfil((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={menuPerfil}
-                aria-label={`Conta de ${perfil.nome}`}
-                title={perfil.nome}
+                aria-label={`Conta de ${nome}`}
+                title={nome}
               >
-                <Avatar perfil={perfil} />
+                <Avatar perfil={perfil} nome={nome} />
                 <span className="dash-brand-seta" aria-hidden>
                   ▾
                 </span>
@@ -819,6 +874,8 @@ export default function DashboardArquitetura({
               {menuPerfil && (
                 <PerfilMenu
                   perfil={perfil}
+                  nome={nome}
+                  email={sessao.sessao?.user.email ?? ""}
                   onClose={() => setMenuPerfil(false)}
                   onEditar={() => {
                     setMenuPerfil(false);
@@ -852,7 +909,8 @@ export default function DashboardArquitetura({
                 margin: "14px 0 0",
               }}
             >
-              {saudacao(agora)}, {primeiroNome(perfil.nome)}
+              {saudacao(agora)}
+              {nome ? `, ${primeiroNome(nome)}` : ""}
             </h1>
             <div className="dash-hero-meta">
               {metaDoMes ? (
@@ -985,9 +1043,28 @@ export default function DashboardArquitetura({
           />
         )}
         {tab === "comissao" && <Comissao projects={decorated} />}
-        {tab === "agenda" && <Agenda />}
+        {tab === "agenda" && (
+          <Agenda
+            onAbrirLead={(id) => {
+              mudarAba("funil");
+              setOpenLead(id);
+            }}
+            onAbrirProjeto={(id) => {
+              mudarAba("projetos");
+              selectProject(id);
+            }}
+          />
+        )}
         {tab === "financeiro" && <Financeiro projects={decorated} />}
-        {tab === "posvenda" && <PosVenda />}
+        {tab === "posvenda" && (
+          <PosVenda
+            projects={decorated}
+            onAbrirProjeto={(id) => {
+              mudarAba("projetos");
+              selectProject(id);
+            }}
+          />
+        )}
         {tab === "ajustes" && <Ajustes />}
       </div>
 
@@ -1030,6 +1107,7 @@ export default function DashboardArquitetura({
           perfil={perfil}
           onClose={() => setPerfilAberto(false)}
           onSave={salvarPerfil}
+          email={sessao.sessao?.user.email ?? ""}
         />
       )}
       {overlay === "novo" && (

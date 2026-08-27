@@ -30,7 +30,7 @@ import {
   registrarRecebimento,
   type Contrato,
 } from "@/lib/dados/contratos";
-import { lerRelogio } from "@/lib/dados/relogio";
+import { hojeISO } from "@/lib/dados/relogio";
 import { brl } from "@/lib/orcamento/calculo";
 import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 
@@ -45,14 +45,6 @@ const MES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set"
 function dataCurta(iso: string): string {
   const [a, m, d] = iso.split("-");
   return `${d} ${MES_CURTO[Number(m) - 1] ?? ""} ${a}`;
-}
-
-/** Hoje no formato do `<input type="date">`, para o campo já vir preenchido. */
-function hojeISO(): string {
-  const d = lerRelogio() ?? new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
 }
 
 export default function ContratoPainel({

@@ -5,10 +5,13 @@ import { iniciais, type Perfil } from "@/lib/dashboard/perfil";
 /** Avatar da usuária: a foto, ou as iniciais do nome sobre o petróleo do design. */
 export default function Avatar({
   perfil,
+  /** O nome a exibir — cai no e-mail da conta enquanto ela não cadastrar. */
+  nome,
   size = 30,
   fontSize = 12.5,
 }: {
   perfil: Perfil;
+  nome: string;
   size?: number;
   fontSize?: number;
 }) {
@@ -19,7 +22,7 @@ export default function Avatar({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={perfil.foto}
-        alt={perfil.nome}
+        alt={nome}
         style={{
           width: size,
           height: size,
@@ -49,7 +52,7 @@ export default function Avatar({
         flex: "none",
       }}
     >
-      {iniciais(perfil.nome)}
+      {iniciais(nome)}
     </div>
   );
 }

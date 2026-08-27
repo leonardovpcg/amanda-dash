@@ -9,10 +9,13 @@ export default function PerfilModal({
   perfil,
   onClose,
   onSave,
+  email,
 }: {
   perfil: Perfil;
   onClose: () => void;
   onSave: (p: Perfil) => void;
+  /** E-mail da conta. Vem da sessão, não é editável aqui. */
+  email: string;
 }) {
   const [nome, setNome] = useState(perfil.nome);
   const [foto, setFoto] = useState<string | null>(perfil.foto);
@@ -119,7 +122,7 @@ export default function PerfilModal({
             flexWrap: "wrap",
           }}
         >
-          <Avatar perfil={{ nome, foto }} size={84} fontSize={30} />
+          <Avatar perfil={{ nome, foto }} nome={nome} size={84} fontSize={30} />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
@@ -173,21 +176,25 @@ export default function PerfilModal({
           </div>
         </div>
 
-        {/* ── e-mail, ainda sem conta ──────────────────────────────────── */}
+{/* ── e-mail da conta ──────────────────────────────────────────── */}
+        {/* Só leitura: quem manda no e-mail é o Supabase Auth, e um campo
+            editável aqui prometeria uma troca que este app não faz. */}
         <div style={{ padding: "20px 34px 0" }}>
           <div style={mono(10, "#9A9689", { ls: "0.08em", upper: true })}>E-mail de acesso</div>
           <div
             style={{
               marginTop: 8,
-              border: "1px dashed #E2DED4",
+              border: "1px solid #E2DED4",
               borderRadius: 14,
               padding: "14px 16px",
               fontSize: "14px",
-              color: "#A8A498",
-              background: "rgba(255,255,255,.4)",
+              color: "#6E6A5F",
+              background: "rgba(255,255,255,.5)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
-            definido quando o login entrar
+            {email || "—"}
           </div>
         </div>
 

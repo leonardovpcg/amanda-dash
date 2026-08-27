@@ -70,6 +70,18 @@ export function saudacao(d: Date | null): string {
   return "Boa noite";
 }
 
+/**
+ * Hoje no formato do banco e do campo de data: "2026-08-27".
+ *
+ * Montado dos componentes locais, nunca por `toISOString()`: às 21h de
+ * Brasília o ISO em UTC já é o dia seguinte, e a data cairia um dia à frente.
+ */
+export function hojeISO(d: Date | null = agora): string {
+  const base = d ?? new Date();
+  const dd = (n: number) => String(n).padStart(2, "0");
+  return `${base.getFullYear()}-${dd(base.getMonth() + 1)}-${dd(base.getDate())}`;
+}
+
 /** "2026-08" — o mês corrente, para casar com a meta. */
 export function mesCorrente(d: Date | null): string {
   const base = d ?? new Date();

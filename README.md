@@ -57,8 +57,10 @@ user**, e entre com ele na tela inicial.
 | Projetos, ambientes e orçamentos | Supabase, tabelas próprias |
 | Contratos, parcelas e recebimentos | Supabase, tabelas próprias |
 | Meta do mês | Supabase, `metas` |
-| Agenda, pós-venda e avisos | ainda com dados de protótipo |
-| Perfil (nome e foto) | ainda no `localStorage` |
+| Agenda e prazos de fábrica | Supabase, `compromissos` e `ambiente_marcos` |
+| Pós-venda | Supabase, `assistencias` + duas views |
+| Perfil (nome e foto) | Supabase, `configuracoes` |
+| Avisos | nenhum — são derivados na hora |
 
 O app abre vazio: os dados de protótipo saíram. Cadastre pelo "+ Novo
 atendimento" ou "+ Novo projeto".
@@ -71,6 +73,20 @@ não houver nenhum, mostram zero em vez de exemplo.
 O contrato é registrado no painel do projeto, logo abaixo do orçamento, e é
 ele que destrava "Faturado", a comissão e a meta do mês. A meta é definida em
 **Ajustes › Meta do mês**; sem ela o topo não mostra barra nenhuma.
+
+Três coisas que a tela deixa de fora de propósito, porque não são digitadas:
+
+- **Os retornos da agenda** são os leads parados além do limite da etapa,
+  calculados a cada leitura. "Atrasado 4 dias" guardado erraria amanhã.
+- **A garantia** conta da montagem do último ambiente concluído — e só quando
+  nenhum ambiente do projeto está pendente. Quem grava essa data é avançar o
+  cartão do ambiente até "Concluído".
+- **Os avisos** do sino não têm tabela. Cada um é uma condição que já está
+  escrita em outro lugar, e some quando o motivo some. Por isso não há
+  "marcar como lido".
+
+A coluna "Entregas e montagens" da agenda vem dos três prazos de fábrica no
+cartão de cada ambiente, dentro do projeto — não se digita na agenda.
 
 ## Scripts
 

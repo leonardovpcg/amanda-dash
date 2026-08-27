@@ -17,10 +17,14 @@ type Item = {
 
 export default function PerfilMenu({
   perfil,
+  nome,
+  email,
   onClose,
   onEditar,
 }: {
   perfil: Perfil;
+  nome: string;
+  email: string;
   onClose: () => void;
   onEditar: () => void;
 }) {
@@ -35,7 +39,7 @@ export default function PerfilMenu({
 
   const itens: Item[] = [
     { label: "Editar perfil", detalhe: "foto e nome", onClick: onEditar },
-    { label: "Alterar senha", detalhe: "requer login", pendente: true },
+    { label: "Alterar senha", detalhe: "pelo painel do Supabase", pendente: true },
     // Sair funciona de verdade: a store de sessão derruba o dashboard e a
     // porta de entrada reaparece sozinha.
     { label: "Sair da conta", detalhe: "encerra a sessão", onClick: () => void sair(), tom: "sair" },
@@ -51,7 +55,7 @@ export default function PerfilMenu({
       />
       <div className="dash-perfil-menu" role="menu" onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 4px 14px" }}>
-          <Avatar perfil={perfil} size={44} fontSize={16} />
+          <Avatar perfil={perfil} nome={nome} size={44} fontSize={16} />
           <div style={{ minWidth: 0 }}>
             <div
               style={{
@@ -63,10 +67,18 @@ export default function PerfilMenu({
                 whiteSpace: "nowrap",
               }}
             >
-              {perfil.nome}
+              {nome}
             </div>
-            <div style={{ ...mono(10.5, "#9A9689"), marginTop: 3 }}>
-              perfil salvo neste navegador
+            <div
+              style={{
+                ...mono(10.5, "#9A9689"),
+                marginTop: 3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {email}
             </div>
           </div>
         </div>
