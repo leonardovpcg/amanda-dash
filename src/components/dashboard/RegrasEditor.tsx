@@ -218,7 +218,7 @@ export default function RegrasEditor() {
           );
         })}
         <button
-          className="dash-btn-ghost"
+          className="dash-btn-link"
           onClick={() =>
             salvar((rs) => ({
               ...rs,
@@ -236,7 +236,7 @@ export default function RegrasEditor() {
               ],
             }))
           }
-          style={{ background: "transparent", padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
+          style={{ padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
         >
           + regra
         </button>
@@ -301,7 +301,7 @@ export default function RegrasEditor() {
           );
         })}
         <button
-          className="dash-btn-ghost"
+          className="dash-btn-link"
           onClick={() =>
             salvar((rs) => ({
               ...rs,
@@ -317,7 +317,7 @@ export default function RegrasEditor() {
               ],
             }))
           }
-          style={{ background: "transparent", padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
+          style={{ padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
         >
           + observação
         </button>

@@ -259,9 +259,9 @@ function AmbienteBloco({
         </div>
         {disponiveis.length > 0 && (
           <button
-            className="dash-btn-ghost"
+            className="dash-btn-link"
             onClick={onAlternarTodas}
-            style={{ background: "transparent", padding: "5px 0", fontSize: "12px", color: "#A84B1C", flex: "none" }}
+            style={{ padding: "5px 0", fontSize: "12px", color: "#A84B1C", flex: "none" }}
           >
             marcar tudo
           </button>

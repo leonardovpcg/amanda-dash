@@ -148,12 +148,12 @@ export default function RoteiroEditor() {
             />
           </div>
           <button
-            className="dash-btn-ghost"
+            className="dash-btn-link"
             onClick={() => {
               salvar((r) => ({ ...r, ambientes: r.ambientes.filter((a) => a.id !== parte) }));
               setParte("geral");
             }}
-            style={{ background: "transparent", padding: "6px 0", fontSize: "12px", color: "#9C2B22", flex: "none" }}
+            style={{ padding: "6px 0", fontSize: "12px", color: "#9C2B22", flex: "none" }}
           >
             Remover tipo
           </button>
@@ -175,9 +175,9 @@ export default function RoteiroEditor() {
               style={{ ...cardTitle, flex: 1, minWidth: 0 }}
             />
             <button
-              className="dash-btn-ghost"
+              className="dash-btn-link"
               onClick={() => trocarSecoes((ss) => ss.filter((_, i) => i !== si))}
-              style={{ background: "transparent", padding: "6px 0", fontSize: "12px", color: "#9C2B22", flex: "none" }}
+              style={{ padding: "6px 0", fontSize: "12px", color: "#9C2B22", flex: "none" }}
             >
               Remover seção
             </button>
@@ -277,7 +277,7 @@ export default function RoteiroEditor() {
           ))}
 
           <button
-            className="dash-btn-ghost"
+            className="dash-btn-link"
             onClick={() =>
               trocarSecoes((ss) =>
                 ss.map((x, i) =>
@@ -293,7 +293,7 @@ export default function RoteiroEditor() {
                 ),
               )
             }
-            style={{ background: "transparent", padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
+            style={{ padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
           >
             + pergunta
           </button>

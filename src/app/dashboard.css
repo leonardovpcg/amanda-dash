@@ -144,6 +144,31 @@ textarea.dash-inline:focus {
   color: #23231f;
 }
 
+/* — botão que é só texto: "Remover seção", "+ linha", "marcar tudo" —
+   Antes eram `.dash-btn-ghost` com fundo transparente inline, mas a borda da
+   classe continuava desenhando — e sem `border-radius`, virava um retângulo
+   fininho e quadrado em volta do texto. A cor vem do inline de cada uso:
+   terracota para acrescentar, tijolo para remover. */
+.dash-btn-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  transition: opacity 0.15s ease;
+}
+.dash-btn-link:hover {
+  opacity: 0.65;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* Sem borda, o teclado precisa de outra pista de foco. */
+.dash-btn-link:focus-visible {
+  outline: 2px solid #a84b1c;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .dash-btn-terra {
   border: none;
   background: #a84b1c;

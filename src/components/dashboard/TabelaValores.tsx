@@ -477,9 +477,9 @@ function Remover({ rotulo, onClick }: { rotulo: string; onClick: () => void }) {
 function Adicionar({ rotulo, onClick }: { rotulo: string; onClick: () => void }) {
   return (
     <button
-      className="dash-btn-ghost"
+      className="dash-btn-link"
       onClick={onClick}
-      style={{ background: "transparent", padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
+      style={{ padding: "12px 0", fontSize: "12.5px", color: "#A84B1C" }}
     >
       {rotulo}
     </button>

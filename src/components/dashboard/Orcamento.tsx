@@ -431,10 +431,9 @@ function AmbienteCartao({
           {/* fecho do ambiente */}
           <div className="dash-orc-fecho">
             <button
-              className="dash-btn-ghost"
+              className="dash-btn-link"
               onClick={onRemover}
               style={{
-                background: "transparent",
                 padding: "6px 0",
                 fontSize: "12px",
                 color: "#9C2B22",
@@ -605,9 +604,9 @@ function Bloco({
       </div>
 
       <button
-        className="dash-btn-ghost"
+        className="dash-btn-link"
         onClick={onAdicionar}
-        style={{ background: "transparent", padding: "9px 0", fontSize: "12.5px", color: "#A84B1C" }}
+        style={{ padding: "9px 0", fontSize: "12.5px", color: "#A84B1C" }}
       >
         + linha
       </button>

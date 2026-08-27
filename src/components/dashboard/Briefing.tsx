@@ -358,10 +358,9 @@ export default function Briefing({
               />
             </div>
             <button
-              className="dash-btn-ghost"
+              className="dash-btn-link"
               onClick={removerAmbiente}
               style={{
-                background: "transparent",
                 padding: "6px 0",
                 fontSize: "12px",
                 color: "#9C2B22",
