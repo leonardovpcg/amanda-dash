@@ -363,17 +363,30 @@ export const PROJECTS: Project[] = [
   },
 ];
 
-/** Percentual de comissão sobre o valor vendido. */
-export const TAXA_COMISSAO = 0.04;
+/**
+ * Percentual de comissão sobre o valor vendido.
+ *
+ * Hoje é 2% em toda venda. No banco isso vira a tabela `faixas_comissao`
+ * com uma linha só — de zero a sem teto —, porque faixa por valor de venda é
+ * o passo seguinte natural e acrescentar linha sai mais barato que migrar
+ * coluna.
+ */
+export const TAXA_COMISSAO = 0.02;
 
-/** [cliente, detalhe, valor, comissão, situação, tom] */
-export const COMMISSIONS: [string, string, number, number, string, ToneName][] = [
-  ["Helô Bandeira", "Cozinha + dormitório · assinado 04 ago", 58000, 2320, "Recebida", "terracota"],
-  ["Sr. Aurélio Braga", "Casa de praia · 3 ambientes", 71000, 2840, "Recebida", "terracota"],
-  ["Família Moretti", "Aditivo home office", 36000, 1440, "A liberar", "clay"],
-  ["Marcos Iório", "Closet + lavanderia", 41400, 1656, "A liberar", "clay"],
-  ["Studio Anelli", "Escritório · 1ª parcela", 44000, 1760, "Prevista", "sand"],
-  ["Bruno Kertész", "Closet + banheiro", 18000, 720, "Prevista", "sand"],
+/**
+ * [cliente, detalhe, valor, situação, tom]
+ *
+ * A comissão não é guardada aqui: sai de `valor × TAXA_COMISSAO` na tela.
+ * Guardar os dois deixaria a taxa e o valor discordarem no dia em que uma
+ * das duas mudasse — foi assim que a aba "Resumo" da planilha ficou errada.
+ */
+export const COMMISSIONS: [string, string, number, string, ToneName][] = [
+  ["Helô Bandeira", "Cozinha + dormitório · assinado 04 ago", 58000, "Recebida", "terracota"],
+  ["Sr. Aurélio Braga", "Casa de praia · 3 ambientes", 71000, "Recebida", "terracota"],
+  ["Família Moretti", "Aditivo home office", 36000, "A liberar", "clay"],
+  ["Marcos Iório", "Closet + lavanderia", 41400, "A liberar", "clay"],
+  ["Studio Anelli", "Escritório · 1ª parcela", 44000, "Prevista", "sand"],
+  ["Bruno Kertész", "Closet + banheiro", 18000, "Prevista", "sand"],
 ];
 
 export const MONTHLY: [string, number][] = [

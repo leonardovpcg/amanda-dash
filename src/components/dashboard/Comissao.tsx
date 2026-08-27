@@ -4,6 +4,13 @@ import { COMMISSIONS, MONTHLY, TAXA_COMISSAO, chip, money } from "@/lib/dashboar
 import type { ProjectVM } from "./DashboardArquitetura";
 import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 
+/** Vendido no mês. No banco vira `v_financeiro_mes`, somando os contratos
+ *  assinados — e é a data de assinatura que conta, não a de envio da
+ *  proposta, senão a meta mente. */
+const VENDIDO_NO_MES = 268400;
+/** Quanto da comissão já entrou. Vem do recebimento das parcelas. */
+const COMISSAO_RECEBIDA = 3090;
+
 const COM_COLS = "2fr 1fr 1fr 1.1fr";
 const ORC_COLS = "2fr 1fr 1fr";
 
@@ -24,11 +31,11 @@ export default function Comissao({ projects }: { projects: ProjectVM[] }) {
       comissaoLabel: money(p.contrato * TAXA_COMISSAO),
     }));
   const totalOrcado = orcados.reduce((a, o) => a + o.valor, 0);
-  const commissions = COMMISSIONS.map(([client, detail, value, com, status, tone]) => ({
+  const commissions = COMMISSIONS.map(([client, detail, value, status, tone]) => ({
     client,
     detail,
     valueLabel: money(value),
-    comLabel: money(com),
+    comLabel: money(value * TAXA_COMISSAO),
     status,
     badgeStyle: chip(tone),
   }));
@@ -78,7 +85,7 @@ export default function Comissao({ projects }: { projects: ProjectVM[] }) {
                 ...NUM,
               }}
             >
-              R$ 268.400
+              {money(VENDIDO_NO_MES)}
             </div>
             <div style={{ fontSize: "14px", color: "#E9C9B6", marginTop: 8 }}>
               6 contratos fechados · ticket médio R$ 44.733
@@ -86,8 +93,16 @@ export default function Comissao({ projects }: { projects: ProjectVM[] }) {
           </div>
           <div className="dash-com-stats">
             {[
-              ["Comissão prevista", "R$ 10.736", "4% sobre o vendido"],
-              ["Comissão recebida", "R$ 6.180", "R$ 4.556 a liberar"],
+              [
+                "Comissão prevista",
+                money(VENDIDO_NO_MES * TAXA_COMISSAO),
+                `${Math.round(TAXA_COMISSAO * 100)}% sobre o vendido`,
+              ],
+              [
+                "Comissão recebida",
+                money(COMISSAO_RECEBIDA),
+                `${money(VENDIDO_NO_MES * TAXA_COMISSAO - COMISSAO_RECEBIDA)} a liberar`,
+              ],
             ].map(([label, value, note]) => (
               <div key={label}>
                 <div style={mono(10.5, "#D6A488", { ls: "0.09em", upper: true })}>{label}</div>
