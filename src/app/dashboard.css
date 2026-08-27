@@ -338,7 +338,20 @@ textarea.dash-inline:focus {
   padding: 4px 44px 56px;
 }
 
-/* — grades — */
+/* — grades —
+
+   `min-width: 0` nos filhos não é detalhe: item de grid nasce com
+   `min-width: auto`, que o impede de encolher abaixo do próprio conteúdo. O
+   `min-width: 620px` das tabelas que rolam subia por esse caminho e fazia a
+   coluna medir 682px numa tela de 375 — o painel saía cortado, e sem rolagem
+   para alcançar o que ficou de fora. */
+.dash-grid-4 > *,
+.dash-grid-3 > *,
+.dash-grid-2 > *,
+.dash-grid-com > * {
+  min-width: 0;
+}
+
 .dash-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1510,5 +1523,83 @@ textarea.dash-inline:focus {
   }
   .dash-brief-secao-tit {
     padding-bottom: 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Correções de celular no detalhe do projeto
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* — linha do tempo —
+   Seis etapas lado a lado não cabem em 375px: cada coluna ficaria com 62px e
+   "Aprovação" sozinha estoura. Reempacota em 3 e depois em 2 colunas, e a
+   linha que liga as etapas some — ela só faz sentido numa fileira única. */
+.dash-timeline {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  margin-top: 28px;
+}
+.dash-timeline > * {
+  min-width: 0;
+}
+.dash-timeline-passo {
+  padding-right: 18px;
+}
+
+@media (max-width: 900px) {
+  .dash-timeline {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px 0;
+  }
+  .dash-timeline-linha {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .dash-timeline {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* — consulta de preço — */
+.dash-busca {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+/* — cabeçalho do painel de orçamento — */
+.dash-orc-cabeca {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+@media (max-width: 767px) {
+  /* Título e barra de botões não cabem na mesma linha; empilhar é melhor que
+     espremer quatro botões em 150px. */
+  .dash-orc-cabeca {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dash-orc-acoes {
+    justify-content: flex-start;
+  }
+
+  /* Estes dois são itens de flex e nasciam com `min-width: auto`: mediam pelo
+     conteúdo, nunca eram apertados pela tela, e por isso o `flex-wrap` que
+     eles já tinham nunca chegava a disparar. */
+  .dash-proj-head-nums,
+  .dash-orc-acoes {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .dash-busca {
+    flex-direction: column;
+  }
+  .dash-busca button {
+    width: 100%;
   }
 }

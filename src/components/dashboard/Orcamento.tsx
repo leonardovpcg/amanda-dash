@@ -84,10 +84,8 @@ export default function Orcamento({
   return (
     <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>
       {/* ── cabeçalho ─────────────────────────────────────────────────── */}
-      <div
-        style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14 }}
-      >
-        <div>
+      <div className="dash-orc-cabeca">
+        <div style={{ minWidth: 0 }}>
           <div style={cardTitle}>Orçamento quantitativo</div>
           <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689", marginTop: 5 }}>
             chapas {vezes(cat.markups.chapas)} · fita {vezes(cat.markups.fita)} · acessórios{" "}

@@ -359,14 +359,12 @@ export default function ProjetoDetalhe({
       {/* ── linha do tempo ──────────────────────────────────────────────── */}
       <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>
         <div style={cardTitle}>Linha do tempo do projeto</div>
-        <div
-          style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 0, marginTop: 28 }}
-        >
+        <div className="dash-timeline">
           {sel.stagesVM.map((s, i) => (
-            <div key={i} style={{ paddingRight: 18 }}>
+            <div key={i} className="dash-timeline-passo">
               <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                 <div style={s.dotStyle} />
-                <div style={s.lineStyle} />
+                <div className="dash-timeline-linha" style={s.lineStyle} />
               </div>
               <div
                 style={{
@@ -442,7 +440,7 @@ export default function ProjetoDetalhe({
           <div style={{ fontSize: "13px", color: "#6E6A5F", marginTop: 6 }}>
             Digite o material e busque um valor de referência de mercado.
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+          <div className="dash-busca">
             <input
               className="dash-field dash-field-search"
               value={query}
@@ -451,7 +449,7 @@ export default function ProjetoDetalhe({
                 if (e.key === "Enter") onSearch();
               }}
               placeholder="ex: MDF branco 18mm, porcelanato 90x90"
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: 0 }}
             />
             <button
               className="dash-btn-terra"
