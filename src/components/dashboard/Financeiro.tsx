@@ -19,7 +19,7 @@ export default function Financeiro({ projects }: { projects: ProjectVM[] }) {
             <div style={mono(11, "#8C887C", { ls: "0.08em", upper: true })}>{label}</div>
             <div
               style={{
-                fontSize: "40px",
+                fontSize: "clamp(28px, 6.5vw, 40px)",
                 fontWeight: 600,
                 letterSpacing: "-0.035em",
                 marginTop: 12,

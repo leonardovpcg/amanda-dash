@@ -68,7 +68,9 @@ export default function Comissao({ projects }: { projects: ProjectVM[] }) {
             </div>
             <div
               style={{
-                fontSize: "64px",
+                // Escala fluida em vez de 64px fixo: em 375px o número media
+                // 236px numa caixa de 239 e qualquer valor maior quebraria.
+                fontSize: "clamp(36px, 8vw, 64px)",
                 fontWeight: 600,
                 letterSpacing: "-0.045em",
                 lineHeight: 1.02,
@@ -82,7 +84,7 @@ export default function Comissao({ projects }: { projects: ProjectVM[] }) {
               6 contratos fechados · ticket médio R$ 44.733
             </div>
           </div>
-          <div style={{ display: "flex", gap: 44 }}>
+          <div className="dash-com-stats">
             {[
               ["Comissão prevista", "R$ 10.736", "4% sobre o vendido"],
               ["Comissão recebida", "R$ 6.180", "R$ 4.556 a liberar"],
@@ -91,7 +93,7 @@ export default function Comissao({ projects }: { projects: ProjectVM[] }) {
                 <div style={mono(10.5, "#D6A488", { ls: "0.09em", upper: true })}>{label}</div>
                 <div
                   style={{
-                    fontSize: "32px",
+                    fontSize: "clamp(17px, 5vw, 32px)",
                     fontWeight: 600,
                     letterSpacing: "-0.03em",
                     marginTop: 10,

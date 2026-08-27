@@ -1662,3 +1662,41 @@ textarea.dash-inline:focus {
     margin-left: auto;
   }
 }
+
+/* — os dois indicadores de comissão no cartão escuro —
+   O gap de 44px do design deixava cada um com 98px no celular, e
+   "R$ 10.736" quebrava com o "R$" numa linha e o número na outra. */
+.dash-com-stats {
+  display: flex;
+  gap: 44px;
+}
+@media (max-width: 767px) {
+  .dash-com-stats {
+    gap: 22px;
+  }
+}
+
+/* — cabeçalho de seção com dica ao lado —
+   No celular a dica roubava a largura do título e "Pipeline comercial"
+   quebrava em duas linhas. Deixando quebrar, a dica desce inteira e o
+   título fica numa linha só. */
+@media (max-width: 767px) {
+  .dash-secao-cabeca {
+    flex-wrap: wrap;
+    gap: 4px 14px;
+  }
+}
+
+/* — indicadores do Funil em telas bem estreitas —
+   O cartão cai para ~96px em 320px e "R$ 54,8 mil" a 28px quebra no meio.
+   Breakpoint em vez de `clamp`: a largura do cartão não acompanha a da tela
+   de forma monotônica — ela depende de quantas colunas a grade tem —, então
+   uma fórmula fluida única não serve para celular e tablet ao mesmo tempo. */
+@media (max-width: 360px) {
+  .dash-kpi-num {
+    font-size: 22px !important;
+  }
+  .dash-kpi-num span {
+    font-size: 13px !important;
+  }
+}

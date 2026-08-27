@@ -78,6 +78,7 @@ export default function Funil({
           justifyContent: "space-between",
           margin: "40px 0 16px",
         }}
+        className="dash-secao-cabeca"
       >
         <h2 style={sectionTitle}>Pipeline comercial</h2>
         {/* Arrastar usa eventos HTML5 de drag, que não existem em toque —

@@ -9,7 +9,10 @@ const KPIS: [string, React.ReactNode, string, string | undefined][] = [
   [
     "Contratos em execução",
     <>
-      R$ 1,84 <span style={{ fontSize: "26px", fontWeight: 500, color: "#6E6A5F" }}>mi</span>
+      R$ 1,84{" "}
+      <span style={{ fontSize: "clamp(17px, 3.4vw, 26px)", fontWeight: 500, color: "#6E6A5F" }}>
+        mi
+      </span>
     </>,
     "R$ 1,12 mi já faturados",
     undefined,
@@ -37,7 +40,8 @@ export default function ProjetosLista({
             <div
               className="dash-kpi-num-lg"
               style={{
-                fontSize: "52px",
+                // O 52px do design não cabe nos ~265px de cartão do celular.
+                fontSize: "clamp(34px, 7vw, 52px)",
                 fontWeight: 600,
                 letterSpacing: "-0.04em",
                 lineHeight: 1.05,
@@ -62,27 +66,26 @@ export default function ProjetosLista({
         }}
       >
         <h2 style={sectionTitle}>Projetos</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: "#8C887C", letterSpacing: "0.04em" }}>
-            clique em um cartão para ver os ambientes
-          </div>
-          <button
-            className="dash-btn-dark"
-            onClick={onNewProject}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              borderRadius: 999,
-              padding: "11px 20px",
-              fontSize: "13px",
-              boxShadow: "0 4px 14px rgba(35,35,31,.16)",
-            }}
-          >
-            <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: 400 }}>+</span>
-            <span>Novo projeto</span>
-          </button>
-        </div>
+        {/* A dica "clique em um cartão" saiu: o cartão inteiro é clicável e
+            tem cursor de mão, então ela se explicava sozinha — e no celular
+            ainda espremia o botão de novo projeto. */}
+        <button
+          className="dash-btn-dark"
+          onClick={onNewProject}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 999,
+            padding: "11px 20px",
+            fontSize: "13px",
+            boxShadow: "0 4px 14px rgba(35,35,31,.16)",
+            flex: "none",
+          }}
+        >
+          <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: 400 }}>+</span>
+          <span>Novo projeto</span>
+        </button>
       </div>
 
       <div style={gridStyle}>
