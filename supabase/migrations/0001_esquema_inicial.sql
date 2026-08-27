@@ -58,7 +58,7 @@ $$;
   briefing, projeto, orçamento, contrato, comissão e pós-venda pendem todos
   da mesma pessoa.
 */
-create table public.clientes (
+create table if not exists public.clientes (
   id             uuid primary key default gen_random_uuid(),
   dono           uuid not null default auth.uid() references auth.users on delete cascade,
   nome           text not null,
@@ -80,7 +80,7 @@ create table public.clientes (
   mão no protótipo. É ela que alimenta o alerta do funil e a faixa "Retornos
   a fazer" da agenda.
 */
-create table public.interacoes (
+create table if not exists public.interacoes (
   id          uuid primary key default gen_random_uuid(),
   dono        uuid not null default auth.uid() references auth.users on delete cascade,
   cliente_id  uuid not null references public.clientes on delete cascade,
@@ -89,11 +89,11 @@ create table public.interacoes (
   nota        text,
   criado_em   timestamptz not null default now()
 );
-create index interacoes_cliente_idx on public.interacoes (cliente_id, quando desc);
+create index if not exists interacoes_cliente_idx on public.interacoes (cliente_id, quando desc);
 
 -- ── funil ──────────────────────────────────────────────────────────────────
 
-create table public.leads (
+create table if not exists public.leads (
   id              uuid primary key default gen_random_uuid(),
   dono            uuid not null default auth.uid() references auth.users on delete cascade,
   cliente_id      uuid not null references public.clientes on delete cascade,
@@ -110,11 +110,11 @@ create table public.leads (
   fechado_em      timestamptz,
   atualizado_em   timestamptz not null default now()
 );
-create index leads_etapa_idx on public.leads (dono, etapa);
+create index if not exists leads_etapa_idx on public.leads (dono, etapa);
 
 -- ── briefing ───────────────────────────────────────────────────────────────
 
-create table public.briefings (
+create table if not exists public.briefings (
   id             uuid primary key default gen_random_uuid(),
   dono           uuid not null default auth.uid() references auth.users on delete cascade,
   -- um por lead: o briefing nasce antes de existir projeto
@@ -124,7 +124,7 @@ create table public.briefings (
   atualizado_em  timestamptz not null default now()
 );
 
-create table public.briefing_ambientes (
+create table if not exists public.briefing_ambientes (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   briefing_id  uuid not null references public.briefings on delete cascade,
@@ -149,7 +149,7 @@ create table public.briefing_ambientes (
     loja faz cedo ou tarde: quantos clientes pediram cooktop a gás? Sair de
     JSONB para relacional depois é migração cara.
 */
-create table public.briefing_respostas (
+create table if not exists public.briefing_respostas (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   briefing_id  uuid not null references public.briefings on delete cascade,
@@ -166,7 +166,7 @@ create table public.briefing_respostas (
 
 -- ── projetos ───────────────────────────────────────────────────────────────
 
-create table public.projetos (
+create table if not exists public.projetos (
   id             uuid primary key default gen_random_uuid(),
   dono           uuid not null default auth.uid() references auth.users on delete cascade,
   cliente_id     uuid not null references public.clientes on delete cascade,
@@ -182,7 +182,7 @@ create table public.projetos (
   atualizado_em  timestamptz not null default now()
 );
 
-create table public.ambientes (
+create table if not exists public.ambientes (
   id               uuid primary key default gen_random_uuid(),
   dono             uuid not null default auth.uid() references auth.users on delete cascade,
   projeto_id       uuid not null references public.projetos on delete cascade,
@@ -203,7 +203,7 @@ create table public.ambientes (
   separado de `previsto` para o atraso ser visível em vez de a data sumir
   quando é reagendada.
 */
-create table public.ambiente_marcos (
+create table if not exists public.ambiente_marcos (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   ambiente_id  uuid not null references public.ambientes on delete cascade,
@@ -224,7 +224,7 @@ create table public.ambiente_marcos (
   como documento — não há FK, e é de propósito: o motor de cálculo já trata
   item removido do catálogo como pendência visível em vez de erro.
 */
-create table public.orcamento_linhas (
+create table if not exists public.orcamento_linhas (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   ambiente_id  uuid not null references public.ambientes on delete cascade,
@@ -243,7 +243,7 @@ create table public.orcamento_linhas (
     (bloco <> 'chapas' and espessura is null)
   )
 );
-create index orcamento_ambiente_idx on public.orcamento_linhas (ambiente_id);
+create index if not exists orcamento_ambiente_idx on public.orcamento_linhas (ambiente_id);
 
 -- ── contrato e dinheiro ────────────────────────────────────────────────────
 
@@ -255,7 +255,7 @@ create index orcamento_ambiente_idx on public.orcamento_linhas (ambiente_id);
   `orcamento_snapshot` guarda o que foi vendido para a proposta continuar
   reproduzível depois do reajuste.
 */
-create table public.contratos (
+create table if not exists public.contratos (
   id                  uuid primary key default gen_random_uuid(),
   dono                uuid not null default auth.uid() references auth.users on delete cascade,
   projeto_id          uuid not null unique references public.projetos on delete cascade,
@@ -269,7 +269,7 @@ create table public.contratos (
   criado_em           timestamptz not null default now()
 );
 
-create table public.parcelas (
+create table if not exists public.parcelas (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   contrato_id  uuid not null references public.contratos on delete cascade,
@@ -279,7 +279,7 @@ create table public.parcelas (
   unique (contrato_id, numero)
 );
 
-create table public.recebimentos (
+create table if not exists public.recebimentos (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   parcela_id   uuid not null references public.parcelas on delete cascade,
@@ -295,7 +295,7 @@ create table public.recebimentos (
   vez de uma constante porque faixa por valor de venda é o passo natural
   seguinte, e acrescentar linha é mais barato que migrar coluna.
 */
-create table public.faixas_comissao (
+create table if not exists public.faixas_comissao (
   id    uuid primary key default gen_random_uuid(),
   dono  uuid not null default auth.uid() references auth.users on delete cascade,
   de    numeric(12,2) not null default 0,
@@ -311,7 +311,7 @@ create table public.faixas_comissao (
   `ano_mes` guarda o primeiro dia do mês — data em vez de texto para poder
   comparar e ordenar sem gambiarra.
 */
-create table public.metas (
+create table if not exists public.metas (
   dono           uuid not null default auth.uid() references auth.users on delete cascade,
   ano_mes        date not null check (extract(day from ano_mes) = 1),
   valor          numeric(12,2) not null check (valor > 0),
@@ -331,7 +331,7 @@ create table public.metas (
 
   Sem campos de sincronização: não há integração com agenda externa.
 */
-create table public.compromissos (
+create table if not exists public.compromissos (
   id             uuid primary key default gen_random_uuid(),
   dono           uuid not null default auth.uid() references auth.users on delete cascade,
   tipo           text not null check (tipo in
@@ -349,11 +349,11 @@ create table public.compromissos (
   criado_em      timestamptz not null default now(),
   atualizado_em  timestamptz not null default now()
 );
-create index compromissos_quando_idx on public.compromissos (dono, quando);
+create index if not exists compromissos_quando_idx on public.compromissos (dono, quando);
 
 -- ── pós-venda ──────────────────────────────────────────────────────────────
 
-create table public.assistencias (
+create table if not exists public.assistencias (
   id           uuid primary key default gen_random_uuid(),
   dono         uuid not null default auth.uid() references auth.users on delete cascade,
   projeto_id   uuid not null references public.projetos on delete cascade,
@@ -376,7 +376,7 @@ create table public.assistencias (
   edita o objeto inteiro, o motor carrega o objeto inteiro, e ninguém
   consulta uma cor solta. Normalizar aqui seria trabalho sem resposta nova.
 */
-create table public.configuracoes (
+create table if not exists public.configuracoes (
   dono           uuid not null default auth.uid() references auth.users on delete cascade,
   chave          text not null check (chave in ('catalogo','roteiro','regras')),
   valor          jsonb not null,
@@ -386,13 +386,26 @@ create table public.configuracoes (
 
 -- ── triggers de atualizado_em ──────────────────────────────────────────────
 
-create trigger t_clientes     before update on public.clientes     for each row execute function public.tocar_atualizado_em();
-create trigger t_leads        before update on public.leads        for each row execute function public.tocar_atualizado_em();
-create trigger t_briefings    before update on public.briefings    for each row execute function public.tocar_atualizado_em();
-create trigger t_projetos     before update on public.projetos     for each row execute function public.tocar_atualizado_em();
-create trigger t_compromissos before update on public.compromissos for each row execute function public.tocar_atualizado_em();
-create trigger t_metas        before update on public.metas        for each row execute function public.tocar_atualizado_em();
-create trigger t_config       before update on public.configuracoes for each row execute function public.tocar_atualizado_em();
+-- Em laço, e não sete linhas quase iguais: linha repetida à mão é onde uma
+-- tabela fica de fora na primeira distração. Drop antes do create para o
+-- arquivo poder ser rodado de novo.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'clientes','leads','briefings','projetos','compromissos','metas','configuracoes'
+  ]
+  loop
+    execute format('drop trigger if exists %I on public.%I', 't_' || t, t);
+    execute format(
+      'create trigger %I before update on public.%I
+         for each row execute function public.tocar_atualizado_em()',
+      't_' || t, t
+    );
+  end loop;
+end;
+$$;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- RLS
@@ -419,6 +432,9 @@ begin
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format('alter table public.%I force row level security', t);
+    -- drop antes do create para o arquivo poder rodar de novo sem erro:
+    -- create policy não aceita "if not exists".
+    execute format('drop policy if exists %I on public.%I', t || '_do_dono', t);
     execute format($f$
       create policy %I on public.%I
         for all
@@ -439,7 +455,7 @@ $$;
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Última interação por cliente: base do "parado há N dias".
-create view public.v_ultimo_contato
+create or replace view public.v_ultimo_contato
 with (security_invoker = true) as
 select cliente_id, max(quando) as quando
 from public.interacoes
@@ -452,7 +468,7 @@ group by cliente_id;
   hoje e o último contato registrado — se nunca houve contato, conta da
   abertura do lead.
 */
-create view public.v_funil
+create or replace view public.v_funil
 with (security_invoker = true) as
 select
   l.id, l.dono, l.etapa, l.resultado, l.valor_estimado, l.ambientes_texto,
@@ -470,7 +486,7 @@ where l.resultado is null or l.resultado = 'ganho';
   O prazo tolerado muda com a etapa: lead novo esfria em três dias,
   negociação aguenta uma semana.
 */
-create view public.v_retornos
+create or replace view public.v_retornos
 with (security_invoker = true) as
 select *
 from public.v_funil
@@ -489,7 +505,7 @@ where etapa in ('lead','visita','projeto','orcamento','negociacao')
   Os retornos ficam de fora de propósito — eles não têm hora marcada e a
   tela os busca em `v_retornos`, numa faixa própria.
 */
-create view public.v_agenda
+create or replace view public.v_agenda
 with (security_invoker = true) as
 select
   co.dono, co.id, co.tipo, co.quando::date as dia, co.quando, co.titulo,
@@ -516,7 +532,7 @@ where m.previsto is not null;
   Nenhuma linha guardada: a faixa é aplicada sobre o valor do contrato, e a
   situação vem do quanto já foi recebido.
 */
-create view public.v_comissoes
+create or replace view public.v_comissoes
 with (security_invoker = true) as
 select
   ct.dono, ct.id as contrato_id, p.nome as projeto, c.nome as cliente,
@@ -544,7 +560,7 @@ left join (
 ) r on r.contrato_id = ct.id;
 
 -- Vendido e recebido por mês — alimenta o gráfico e o cálculo da meta.
-create view public.v_financeiro_mes
+create or replace view public.v_financeiro_mes
 with (security_invoker = true) as
 select
   ct.dono,
@@ -560,7 +576,7 @@ group by 1, 2;
   O percentual e o "faltam R$ X" saem daqui, nunca do banco. `left join` no
   contratado porque mês sem venda ainda precisa aparecer com a meta.
 */
-create view public.v_meta_mes
+create or replace view public.v_meta_mes
 with (security_invoker = true) as
 select
   m.dono, m.ano_mes, m.valor as meta,
@@ -581,7 +597,7 @@ left join public.v_financeiro_mes f
 
   Guardar "restam 58 meses" seria um número errado no dia seguinte.
 */
-create view public.v_garantias
+create or replace view public.v_garantias
 with (security_invoker = true) as
 select
   ct.dono, p.id as projeto_id, p.nome as projeto,
@@ -602,7 +618,7 @@ having count(*) filter (where m.realizado is null) = 0;
   Oportunidades de indicação: entregues há mais de 60 dias que ainda não
   indicaram ninguém. Lista de trabalho, não cadastro.
 */
-create view public.v_indicacoes
+create or replace view public.v_indicacoes
 with (security_invoker = true) as
 select g.dono, g.projeto_id, g.projeto, g.cliente_id, g.cliente, g.entregue_em,
        (public.hoje_local() - g.entregue_em) as dias_desde_entrega
@@ -615,8 +631,48 @@ where public.hoje_local() - g.entregue_em > 60
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Semente
+--
+-- `dono` tem `default auth.uid()`, que resolve certo quando a linha nasce
+-- pelo app: o PostgREST carrega o JWT e a função sabe quem é. No editor SQL
+-- e em migration não existe sessão autenticada — `auth.uid()` volta nulo e o
+-- not-null estoura. Toda inserção feita daqui precisa dizer o dono na mão.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- 2% em toda venda. Vira faixa de verdade acrescentando linhas.
-insert into public.faixas_comissao (de, ate, taxa)
-values (0, null, 0.0200);
+/*
+  Faixa de comissão de quem já tem conta.
+
+  2% de zero a sem teto, uma linha só. Vira faixa de verdade acrescentando
+  linhas com `de` e `ate` diferentes.
+*/
+insert into public.faixas_comissao (dono, de, ate, taxa)
+select u.id, 0, null, 0.0200
+from auth.users u
+where not exists (
+  select 1 from public.faixas_comissao f where f.dono = u.id
+);
+
+/*
+  E para conta criada depois desta migration.
+
+  `security definer` porque o gatilho dispara no cadastro, antes de existir
+  sessão: quem grava é o dono da função (postgres, que tem bypassrls).
+  `search_path` fixo para a função não ser sequestrada por um schema plantado
+  à frente no caminho de busca.
+*/
+create or replace function public.semear_usuario()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.faixas_comissao (dono, de, ate, taxa)
+  values (new.id, 0, null, 0.0200);
+  return new;
+end;
+$$;
+
+drop trigger if exists semear_apos_cadastro on auth.users;
+create trigger semear_apos_cadastro
+after insert on auth.users
+for each row execute function public.semear_usuario();
