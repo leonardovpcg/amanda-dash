@@ -306,7 +306,9 @@ textarea.dash-inline:focus {
   order: 3;
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* 10 e não 8: o halo do avatar cresce 4px para fora no hover, e com 8 ele
+     quase encostava no sino ao lado. */
+  gap: 10px;
 }
 
 /* — saudação — */
@@ -726,38 +728,30 @@ textarea.dash-inline:focus {
   position: relative;
 }
 
+/* O avatar é o botão: sem pílula em volta e sem seta.
+   A seta era a única pista de que ali abre um menu. Quem assume esse papel é
+   o halo, que responde ao toque e cresce com o menu aberto — e ele segue o
+   estado ARIA do botão, então os dois não têm como sair de sincronia. */
 .dash-brand-btn {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  background: none;
+  padding: 0;
   border-radius: 999px;
-  padding: 9px 13px 9px 9px;
   color: inherit;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 .dash-brand-btn:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(168, 75, 28, 0.16);
+}
+.dash-brand-btn[aria-expanded="true"] {
+  box-shadow: 0 0 0 4px rgba(168, 75, 28, 0.28);
 }
 .dash-brand-btn:focus-visible {
   outline: 2px solid #a84b1c;
-  outline-offset: 2px;
-}
-.dash-brand-seta {
-  display: inline-block;
-  font-size: 10px;
-  line-height: 1;
-  color: #8c887c;
-  /* rotate(0deg) explícito, não `none`: dá um ponto de partida limpo para a
-     transição em vez de obrigar o navegador a decompor matriz. */
-  transform: rotate(0deg);
-  transition: transform 0.15s ease;
-}
-/* a seta segue o estado ARIA do botão — se um sair de sincronia, aparece */
-.dash-brand-btn[aria-expanded="true"] .dash-brand-seta {
-  transform: rotate(180deg);
+  /* 3px em vez de 2: o anel terracota do avatar encosta na borda do botão, e
+     um contorno colado nele viraria uma faixa grossa sem leitura. */
+  outline-offset: 3px;
 }
 
 .dash-perfil-menu {
@@ -810,10 +804,6 @@ textarea.dash-inline:focus {
     overflow: auto;
     border-radius: 22px 22px 0 0;
     padding: 18px 18px 24px;
-  }
-  .dash-brand-btn {
-    gap: 9px;
-    padding: 7px 13px 7px 9px;
   }
 }
 
@@ -1625,19 +1615,9 @@ textarea.dash-inline:focus {
   }
 }
 
-/* — pílula do perfil no celular —
-   Precisa ficar no fim do arquivo: `.dash-brand-btn` é declarada mais acima,
-   e media query não soma especificidade — a regra base venceria por ordem.
-   Sem a seta e com padding justo, sobram os ~25px que o nome da marca pede. */
-@media (max-width: 767px) {
-  .dash-brand-btn {
-    padding: 6px;
-    gap: 0;
-  }
-  .dash-brand-seta {
-    display: none;
-  }
-}
+/* O ajuste do perfil no celular saiu junto com a pílula: sem moldura nem
+   seta, o botão já é só o avatar de 40px — mais estreito do que a pílula era
+   no celular, então não há o que apertar. */
 
 /* — telas muito estreitas (iPhone SE e afins) —
    Abaixo de 340px a marca com nome já não cabe ao lado das três ações, e a

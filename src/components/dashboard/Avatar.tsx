@@ -2,13 +2,20 @@
 
 import { iniciais, type Perfil } from "@/lib/dashboard/perfil";
 
-/** Avatar da usuária: a foto, ou as iniciais do nome sobre o petróleo do design. */
+/**
+ * Avatar da usuária: a foto, ou as iniciais do nome.
+ *
+ * O anel terracota vem da marca e serve aos dois casos: emoldura a foto, que
+ * pode ser de qualquer cor, e fecha o círculo das iniciais, que já é terracota
+ * cheio. `border-box` para o anel caber dentro de `size` — sem ele o avatar
+ * cresceria 4px e desalinharia do sino ao lado.
+ */
 export default function Avatar({
   perfil,
   /** O nome a exibir — cai no e-mail da conta enquanto ela não cadastrar. */
   nome,
-  size = 30,
-  fontSize = 12.5,
+  size = 40,
+  fontSize = 16,
 }: {
   perfil: Perfil;
   nome: string;
@@ -30,6 +37,8 @@ export default function Avatar({
           objectFit: "cover",
           display: "block",
           flex: "none",
+          border: "2px solid #A84B1C",
+          boxSizing: "border-box",
         }}
       />
     );
@@ -42,6 +51,8 @@ export default function Avatar({
         height: size,
         borderRadius: 999,
         background: "#A84B1C",
+        border: "2px solid #A84B1C",
+        boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

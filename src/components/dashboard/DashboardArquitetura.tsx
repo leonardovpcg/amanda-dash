@@ -856,8 +856,10 @@ export default function DashboardArquitetura({
             </button>
 
             <div className="dash-brand">
-              {/* só avatar e seta: a marca ocupa o canto esquerdo, e o nome
-                  já aparece na saudação e no cabeçalho do próprio menu */}
+              {/* só o avatar: a marca ocupa o canto esquerdo e o nome já
+                  aparece na saudação e no cabeçalho do próprio menu. A seta
+                  saiu — era pista de "abre menu", papel que passa para o anel
+                  que reage ao toque, e ela roubava largura no celular. */}
               <button
                 className="dash-brand-btn"
                 onClick={() => setMenuPerfil((v) => !v)}
@@ -867,9 +869,6 @@ export default function DashboardArquitetura({
                 title={nome}
               >
                 <Avatar perfil={perfil} nome={nome} />
-                <span className="dash-brand-seta" aria-hidden>
-                  ▾
-                </span>
               </button>
               {menuPerfil && (
                 <PerfilMenu
