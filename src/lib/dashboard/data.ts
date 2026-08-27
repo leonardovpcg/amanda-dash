@@ -2,7 +2,6 @@
 // Portado de claude.ai/design/p/cc5e4c8d-83bf-493e-bcbd-045df09d76dd
 // (arquivo `Dashboard Arquitetura.dc.html`). Valores são de protótipo.
 
-import { ORCAMENTO_SEED } from "@/lib/orcamento/seed";
 import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
 
 export const money = (n: number) =>
@@ -105,7 +104,10 @@ export type Project = {
   imageLabel: string;
   ambientes: Ambiente[];
   stages: ProjectStage[];
+  /** Vazio desde a migração: a composição sai do orçamento calculado. */
   budgetCats: BudgetCat[];
+  /** Vazio desde a migração: a lista de itens sai do orçamento. Uma segunda
+   *  lista digitada à mão seria a fonte que envelhece. */
   materials: Material[];
   /**
    * Orçamento quantitativo do projeto — o que era uma aba por ambiente na
@@ -115,242 +117,10 @@ export type Project = {
   orcamento: OrcamentoAmbiente[];
 };
 
-export const PROJECTS: Project[] = [
-  {
-    id: "p1",
-    name: "Residência Alvorada",
-    client: "Família Moretti",
-    address: "Jardins, São Paulo",
-    status: "Em andamento",
-    stage: "Produção de marcenaria",
-    deadline: "12 set 2026",
-    budget: 640000,
-    spent: 431000,
-    imageLabel: "living integrado",
-    ambientes: [
-      ["Cozinha", "Ilha 3,20 m · MDF carvalho + Corian", 148000, 4, "18 set · montagem"],
-      ["Dormitório casal", "Painel ripado + guarda-roupa 4,10 m", 126000, 3, "02 out · entrega"],
-      ["Closet", "Módulos abertos com iluminação embutida", 98000, 3, "02 out · entrega"],
-      ["Home office", "Bancada suspensa 2,40 m + estante", 74000, 2, "20 out · produção"],
-      ["Lavanderia", "Torre de serviço + armário alto", 42000, 5, "10 set · montagem"],
-    ],
-    stages: [
-      ["Briefing", "jan 2026", "done"],
-      ["Projeto", "fev 2026", "done"],
-      ["Aprovação", "abr 2026", "done"],
-      ["Produção", "em curso", "current"],
-      ["Entrega", "set 2026", "todo"],
-      ["Montagem", "out 2026", "todo"],
-    ],
-    budgetCats: [
-      ["Materiais", 210000, 168000],
-      ["Mão de obra", 175000, 132000],
-      ["Mobiliário", 168000, 96000],
-      ["Iluminação", 52000, 25000],
-      ["Decoração", 35000, 10000],
-    ],
-    materials: [
-      ["Porcelanato acetinado", "Bege areia 90x90 cm", "Materiais", "180 m²", 132, 23760],
-      ["MDF branco TX", "18 mm · marcenaria sob medida", "Materiais", "46 chapas", 289, 13294],
-      ["Mármore Travertino", "Bancada cozinha, acabamento escovado", "Materiais", "9 m²", 1180, 10620],
-      ["Corrediça telescópica", "Soft close 500 mm", "Ferragens", "38 pares", 96, 3648],
-      ["Perfil de LED embutido", "Linear 2700K, 24 V", "Iluminação", "38 m", 210, 7980],
-      ["Montagem dormitório", "Equipe 2 montadores · 3 dias", "Mão de obra", "1 un", 4800, 4800],
-    ],
-    // Importado da planilha `Modelo_orçamentoquantitativo.xlsx`.
-    orcamento: ORCAMENTO_SEED,
-  },
-  {
-    id: "p2",
-    name: "Apartamento Higienópolis",
-    client: "Camila e Rui Tavares",
-    address: "Higienópolis, São Paulo",
-    status: "Aguardando aprovação",
-    stage: "Projeto executivo",
-    deadline: "31 ago 2026",
-    budget: 285000,
-    spent: 96000,
-    imageLabel: "cozinha aberta",
-    ambientes: [
-      ["Cozinha", "Torre quente + despenseiro", 96000, 2, "25 set · aprovação"],
-      ["Closet", "Portas de correr espelhadas", 68000, 1, "aguardando medição final"],
-      ["Home office", "Marcenaria em freijó", 54000, 1, "aguardando aprovação"],
-    ],
-    stages: [
-      ["Briefing", "mar 2026", "done"],
-      ["Projeto", "mai 2026", "done"],
-      ["Aprovação", "em curso", "current"],
-      ["Produção", "set 2026", "todo"],
-      ["Entrega", "out 2026", "todo"],
-      ["Montagem", "dez 2026", "todo"],
-    ],
-    budgetCats: [
-      ["Materiais", 96000, 41000],
-      ["Mão de obra", 74000, 28000],
-      ["Mobiliário", 68000, 19000],
-      ["Iluminação", 27000, 8000],
-      ["Decoração", 20000, 0],
-    ],
-    materials: [
-      ["MDF carvalho natural", "18 mm · painel ripado sala", "Materiais", "22 chapas", 412, 9064],
-      ["Porcelanato cimentício", "Cinza claro 60x120 cm", "Materiais", "92 m²", 118, 10856],
-      ["Puxador perfil embutido", "Alumínio anodizado", "Ferragens", "26 m", 148, 3848],
-      ["Pendentes de vidro", "Fumê, sobre bancada", "Iluminação", "3 un", 1450, 4350],
-    ],
-    orcamento: [],
-  },
-  {
-    id: "p3",
-    name: "Clínica Vértice",
-    client: "Dra. Renata Sampaio",
-    address: "Itaim Bibi, São Paulo",
-    status: "Em andamento",
-    stage: "Entrega e montagem",
-    deadline: "05 out 2026",
-    budget: 420000,
-    spent: 238000,
-    imageLabel: "recepção",
-    ambientes: [
-      ["Recepção", "Balcão curvo 4,00 m + painel", 132000, 4, "12 set · montagem"],
-      ["Sala clínica 1", "Armários técnicos e cuba", 78000, 5, "concluído"],
-      ["Sala clínica 2", "Armários técnicos e cuba", 78000, 3, "28 set · entrega"],
-      ["Copa", "Marcenaria compacta + torre", 46000, 2, "produção em fila"],
-    ],
-    stages: [
-      ["Briefing", "dez 2025", "done"],
-      ["Projeto", "jan 2026", "done"],
-      ["Aprovação", "mar 2026", "done"],
-      ["Produção", "jul 2026", "done"],
-      ["Entrega", "em curso", "current"],
-      ["Montagem", "out 2026", "todo"],
-    ],
-    budgetCats: [
-      ["Materiais", 148000, 92000],
-      ["Mão de obra", 112000, 68000],
-      ["Mobiliário", 96000, 54000],
-      ["Iluminação", 38000, 18000],
-      ["Decoração", 26000, 6000],
-    ],
-    materials: [
-      ["Vinílico em régua", "Tom nogueira, tráfego comercial", "Materiais", "210 m²", 96, 20160],
-      ["Divisória acústica", "Vidro duplo com película", "Materiais", "18 m²", 1240, 22320],
-      ["Poltronas de espera", "Estofado bouclé areia", "Mobiliário", "12 un", 2380, 28560],
-      ["Luminária de trilho", "Preto fosco, 3000K", "Iluminação", "24 un", 540, 12960],
-    ],
-    orcamento: [],
-  },
-  {
-    id: "p4",
-    name: "Casa de Praia Camburi",
-    client: "Sr. Aurélio Braga",
-    address: "Camburi, São Sebastião",
-    status: "Em andamento",
-    stage: "Medição e projeto",
-    deadline: "20 nov 2026",
-    budget: 310000,
-    spent: 62000,
-    imageLabel: "varanda",
-    ambientes: [
-      ["Cozinha", "Marcenaria naval + bancada quartzo", 118000, 1, "medição em 27 ago"],
-      ["Dormitório suíte", "Guarda-roupa 3,60 m", 92000, 1, "projeto em desenvolvimento"],
-      ["Área gourmet", "Churrasqueira e armário externo", 74000, 0, "aguardando medição"],
-    ],
-    stages: [
-      ["Briefing", "jun 2026", "done"],
-      ["Projeto", "em curso", "current"],
-      ["Aprovação", "set 2026", "todo"],
-      ["Produção", "out 2026", "todo"],
-      ["Entrega", "dez 2026", "todo"],
-      ["Montagem", "mar 2027", "todo"],
-    ],
-    budgetCats: [
-      ["Materiais", 112000, 26000],
-      ["Mão de obra", 88000, 18000],
-      ["Mobiliário", 74000, 14000],
-      ["Iluminação", 21000, 4000],
-      ["Decoração", 15000, 0],
-    ],
-    materials: [
-      ["Deck de cumaru", "Régua 10 cm, tratado", "Materiais", "64 m²", 385, 24640],
-      ["Fibra sintética", "Trama natural, área externa", "Mobiliário", "6 un", 1980, 11880],
-      ["MDF hidrófugo", "18 mm · verde, área úmida", "Materiais", "18 chapas", 468, 8424],
-    ],
-    orcamento: [],
-  },
-  {
-    id: "p5",
-    name: "Loft Vila Madalena",
-    client: "Estúdio Faro",
-    address: "Vila Madalena, São Paulo",
-    status: "Aguardando aprovação",
-    stage: "Aprovação de orçamento",
-    deadline: "09 set 2026",
-    budget: 118000,
-    spent: 34000,
-    imageLabel: "mezanino",
-    ambientes: [
-      ["Home office", "Bancada corrida 5,20 m + nichos", 62000, 1, "aguardando aprovação"],
-      ["Copa", "Módulo compacto com bancada", 34000, 1, "aguardando aprovação"],
-      ["Dormitório mezanino", "Guarda-roupa sob laje inclinada", 22000, 0, "medição pendente"],
-    ],
-    stages: [
-      ["Briefing", "mai 2026", "done"],
-      ["Projeto", "jul 2026", "done"],
-      ["Aprovação", "aguardando", "current"],
-      ["Produção", "out 2026", "todo"],
-      ["Entrega", "nov 2026", "todo"],
-      ["Montagem", "jan 2027", "todo"],
-    ],
-    budgetCats: [
-      ["Materiais", 42000, 14000],
-      ["Mão de obra", 31000, 11000],
-      ["Mobiliário", 28000, 7000],
-      ["Iluminação", 11000, 2000],
-      ["Decoração", 6000, 0],
-    ],
-    materials: [
-      ["MDF preto TX", "18 mm · estantes e nichos", "Materiais", "16 chapas", 342, 5472],
-      ["Estrutura metálica", "Guarda-corpo mezanino", "Mão de obra", "11 m", 940, 10340],
-    ],
-    orcamento: [],
-  },
-  {
-    id: "p6",
-    name: "Cobertura Ipanema",
-    client: "Família Nogueira",
-    address: "Ipanema, Rio de Janeiro",
-    status: "Concluído",
-    stage: "Entregue e documentado",
-    deadline: "30 jun 2026",
-    budget: 72000,
-    spent: 71000,
-    imageLabel: "suíte principal",
-    ambientes: [
-      ["Suíte principal", "Cabeceira estofada + guarda-roupa", 48000, 6, "concluído em 22 jun"],
-      ["Closet", "Módulos com portas de vidro", 24000, 6, "concluído em 30 jun"],
-    ],
-    stages: [
-      ["Briefing", "set 2025", "done"],
-      ["Projeto", "out 2025", "done"],
-      ["Aprovação", "dez 2025", "done"],
-      ["Produção", "fev 2026", "done"],
-      ["Entrega", "mai 2026", "done"],
-      ["Montagem", "jun 2026", "done"],
-    ],
-    budgetCats: [
-      ["Materiais", 26000, 25800],
-      ["Mão de obra", 21000, 21000],
-      ["Mobiliário", 17000, 16600],
-      ["Iluminação", 5000, 4900],
-      ["Decoração", 3000, 2700],
-    ],
-    materials: [
-      ["Papel de parede texturizado", "Linho off-white", "Materiais", "38 m²", 172, 6536],
-      ["Cabeceira estofada", "Veludo verde-oliva, 2,00 m", "Mobiliário", "1 un", 8400, 8400],
-    ],
-    orcamento: [],
-  },
-];
+/* Os seis projetos de protótipo saíram: projetos, ambientes e orçamento vêm
+   de `src/lib/dados/projetos.ts`. O tipo `Project` continua, porque é a forma
+   que os componentes recebem — e continuará valendo quando houver uma ficha de
+   cliente de verdade por trás de `client`. */
 
 /**
  * Percentual de comissão sobre o valor vendido.

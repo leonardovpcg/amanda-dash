@@ -54,13 +54,17 @@ user**, e entre com ele na tela inicial.
 | Regras da ponte | Supabase, `configuracoes` |
 | Clientes, leads e interações | Supabase, tabelas próprias |
 | Briefings preenchidos | Supabase, três tabelas normalizadas |
+| Projetos, ambientes e orçamentos | Supabase, tabelas próprias |
+| Contratos, comissão e financeiro | ainda com dados de protótipo |
 | Perfil (nome e foto) | ainda no `localStorage` |
-| Projetos, ambientes e orçamentos | ainda em memória, dados de protótipo |
 
-O funil abre vazio: os 14 leads de protótipo saíram, e os clientes agora são
-os que você cadastrar. Projetos e orçamento seguem com dados de exemplo até a
-próxima migração — enquanto isso, o vínculo entre lead e projeto (que fazia o
-funil mostrar o valor do orçamento) fica desligado.
+O app abre vazio: os dados de protótipo saíram. Cadastre pelo "+ Novo
+atendimento" ou "+ Novo projeto".
+
+Duas telas ficam parcialmente mudas até `contratos` e `recebimentos` terem
+interface: **"Faturado" mostra R$ 0** em todo projeto, porque não há
+recebimento registrado, e Comissão e Financeiro seguem com números de
+exemplo.
 
 ## Scripts
 

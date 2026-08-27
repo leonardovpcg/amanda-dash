@@ -9,6 +9,11 @@
    As linhas sem quantidade e os serviços sem custo foram mantidos como estão.
    São eles que fazem o painel de alertas acender — apagá-los aqui esconderia
    justamente o que o módulo existe para mostrar.
+
+   **Nada importa este arquivo desde que os projetos passaram para o banco.**
+   Ele fica como referência: é a prova de que o motor reproduz o que a planilha
+   cobrou, e é o material pronto para um "importar o orçamento da planilha"
+   quando ela for cadastrar esse projeto de verdade.
    ═════════════════════════════════════════════════════════════════════════ */
 
 import type { OrcamentoAmbiente } from "./tipos";

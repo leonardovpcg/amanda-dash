@@ -5,7 +5,6 @@ import {
   AMB_STEPS,
   CAT_COLORS,
   PRICES,
-  PROJECTS,
   STAGES,
   STATUS_TONE,
   chip,
@@ -23,6 +22,7 @@ import {
   primeiroNome,
   type Perfil,
 } from "@/lib/dashboard/perfil";
+import { brl, calcularProjeto } from "@/lib/orcamento/calculo";
 import { assinarCatalogo, lerCatalogo, lerCatalogoNoServidor } from "@/lib/orcamento/catalogo";
 import { composicao, materiais, temOrcamento, valorDeContrato } from "@/lib/orcamento/derivar";
 import {
@@ -46,6 +46,21 @@ import {
   lerFunilNoServidor,
   moverEtapa,
 } from "@/lib/dados/funil";
+import {
+  adicionarAmbiente,
+  aplicarOrcamento,
+  assinarProjetos,
+  atualizarProjeto,
+  criarProjeto,
+  lerProjetos,
+  lerProjetosNoServidor,
+  linhaDoTempo,
+  orcamentoDoProjeto,
+  prazoLegivel,
+  rotuloDaSituacao,
+  sincronizarProjetoAgora,
+  type ProjetoDoBanco,
+} from "@/lib/dados/projetos";
 import { MONO, NUM, tabStyle } from "./ui";
 import Avatar from "./Avatar";
 import LogoTerracota from "./LogoTerracota";
@@ -112,7 +127,10 @@ export default function DashboardArquitetura({
 }) {
   const [tab, setTab] = useState<Tab>("funil");
   const [selected, setSelected] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>(PROJECTS);
+  // Projetos, ambientes e orçamento vêm do banco. `ambientes` e o orçamento
+  // são a mesma tabela agora: no protótipo eram duas listas que podiam
+  // discordar sobre quantos ambientes o projeto tem.
+  const doBanco = useSyncExternalStore(assinarProjetos, lerProjetos, lerProjetosNoServidor);
   // O funil vem do banco. `diasParado` é calculado pela view a partir da
   // última interação registrada — no protótipo era um número digitado.
   const funil = useSyncExternalStore(assinarFunil, lerFunil, lerFunilNoServidor);
@@ -178,6 +196,8 @@ export default function DashboardArquitetura({
   };
 
   const closeProject = () => {
+    // Fechar o projeto descarrega o que a gravação adiada ainda não levou.
+    if (selected) void sincronizarProjetoAgora(selected);
     setSelected(null);
     window.scrollTo(0, 0);
   };
@@ -247,112 +267,50 @@ export default function DashboardArquitetura({
   };
 
   // ── projeto selecionado ──────────────────────────────────────────────────
-  const updProj = useCallback(
-    (fn: (p: Project) => Project) => {
-      setProjects((ps) => ps.map((p) => (p.id === selected ? fn({ ...p }) : p)));
-    },
-    [selected],
-  );
-
-  const setField = <K extends keyof Project>(key: K, v: Project[K]) =>
-    updProj((p) => {
-      p[key] = v;
-      return p;
-    });
-
-  const setAmb = (i: number, j: number, v: string | number) =>
-    updProj((p) => {
-      p.ambientes = p.ambientes.map((a, k) =>
-        k === i ? (a.map((x, m) => (m === j ? v : x)) as Ambiente) : a,
-      );
-      return p;
-    });
-
-  const stepAmb = (i: number, dir: number) =>
-    updProj((p) => {
-      p.ambientes = p.ambientes.map((a, k) =>
-        k === i
-          ? (a.map((x, m) =>
-              m === 3 ? Math.max(0, Math.min(5, (x as number) + dir)) : x,
-            ) as Ambiente)
-          : a,
-      );
-      return p;
-    });
-
-  const addAmb = () =>
-    updProj((p) => {
-      p.ambientes = [...p.ambientes, ["Novo ambiente", "Descrever marcenaria", 0, 0, "a definir"]];
-      return p;
-    });
-
-  const addMaterial = (m: { name: string; spec: string; qty: string; unit: string }) => {
-    if (!m.name) return;
-    const qty = m.qty || "1 un";
-    const unit = parseInt(String(m.unit).replace(/\D/g, ""), 10) || 0;
-    const n = parseFloat(String(qty).replace(",", ".")) || 1;
-    updProj((p) => {
-      p.materials = [...p.materials, [m.name, m.spec || "—", "Materiais", qty, unit, Math.round(unit * n)]];
-      return p;
-    });
+  // Toda edição vai para o cache na hora e é gravada com atraso, para digitar
+  // nome ou preço não virar uma viagem de rede por tecla.
+  const editar = (fn: (p: ProjetoDoBanco) => ProjetoDoBanco) => {
+    if (selected) atualizarProjeto(selected, fn);
   };
 
-  const saveProject = (fm: {
+  const setAmb = (i: number, campo: "nome" | "detalhe", v: string) =>
+    editar((p) => ({
+      ...p,
+      ambientes: p.ambientes.map((a, k) => (k === i ? { ...a, [campo]: v } : a)),
+    }));
+
+  const stepAmb = (i: number, dir: number) =>
+    editar((p) => ({
+      ...p,
+      ambientes: p.ambientes.map((a, k) =>
+        k === i ? { ...a, etapa: Math.max(0, Math.min(5, a.etapa + dir)) } : a,
+      ),
+    }));
+
+  const addAmb = () => {
+    if (selected) adicionarAmbiente(selected);
+  };
+
+  const saveProject = async (fm: {
     name: string;
     client: string;
     address: string;
     budget: string;
     deadline: string;
   }) => {
-    const budget = parseInt(String(fm.budget).replace(/\D/g, ""), 10) || 0;
-    const picked = ambPick.length ? ambPick : ["Cozinha"];
-    const each = Math.round(budget / picked.length);
-    const id = "np" + Date.now();
-    const proj: Project = {
-      id,
-      name: fm.name.trim() || "Projeto sem nome",
-      client: fm.client.trim() || "Cliente a definir",
-      address: fm.address.trim() || "Endereço a definir",
-      status: "Aguardando aprovação",
-      stage: "Medição e projeto",
-      deadline: fm.deadline.trim() || "a definir",
-      budget: budget || 1,
-      spent: 0,
-      imageLabel: "render pendente",
-      ambientes: picked.map((a) => [a, "Descrever marcenaria", each, 0, "aguardando medição"]),
-      stages: [
-        ["Briefing", "hoje", "current"],
-        ["Projeto", "a definir", "todo"],
-        ["Aprovação", "a definir", "todo"],
-        ["Produção", "a definir", "todo"],
-        ["Entrega", "a definir", "todo"],
-        ["Montagem", "a definir", "todo"],
-      ],
-      budgetCats: [
-        ["Materiais", Math.round(budget * 0.35), 0],
-        ["Mão de obra", Math.round(budget * 0.25), 0],
-        ["Mobiliário", Math.round(budget * 0.25), 0],
-        ["Iluminação", Math.round(budget * 0.1), 0],
-        ["Decoração", Math.round(budget * 0.05), 0],
-      ],
-      materials: [],
-      // Um ambiente vazio por cômodo escolhido — a mesma ideia de duplicar a
-      // aba "Modelo", só que já sem as fórmulas quebradas dela.
-      orcamento: picked.map((a, i) => ({
-        id: id + "-a" + i,
-        nome: a,
-        chapas: [],
-        fita: [],
-        acessorios: [],
-        maoDeObra: [],
-      })),
-    };
-    setProjects((ps) => [proj, ...ps]);
+    await criarProjeto({
+      nome: fm.name,
+      clienteNome: fm.client,
+      endereco: fm.address,
+      valorPrevisto: parseInt(String(fm.budget).replace(/[^0-9]/g, ""), 10) || undefined,
+      // O prazo é `date` no banco; texto livre do protótipo não converte.
+      prazo: null,
+      ambientes: ambPick.length ? ambPick : ["Cozinha"],
+    });
     setOverlay(null);
     setTab("projetos");
-    setSelected(id);
-    window.scrollTo(0, 0);
   };
+
 
   // ── consulta de preço ────────────────────────────────────────────────────
   const lookup = () => {
@@ -386,6 +344,34 @@ export default function DashboardArquitetura({
     [catalogo],
   );
 
+  // Tradução para a forma que os componentes já recebiam. `spent` fica em
+  // zero até `recebimentos` existir: faturamento inventado seria pior que
+  // faturamento zerado.
+  const projects: Project[] = useMemo(
+    () =>
+      doBanco.map((p) => ({
+        id: p.id,
+        name: p.nome,
+        client: p.cliente,
+        address: p.endereco,
+        status: rotuloDaSituacao(p.situacao),
+        stage: p.etapa,
+        deadline: prazoLegivel(p.prazo),
+        budget: p.valorPrevisto,
+        spent: 0,
+        imageLabel: "render pendente",
+        ambientes: p.ambientes.map(
+          (a) =>
+            [a.nome, a.detalhe, 0, a.etapa, a.eta || AMB_STEPS[Math.min(a.etapa, 5)]] as Ambiente,
+        ),
+        stages: linhaDoTempo(p),
+        budgetCats: [],
+        materials: [],
+        orcamento: orcamentoDoProjeto(p),
+      })),
+    [doBanco],
+  );
+
   const decorated = useMemo(() => projects.map(decorate), [projects, decorate]);
 
   // O funil mostra o valor do orçamento quando o lead já virou projeto. Sem
@@ -406,29 +392,38 @@ export default function DashboardArquitetura({
   // do orçamento e a gaveta do mesmo lead mostra a estimativa antiga.
   const leadSel = leadsVM.find((l) => l.id === openLead) ?? null;
 
+  const orcamentoCalculado = useMemo(
+    () => (sel ? calcularProjeto(sel.orcamento, catalogo) : null),
+    [sel, catalogo],
+  );
+
   const detail = useMemo(() => {
     if (!sel) return null;
     return {
       ...decorate(sel),
       ambienteCount: sel.ambientes.length,
       rawBudget: sel.budget.toLocaleString("pt-BR"),
-      ambientesVM: sel.ambientes.map(([name, dtl, value, step, eta], i) => ({
-        name,
-        detail: dtl,
-        valueLabel: money(value),
-        eta,
-        rawValue: value.toLocaleString("pt-BR"),
-        status: AMB_STEPS[Math.min(step, 5)],
-        onName: (e: React.ChangeEvent<HTMLInputElement>) => setAmb(i, 0, e.target.value),
-        onDetail: (e: React.ChangeEvent<HTMLTextAreaElement>) => setAmb(i, 1, e.target.value),
-        onValue: (e: React.ChangeEvent<HTMLInputElement>) =>
-          setAmb(i, 2, parseInt(String(e.target.value).replace(/\D/g, ""), 10) || 0),
-        up: () => stepAmb(i, 1),
-        down: () => stepAmb(i, -1),
-        steps: AMB_STEPS.map((_, k) => ({
-          color: k <= step ? (step >= 5 ? "#6B7040" : "#A84B1C") : "#EDEAE2",
-        })),
-      })),
+      prazoISO: doBanco.find((p) => p.id === sel.id)?.prazo ?? "",
+      // O valor do ambiente é calculado do orçamento, não digitado: era a
+      // segunda fonte que podia discordar do painel logo abaixo.
+      ambientesVM: sel.ambientes.map(([name, dtl, , step, eta], i) => {
+        const calc = orcamentoCalculado?.ambientes[i];
+        return {
+          name,
+          detail: dtl,
+          valueLabel: calc ? brl(calc.totalComArt) : money(0),
+          eta,
+          status: AMB_STEPS[Math.min(step, 5)],
+          onName: (e: React.ChangeEvent<HTMLInputElement>) => setAmb(i, "nome", e.target.value),
+          onDetail: (e: React.ChangeEvent<HTMLTextAreaElement>) =>
+            setAmb(i, "detalhe", e.target.value),
+          up: () => stepAmb(i, 1),
+          down: () => stepAmb(i, -1),
+          steps: AMB_STEPS.map((_, k) => ({
+            color: k <= step ? (step >= 5 ? "#6B7040" : "#A84B1C") : "#EDEAE2",
+          })),
+        };
+      }),
       stagesVM: sel.stages.map(([label, date, st], i) => ({
         label,
         date,
@@ -787,20 +782,35 @@ export default function DashboardArquitetura({
           <ProjetoDetalhe
             sel={detail}
             onClose={closeProject}
-            onName={(e) => setField("name", e.target.value)}
-            onClient={(e) => setField("client", e.target.value)}
-            onAddress={(e) => setField("address", e.target.value)}
-            onDeadline={(e) => setField("deadline", e.target.value)}
-            onBudget={(e) =>
-              setField("budget", parseInt(String(e.target.value).replace(/\D/g, ""), 10) || 0)
-            }
+            onName={(e) => {
+              const v = e.target.value;
+              editar((p) => ({ ...p, nome: v }));
+            }}
+            onClient={() => {
+              // O cliente é entidade própria agora: trocar o nome aqui
+              // renomearia a pessoa em todo o histórico. Isso passa a ser
+              // edição da ficha do cliente, quando ela existir.
+            }}
+            onAddress={(e) => {
+              const v = e.target.value;
+              editar((p) => ({ ...p, endereco: v }));
+            }}
+            onDeadline={(e) => {
+              const v = e.target.value;
+              editar((p) => ({ ...p, prazo: v || null }));
+            }}
+            onBudget={(e) => {
+              const v = parseInt(String(e.target.value).replace(/[^0-9]/g, ""), 10) || 0;
+              editar((p) => ({ ...p, valorPrevisto: v }));
+            }}
             onAddAmbiente={addAmb}
             query={query}
             onQuery={(e) => setQuery(e.target.value)}
             onSearch={lookup}
             result={result}
-            onAddMaterial={addMaterial}
-            onOrcamento={(orcamento) => setField("orcamento", orcamento)}
+            onOrcamento={(orcamento) => {
+              if (selected) aplicarOrcamento(selected, orcamento);
+            }}
             briefing={leadDoProjeto ? (briefings[leadDoProjeto.id] ?? null) : null}
             onAbrirBriefing={() => leadDoProjeto && abrirBriefing(leadDoProjeto.id)}
           />

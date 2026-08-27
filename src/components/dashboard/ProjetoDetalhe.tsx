@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type CSSProperties } from "react";
+import type { ChangeEvent, CSSProperties } from "react";
 import type { Briefing } from "@/lib/briefing/tipos";
 import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
 import type { ProjectVM, PriceResult } from "./DashboardArquitetura";
@@ -11,13 +11,12 @@ import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 type AmbienteVM = {
   name: string;
   detail: string;
+  /** Calculado do orçamento do ambiente — não é mais digitável. */
   valueLabel: string;
   eta: string;
-  rawValue: string;
   status: string;
   onName: (e: ChangeEvent<HTMLInputElement>) => void;
   onDetail: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-  onValue: (e: ChangeEvent<HTMLInputElement>) => void;
   up: () => void;
   down: () => void;
   steps: { color: string }[];
@@ -28,7 +27,6 @@ export type DetalheVM = ProjectVM & {
   rawBudget: string;
   ambientesVM: AmbienteVM[];
   stagesVM: { label: string; date: string; textColor: string; dotStyle: CSSProperties; lineStyle: CSSProperties }[];
-  budgetVM: { label: string; plannedLabel: string; spentLabel: string; pct: number; color: string }[];
   /** Composição por bloco do orçamento; `null` quando o projeto não tem um. */
   composicaoVM:
     | { label: string; custoLabel: string; vendaLabel: string; pct: number; color: string }[]
@@ -60,7 +58,6 @@ export default function ProjetoDetalhe({
   onQuery,
   onSearch,
   result,
-  onAddMaterial,
   onOrcamento,
   briefing,
   onAbrirBriefing,
@@ -77,19 +74,11 @@ export default function ProjetoDetalhe({
   onQuery: (e: ChangeEvent<HTMLInputElement>) => void;
   onSearch: () => void;
   result: PriceResult | null;
-  onAddMaterial: (m: { name: string; spec: string; qty: string; unit: string }) => void;
   onOrcamento: (a: OrcamentoAmbiente[]) => void;
   /** Briefing do lead que originou este projeto, quando existe o vínculo. */
   briefing: Briefing | null;
   onAbrirBriefing: () => void;
 }) {
-  const [mf, setMf] = useState({ name: "", spec: "", qty: "", unit: "" });
-
-  const addMaterial = () => {
-    onAddMaterial(mf);
-    setMf({ name: "", spec: "", qty: "", unit: "" });
-  };
-
   return (
     <div className="dash-tabpad" style={{ maxWidth: 1440 }}>
       <button
@@ -282,20 +271,18 @@ export default function ProjetoDetalhe({
                     }}
                   />
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 2, flex: "none" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#6E6A5F" }}>R$</span>
-                  <input
-                    className="dash-inline"
-                    value={a.rawValue}
-                    onChange={a.onValue}
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      width: 82,
-                      textAlign: "right",
-                      ...NUM,
-                    }}
-                  />
+                {/* Sai do orçamento do ambiente. Digitável seria uma segunda
+                    fonte para o mesmo número. */}
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    flex: "none",
+                    textAlign: "right",
+                    ...NUM,
+                  }}
+                >
+                  {a.valueLabel}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 4, marginTop: 18 }}>
@@ -388,23 +375,14 @@ export default function ProjetoDetalhe({
       {/* ── orçamento por categoria + consulta de preço ─────────────────── */}
       <div className="dash-grid-2" style={{ marginTop: 20 }}>
         <div style={{ ...panel, padding: "28px 30px" }}>
-          <div style={cardTitle}>
-            {sel.composicaoVM ? "Composição do orçamento" : "Orçamento por categoria"}
+          <div style={cardTitle}>Composição do orçamento</div>
+          <div style={{ fontSize: "12.5px", color: "#8C887C", marginTop: 6 }}>
+            {sel.composicaoVM
+              ? "custo de compra × preço de venda · a barra é a margem"
+              : "aparece quando o orçamento tiver lançamentos"}
           </div>
-          {sel.composicaoVM && (
-            <div style={{ fontSize: "12.5px", color: "#8C887C", marginTop: 6 }}>
-              custo de compra × preço de venda · a barra é a margem
-            </div>
-          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 24 }}>
-            {(sel.composicaoVM ??
-              sel.budgetVM.map((c) => ({
-                label: c.label,
-                custoLabel: c.spentLabel,
-                vendaLabel: c.plannedLabel,
-                pct: c.pct,
-                color: c.color,
-              }))).map((c, i) => (
+            {(sel.composicaoVM ?? []).map((c, i) => (
               <div key={i}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <div style={{ fontSize: "13.5px", fontWeight: 500 }}>{c.label}</div>
@@ -584,40 +562,6 @@ export default function ProjetoDetalhe({
           </div>
         ))}
           </div>
-        </div>
-        <div className="dash-mat-add">
-          <input
-            className="dash-field dash-field-sm"
-            value={mf.name}
-            onChange={(e) => setMf({ ...mf, name: e.target.value })}
-            placeholder="Novo item"
-          />
-          <input
-            className="dash-field dash-field-sm"
-            value={mf.spec}
-            onChange={(e) => setMf({ ...mf, spec: e.target.value })}
-            placeholder="Especificação"
-          />
-          <input
-            className="dash-field dash-field-sm"
-            value={mf.qty}
-            onChange={(e) => setMf({ ...mf, qty: e.target.value })}
-            placeholder="12 m²"
-          />
-          <input
-            className="dash-field dash-field-sm"
-            value={mf.unit}
-            onChange={(e) => setMf({ ...mf, unit: e.target.value })}
-            placeholder="R$ 289"
-            style={{ textAlign: "right" }}
-          />
-          <button
-            className="dash-btn-dark"
-            onClick={addMaterial}
-            style={{ borderRadius: 12, padding: "11px 14px", fontSize: "12.5px" }}
-          >
-            Adicionar item
-          </button>
         </div>
       </div>
     </div>
