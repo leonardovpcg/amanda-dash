@@ -16,14 +16,18 @@ import { useSyncExternalStore } from "react";
 import { brl } from "@/lib/orcamento/calculo";
 import {
   assinarCatalogo,
+  assinarStatusCatalogo,
   catalogoEditado,
   guardarCatalogo,
   lerCatalogo,
   lerCatalogoNoServidor,
+  lerStatusCatalogo,
+  lerStatusCatalogoNoServidor,
   restaurarCatalogo,
   type Catalogo,
 } from "@/lib/orcamento/catalogo";
 import { ESPESSURAS, type Espessura } from "@/lib/orcamento/tipos";
+import SinalDeArmazem from "./StatusDoArmazem";
 import { MONO, NUM, cardTitle, colLabel, mono, panel, sectionTitle } from "./ui";
 
 /** Aceita "12", "1,5" e "1.250,5"; devolve `null` para campo vazio. */
@@ -52,9 +56,14 @@ export default function TabelaValores() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: editada ? "#A84B1C" : "#9A9689" }}>
-            {editada ? "editada nesta máquina" : "valores da planilha"}
-          </div>
+          <SinalDeArmazem
+            assinar={assinarStatusCatalogo}
+            ler={lerStatusCatalogo}
+            lerNoServidor={lerStatusCatalogoNoServidor}
+            rotuloPadrao="valores da planilha"
+            rotuloEditado="editada"
+            editado={editada}
+          />
           <button
             className="dash-btn-outline"
             onClick={restaurarCatalogo}

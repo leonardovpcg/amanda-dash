@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { Perfil } from "@/lib/dashboard/perfil";
+import { sair } from "@/lib/supabase/sessao";
 import Avatar from "./Avatar";
 import { MONO, mono } from "./ui";
 
@@ -35,7 +36,9 @@ export default function PerfilMenu({
   const itens: Item[] = [
     { label: "Editar perfil", detalhe: "foto e nome", onClick: onEditar },
     { label: "Alterar senha", detalhe: "requer login", pendente: true },
-    { label: "Sair da conta", detalhe: "requer login", pendente: true, tom: "sair" },
+    // Sair funciona de verdade: a store de sessão derruba o dashboard e a
+    // porta de entrada reaparece sozinha.
+    { label: "Sair da conta", detalhe: "encerra a sessão", onClick: () => void sair(), tom: "sair" },
   ];
 
   return (
@@ -101,7 +104,7 @@ export default function PerfilMenu({
             borderTop: "1px solid #F0EDE5",
           }}
         >
-          senha e sair passam a funcionar quando o login entrar
+          alterar senha ainda não; use o painel do Supabase
         </div>
       </div>
     </>

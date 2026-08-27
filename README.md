@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Amanda Dash
 
-## Getting Started
+Painel comercial e de projetos para loja de móveis planejados. Next.js 16 +
+Supabase.
 
-First, run the development server:
+## Rodar localmente
 
 ```bash
+npm install
+cp .env.example .env.local   # e preencha os dois valores
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Os dois valores saem do painel do Supabase, em **Project Settings › API**:
+a URL do projeto e a chave `anon`. Ela é pública por natureza — o Next embute
+qualquer `NEXT_PUBLIC_*` no bundle do navegador. Quem protege os dados é a
+RLS, não o segredo da chave.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+A chave `service_role` ignora RLS e **não entra** em variável `NEXT_PUBLIC_`
+nem em nenhum lugar do cliente.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> O Next lê `.env.local` só na subida. Depois de criar ou editar o arquivo,
+> reinicie o `npm run dev`.
 
-## Learn More
+## Banco
 
-To learn more about Next.js, take a look at the following resources:
+O schema vive em [`supabase/migrations`](supabase/migrations). Para aplicar,
+cole o arquivo no **SQL Editor** do projeto. Ele é re-executável: rodar de
+novo não quebra nada.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Duas coisas que o schema assume e vale saber antes de mexer nele:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **O que pode ser calculado não vira tabela.** Comissão, garantia, retorno
+  em atraso, totais do financeiro e indicações são views. A exceção
+  deliberada é `contratos.valor`, congelado na assinatura — reajuste de preço
+  não pode mudar contrato fechado.
+- **RLS em tudo**, com `dono = auth.uid()`. O uso é de uma pessoa só, mas a
+  chave anônima publica as tabelas na internet.
 
-## Deploy on Vercel
+## Login
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+O app não abre sem conta: as policies são `to authenticated`, então sem
+sessão o banco não devolve nada.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Crie o usuário no painel do Supabase, em **Authentication › Users › Add
+user**, e entre com ele na tela inicial.
+
+## O que já está no banco e o que ainda não
+
+| | Onde mora |
+|---|---|
+| Catálogo (tabela de valores) | Supabase, `configuracoes` |
+| Roteiro de briefing | Supabase, `configuracoes` |
+| Regras da ponte | Supabase, `configuracoes` |
+| Briefings preenchidos | ainda no `localStorage` |
+| Perfil (nome e foto) | ainda no `localStorage` |
+| Leads, projetos e orçamentos | ainda em memória, dados de protótipo |
+
+## Scripts
+
+```bash
+npm run dev      # desenvolvimento
+npm run build    # build de produção (checa tipos)
+npm run lint
+```

@@ -16,13 +16,17 @@
 import { useState, useSyncExternalStore } from "react";
 import {
   assinarRoteiro,
+  assinarStatusRoteiro,
   guardarRoteiro,
   lerRoteiro,
   lerRoteiroNoServidor,
+  lerStatusRoteiro,
+  lerStatusRoteiroNoServidor,
   restaurarRoteiro,
   roteiroEditado,
 } from "@/lib/briefing/armazem";
 import type { Pergunta, Roteiro, Secao, TipoResposta } from "@/lib/briefing/tipos";
+import SinalDeArmazem from "./StatusDoArmazem";
 import { MONO, cardTitle, mono, panel, pillStyle, sectionTitle } from "./ui";
 
 const TIPOS: [TipoResposta, string][] = [
@@ -76,9 +80,14 @@ export default function RoteiroEditor() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: editado ? "#A84B1C" : "#9A9689" }}>
-            {editado ? "editado nesta máquina" : "roteiro padrão"}
-          </div>
+          <SinalDeArmazem
+            assinar={assinarStatusRoteiro}
+            ler={lerStatusRoteiro}
+            lerNoServidor={lerStatusRoteiroNoServidor}
+            rotuloPadrao="roteiro padrão"
+            rotuloEditado="editado"
+            editado={editado}
+          />
           <button
             className="dash-btn-outline"
             onClick={restaurarRoteiro}

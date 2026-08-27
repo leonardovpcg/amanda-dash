@@ -1,17 +1,21 @@
+"use client";
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Armazém do briefing.
 
-   Duas coisas guardadas separadamente, porque mudam em ritmos diferentes:
+   Três coisas guardadas separadamente, porque mudam em ritmos diferentes:
 
-   - **o roteiro**, que é a lista de perguntas e quase nunca muda;
-   - **os briefings**, um por lead, que mudam a cada reunião.
+   - **o roteiro** e **as regras da ponte**, que quase nunca mudam e já vivem
+     no Supabase, em `configuracoes`;
+   - **os briefings**, um por lead, que mudam a cada reunião — estes ainda
+     estão no localStorage.
 
-   Os dois no localStorage, como o perfil e o catálogo, e pelo mesmo motivo:
-   ainda não tem backend. A diferença é que briefing é dado pessoal do cliente
-   — quando o Supabase entrar, isto aqui vira a primeira coisa a sair da
-   máquina dela.
+   Os briefings são a próxima migração, e a mais delicada: guardam quem mora
+   na casa, idade das crianças e faixa de renda. Enquanto estiverem aqui,
+   vivem numa máquina só e não saem dela.
    ═════════════════════════════════════════════════════════════════════════ */
 
+import { criarArmazemDeDocumento } from "@/lib/supabase/documento";
 import { REGRAS_PADRAO, type Regras } from "./regras";
 import { ROTEIRO_PADRAO } from "./roteiro";
 import {
@@ -25,151 +29,63 @@ import {
   type Secao,
 } from "./tipos";
 
-const CHAVE_ROTEIRO = "amanda-dash:roteiro";
-const CHAVE_REGRAS = "amanda-dash:regras-briefing";
 const CHAVE_BRIEFINGS = "amanda-dash:briefings";
 
-/* ── roteiro ─────────────────────────────────────────────────────────────── */
+/* ── roteiro e regras ──────────────────────────────────────────────────────
+   Os dois são documentos de configuração e moram no Supabase, em
+   `configuracoes`. A tela edita o objeto inteiro e o motor carrega o objeto
+   inteiro — ninguém consulta uma pergunta solta —, então normalizar aqui
+   seria trabalho sem resposta nova.
+   ───────────────────────────────────────────────────────────────────────── */
 
-function interpretarRoteiro(bruto: string | null): Roteiro {
-  if (!bruto) return ROTEIRO_PADRAO;
-  try {
-    const r = JSON.parse(bruto) as Partial<Roteiro>;
-    const geral = Array.isArray(r.geral) ? (r.geral as Secao[]) : ROTEIRO_PADRAO.geral;
-    const ambientes = Array.isArray(r.ambientes)
+function interpretarRoteiro(bruto: unknown): Roteiro {
+  if (!bruto || typeof bruto !== "object") return ROTEIRO_PADRAO;
+  const r = bruto as Partial<Roteiro>;
+  return {
+    geral: Array.isArray(r.geral) ? (r.geral as Secao[]) : ROTEIRO_PADRAO.geral,
+    ambientes: Array.isArray(r.ambientes)
       ? (r.ambientes as RoteiroAmbiente[])
-      : ROTEIRO_PADRAO.ambientes;
-    return { geral, ambientes };
-  } catch {
-    return ROTEIRO_PADRAO;
-  }
-}
-
-const ouvintesRoteiro = new Set<() => void>();
-let brutoRoteiro: string | null = null;
-let roteiroEmCache: Roteiro = ROTEIRO_PADRAO;
-
-/** Mesma referência enquanto nada mudar, senão o React entra em laço. */
-export function lerRoteiro(): Roteiro {
-  let bruto: string | null = null;
-  try {
-    bruto = localStorage.getItem(CHAVE_ROTEIRO);
-  } catch {
-    return roteiroEmCache;
-  }
-  if (bruto !== brutoRoteiro) {
-    brutoRoteiro = bruto;
-    roteiroEmCache = interpretarRoteiro(bruto);
-  }
-  return roteiroEmCache;
-}
-
-export function lerRoteiroNoServidor(): Roteiro {
-  return ROTEIRO_PADRAO;
-}
-
-export function assinarRoteiro(aoMudar: () => void): () => void {
-  ouvintesRoteiro.add(aoMudar);
-  window.addEventListener("storage", aoMudar);
-  return () => {
-    ouvintesRoteiro.delete(aoMudar);
-    window.removeEventListener("storage", aoMudar);
+      : ROTEIRO_PADRAO.ambientes,
   };
 }
 
-export function guardarRoteiro(r: Roteiro): void {
-  try {
-    localStorage.setItem(CHAVE_ROTEIRO, JSON.stringify(r));
-  } catch {
-    brutoRoteiro = null;
-    roteiroEmCache = r;
-  }
-  ouvintesRoteiro.forEach((fn) => fn());
-}
+const armazemRoteiro = criarArmazemDeDocumento<Roteiro>(
+  "roteiro",
+  ROTEIRO_PADRAO,
+  interpretarRoteiro,
+);
 
-export function restaurarRoteiro(): void {
-  try {
-    localStorage.removeItem(CHAVE_ROTEIRO);
-  } catch {
-    brutoRoteiro = null;
-    roteiroEmCache = ROTEIRO_PADRAO;
-  }
-  ouvintesRoteiro.forEach((fn) => fn());
-}
+export const lerRoteiro = armazemRoteiro.ler;
+export const lerRoteiroNoServidor = armazemRoteiro.lerNoServidor;
+export const assinarRoteiro = armazemRoteiro.assinar;
+export const guardarRoteiro = armazemRoteiro.guardar;
+export const restaurarRoteiro = armazemRoteiro.restaurar;
+export const roteiroEditado = armazemRoteiro.foiEditado;
+export const lerStatusRoteiro = armazemRoteiro.lerStatus;
+export const lerStatusRoteiroNoServidor = armazemRoteiro.lerStatusNoServidor;
+export const assinarStatusRoteiro = armazemRoteiro.assinarStatus;
 
-export function roteiroEditado(r: Roteiro): boolean {
-  return r !== ROTEIRO_PADRAO;
-}
-
-/* ── regras da ponte ─────────────────────────────────────────────────────── */
-
-function interpretarRegras(bruto: string | null): Regras {
-  if (!bruto) return REGRAS_PADRAO;
-  try {
-    const r = JSON.parse(bruto) as Partial<Regras>;
-    return {
-      linhas: Array.isArray(r.linhas) ? r.linhas : REGRAS_PADRAO.linhas,
-      observacoes: Array.isArray(r.observacoes) ? r.observacoes : REGRAS_PADRAO.observacoes,
-    };
-  } catch {
-    return REGRAS_PADRAO;
-  }
-}
-
-const ouvintesRegras = new Set<() => void>();
-let brutoRegras: string | null = null;
-let regrasEmCache: Regras = REGRAS_PADRAO;
-
-export function lerRegras(): Regras {
-  let bruto: string | null = null;
-  try {
-    bruto = localStorage.getItem(CHAVE_REGRAS);
-  } catch {
-    return regrasEmCache;
-  }
-  if (bruto !== brutoRegras) {
-    brutoRegras = bruto;
-    regrasEmCache = interpretarRegras(bruto);
-  }
-  return regrasEmCache;
-}
-
-export function lerRegrasNoServidor(): Regras {
-  return REGRAS_PADRAO;
-}
-
-export function assinarRegras(aoMudar: () => void): () => void {
-  ouvintesRegras.add(aoMudar);
-  window.addEventListener("storage", aoMudar);
-  return () => {
-    ouvintesRegras.delete(aoMudar);
-    window.removeEventListener("storage", aoMudar);
+function interpretarRegras(bruto: unknown): Regras {
+  if (!bruto || typeof bruto !== "object") return REGRAS_PADRAO;
+  const r = bruto as Partial<Regras>;
+  return {
+    linhas: Array.isArray(r.linhas) ? r.linhas : REGRAS_PADRAO.linhas,
+    observacoes: Array.isArray(r.observacoes) ? r.observacoes : REGRAS_PADRAO.observacoes,
   };
 }
 
-export function guardarRegras(r: Regras): void {
-  try {
-    localStorage.setItem(CHAVE_REGRAS, JSON.stringify(r));
-  } catch {
-    brutoRegras = null;
-    regrasEmCache = r;
-  }
-  ouvintesRegras.forEach((fn) => fn());
-}
+const armazemRegras = criarArmazemDeDocumento<Regras>("regras", REGRAS_PADRAO, interpretarRegras);
 
-export function restaurarRegras(): void {
-  try {
-    localStorage.removeItem(CHAVE_REGRAS);
-  } catch {
-    brutoRegras = null;
-    regrasEmCache = REGRAS_PADRAO;
-  }
-  ouvintesRegras.forEach((fn) => fn());
-}
+export const lerRegras = armazemRegras.ler;
+export const lerRegrasNoServidor = armazemRegras.lerNoServidor;
+export const assinarRegras = armazemRegras.assinar;
+export const guardarRegras = armazemRegras.guardar;
+export const restaurarRegras = armazemRegras.restaurar;
+export const regrasEditadas = armazemRegras.foiEditado;
+export const lerStatusRegras = armazemRegras.lerStatus;
+export const lerStatusRegrasNoServidor = armazemRegras.lerStatusNoServidor;
+export const assinarStatusRegras = armazemRegras.assinarStatus;
 
-export function regrasEditadas(r: Regras): boolean {
-  return r !== REGRAS_PADRAO;
-}
 
 /* ── briefings ───────────────────────────────────────────────────────────── */
 

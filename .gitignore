@@ -45,3 +45,6 @@ amanda-dash-handoff.zip
 
 # helper temporário de edição usado durante o desenvolvimento
 __edit.cjs
+
+# o exemplo vai para o repositório; ele só tem os nomes das variáveis
+!.env.example

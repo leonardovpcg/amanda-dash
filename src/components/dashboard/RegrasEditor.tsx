@@ -16,10 +16,13 @@ import { useState, useSyncExternalStore } from "react";
 import {
   assinarRegras,
   assinarRoteiro,
+  assinarStatusRegras,
   guardarRegras,
   lerRegras,
   lerRegrasNoServidor,
   lerRoteiro,
+  lerStatusRegras,
+  lerStatusRegrasNoServidor,
   lerRoteiroNoServidor,
   regrasEditadas,
   restaurarRegras,
@@ -38,6 +41,7 @@ import {
   lerCatalogo,
   lerCatalogoNoServidor,
 } from "@/lib/orcamento/catalogo";
+import SinalDeArmazem from "./StatusDoArmazem";
 import { MONO, cardTitle, mono, panel, pillStyle, sectionTitle } from "./ui";
 
 const GATILHOS: [Gatilho["tipo"], string][] = [
@@ -95,9 +99,14 @@ export default function RegrasEditor() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: editadas ? "#A84B1C" : "#9A9689" }}>
-            {editadas ? "editadas nesta máquina" : "regras padrão"}
-          </div>
+          <SinalDeArmazem
+            assinar={assinarStatusRegras}
+            ler={lerStatusRegras}
+            lerNoServidor={lerStatusRegrasNoServidor}
+            rotuloPadrao="regras padrão"
+            rotuloEditado="editadas"
+            editado={editadas}
+          />
           <button
             className="dash-btn-outline"
             onClick={restaurarRegras}
