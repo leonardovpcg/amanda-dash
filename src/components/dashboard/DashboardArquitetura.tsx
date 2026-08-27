@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import {
   AMB_STEPS,
   CAT_COLORS,
-  LEADS,
   PRICES,
   PROJECTS,
   STAGES,
@@ -37,8 +36,16 @@ import {
   lerRoteiro,
   lerRoteiroNoServidor,
   progressoDoBriefing,
+  sincronizarAgora,
 } from "@/lib/briefing/armazem";
 import type { Briefing as TBriefing } from "@/lib/briefing/tipos";
+import {
+  assinarFunil,
+  criarAtendimento,
+  lerFunil,
+  lerFunilNoServidor,
+  moverEtapa,
+} from "@/lib/dados/funil";
 import { MONO, NUM, tabStyle } from "./ui";
 import Avatar from "./Avatar";
 import LogoTerracota from "./LogoTerracota";
@@ -106,7 +113,24 @@ export default function DashboardArquitetura({
   const [tab, setTab] = useState<Tab>("funil");
   const [selected, setSelected] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
-  const [leads, setLeads] = useState<Lead[]>(LEADS);
+  // O funil vem do banco. `diasParado` é calculado pela view a partir da
+  // última interação registrada — no protótipo era um número digitado.
+  const funil = useSyncExternalStore(assinarFunil, lerFunil, lerFunilNoServidor);
+  const leads: Lead[] = useMemo(
+    () =>
+      funil.map((l) => ({
+        id: l.id,
+        name: l.nome,
+        value: l.valorEstimado,
+        idle: l.diasParado,
+        ambientes: l.ambientesTexto || "A definir",
+        stage: l.etapa,
+        telefone: l.telefone,
+        email: l.email,
+      })),
+    [funil],
+  );
+  const clienteDoLead = (leadId: string) => funil.find((l) => l.id === leadId)?.clienteId;
 
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [openLead, setOpenLead] = useState<string | null>(null);
@@ -199,31 +223,25 @@ export default function DashboardArquitetura({
     const id = dragging;
     setDragOver(null);
     setDragging(null);
-    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, stage, idle: 0 } : l)));
+    const cliente = id ? clienteDoLead(id) : undefined;
+    if (id && cliente) void moverEtapa(id, cliente, stage);
   };
 
   const advanceLead = () => {
-    setLeads((ls) => {
-      const cur = ls.find((l) => l.id === openLead);
-      if (!cur) return ls;
-      const idx = STAGES.findIndex((st) => st[0] === cur.stage);
-      const next = STAGES[Math.min(idx + 1, STAGES.length - 1)][0];
-      return ls.map((l) => (l.id === openLead ? { ...l, stage: next, idle: 0 } : l));
-    });
+    const cur = leads.find((l) => l.id === openLead);
+    const cliente = openLead ? clienteDoLead(openLead) : undefined;
+    if (!cur || !openLead || !cliente) return;
+    const idx = STAGES.findIndex((st) => st[0] === cur.stage);
+    void moverEtapa(openLead, cliente, STAGES[Math.min(idx + 1, STAGES.length - 1)][0]);
   };
 
-  const saveLead = (nome: string, valor: string) => {
-    setLeads((ls) => [
-      {
-        id: "n" + Date.now(),
-        name: nome.trim() || "Cliente sem nome",
-        value: parseInt(String(valor).replace(/\D/g, ""), 10) || 45000,
-        idle: 0,
-        ambientes: (ambPick.length ? ambPick.join(", ") : "A definir") + " · " + origem,
-        stage: "lead",
-      },
-      ...ls,
-    ]);
+  const saveLead = async (nome: string, valor: string) => {
+    await criarAtendimento({
+      nome,
+      origem,
+      ambientesTexto: (ambPick.length ? ambPick.join(", ") : "A definir") + " · " + origem,
+      valorEstimado: parseInt(String(valor).replace(/[^0-9]/g, ""), 10) || undefined,
+    });
     setOverlay(null);
     setTab("funil");
   };
@@ -819,7 +837,12 @@ export default function DashboardArquitetura({
           briefing={briefings[briefingLead] ?? briefingInicial("", roteiro)}
           roteiro={roteiro}
           onChange={salvarBriefing}
-          onClose={() => setBriefingLead(null)}
+          onClose={() => {
+            // Sai da tela, mas não sem antes descarregar o que a gravação
+            // adiada ainda não levou.
+            void sincronizarAgora(briefingLead);
+            setBriefingLead(null);
+          }}
         />
       )}
       {overlay === "notif" && <Avisos onClose={closeOverlay} />}

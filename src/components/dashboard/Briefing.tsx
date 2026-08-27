@@ -15,7 +15,7 @@
    ═════════════════════════════════════════════════════════════════════════ */
 
 import { useState } from "react";
-import { progressoDeSecoes } from "@/lib/briefing/armazem";
+import { novoIdDeAmbiente, progressoDeSecoes } from "@/lib/briefing/armazem";
 import type {
   Briefing as TBriefing,
   BriefingAmbiente,
@@ -30,18 +30,6 @@ import { MONO, NUM, mono, pillStyle } from "./ui";
 
 /** "geral" ou o id de um ambiente do briefing. */
 type Parte = string;
-
-/**
- * Primeiro id livre para um tipo de ambiente — "closet-1", "closet-2"…
- *
- * Determinístico de propósito: o briefing volta do localStorage a cada sessão,
- * e um id sorteado do relógio poderia esbarrar num que já está gravado.
- */
-function idLivre(tipo: string, usados: string[]): string {
-  let i = 1;
-  while (usados.includes(tipo + "-" + i)) i++;
-  return tipo + "-" + i;
-}
 
 export default function Briefing({
   cliente,
@@ -185,10 +173,9 @@ export default function Briefing({
     const rot = roteiro.ambientes.find((x) => x.id === tipoId);
     if (!rot) return;
     const novo: BriefingAmbiente = {
-      id: idLivre(
-        tipoId,
-        briefing.ambientes.map((a) => a.id),
-      ),
+      // Uuid gerado no cliente: o banco aceita id explícito, e assim o
+      // ambiente aparece na tela sem esperar a ida e volta da rede.
+      id: novoIdDeAmbiente(),
       tipo: tipoId,
       apelido: rot.nome,
       respostas: {},

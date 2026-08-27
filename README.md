@@ -52,9 +52,15 @@ user**, e entre com ele na tela inicial.
 | Catálogo (tabela de valores) | Supabase, `configuracoes` |
 | Roteiro de briefing | Supabase, `configuracoes` |
 | Regras da ponte | Supabase, `configuracoes` |
-| Briefings preenchidos | ainda no `localStorage` |
+| Clientes, leads e interações | Supabase, tabelas próprias |
+| Briefings preenchidos | Supabase, três tabelas normalizadas |
 | Perfil (nome e foto) | ainda no `localStorage` |
-| Leads, projetos e orçamentos | ainda em memória, dados de protótipo |
+| Projetos, ambientes e orçamentos | ainda em memória, dados de protótipo |
+
+O funil abre vazio: os 14 leads de protótipo saíram, e os clientes agora são
+os que você cadastrar. Projetos e orçamento seguem com dados de exemplo até a
+próxima migração — enquanto isso, o vínculo entre lead e projeto (que fazia o
+funil mostrar o valor do orçamento) fica desligado.
 
 ## Scripts
 

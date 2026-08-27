@@ -5,17 +5,18 @@
 
    Três coisas guardadas separadamente, porque mudam em ritmos diferentes:
 
-   - **o roteiro** e **as regras da ponte**, que quase nunca mudam e já vivem
-     no Supabase, em `configuracoes`;
-   - **os briefings**, um por lead, que mudam a cada reunião — estes ainda
-     estão no localStorage.
+   - **o roteiro** e **as regras da ponte**, documentos de configuração que
+     quase nunca mudam, em `configuracoes`;
+   - **os briefings**, um por lead, que mudam a cada reunião e vivem em três
+     tabelas normalizadas.
 
-   Os briefings são a próxima migração, e a mais delicada: guardam quem mora
-   na casa, idade das crianças e faixa de renda. Enquanto estiverem aqui,
-   vivem numa máquina só e não saem dela.
+   Este arquivo virou o índice do módulo: as implementações estão no armazém
+   de documento e em `remoto.ts`, e aqui ficam só as contas de progresso, que
+   não dependem de onde o dado mora.
    ═════════════════════════════════════════════════════════════════════════ */
 
 import { criarArmazemDeDocumento } from "@/lib/supabase/documento";
+import { novoIdDeAmbiente } from "./remoto";
 import { REGRAS_PADRAO, type Regras } from "./regras";
 import { ROTEIRO_PADRAO } from "./roteiro";
 import {
@@ -28,8 +29,6 @@ import {
   type RoteiroAmbiente,
   type Secao,
 } from "./tipos";
-
-const CHAVE_BRIEFINGS = "amanda-dash:briefings";
 
 /* ── roteiro e regras ──────────────────────────────────────────────────────
    Os dois são documentos de configuração e moram no Supabase, em
@@ -87,99 +86,25 @@ export const lerStatusRegrasNoServidor = armazemRegras.lerStatusNoServidor;
 export const assinarStatusRegras = armazemRegras.assinarStatus;
 
 
-/* ── briefings ───────────────────────────────────────────────────────────── */
+/* ── briefings ─────────────────────────────────────────────────────────────
+   Saíram do localStorage para as três tabelas do banco. O reexport mantém o
+   caminho de importação de quem já usava — nenhum componente precisou saber
+   que a origem mudou.
+   ───────────────────────────────────────────────────────────────────────── */
 
-/** Todos os briefings, indexados pelo id do lead. */
-export type Briefings = Record<string, Briefing>;
-
-const SEM_BRIEFINGS: Briefings = {};
-
-function interpretarBriefings(bruto: string | null): Briefings {
-  if (!bruto) return SEM_BRIEFINGS;
-  try {
-    const b = JSON.parse(bruto) as Briefings;
-    return b && typeof b === "object" ? b : SEM_BRIEFINGS;
-  } catch {
-    return SEM_BRIEFINGS;
-  }
-}
-
-const ouvintesBriefings = new Set<() => void>();
-let brutoBriefings: string | null = null;
-let briefingsEmCache: Briefings = SEM_BRIEFINGS;
-
-export function lerBriefings(): Briefings {
-  let bruto: string | null = null;
-  try {
-    bruto = localStorage.getItem(CHAVE_BRIEFINGS);
-  } catch {
-    return briefingsEmCache;
-  }
-  if (bruto !== brutoBriefings) {
-    brutoBriefings = bruto;
-    briefingsEmCache = interpretarBriefings(bruto);
-  }
-  return briefingsEmCache;
-}
-
-export function lerBriefingsNoServidor(): Briefings {
-  return SEM_BRIEFINGS;
-}
-
-export function assinarBriefings(aoMudar: () => void): () => void {
-  ouvintesBriefings.add(aoMudar);
-  window.addEventListener("storage", aoMudar);
-  return () => {
-    ouvintesBriefings.delete(aoMudar);
-    window.removeEventListener("storage", aoMudar);
-  };
-}
-
-/**
- * Salva o briefing de um lead.
- *
- * Chamado a cada toque — reunião não tem botão "salvar", e perder resposta com
- * o cliente na frente é o jeito mais rápido de a ferramenta ser abandonada.
- */
-export function guardarBriefing(leadId: string, b: Briefing): void {
-  atualizarBriefing(leadId, () => b);
-}
-
-/**
- * Altera o briefing a partir do que está gravado agora, não de um instantâneo.
- *
- * Isso importa: numa reunião ela toca rápido, e dois toques dentro do mesmo
- * quadro de render leem a mesma cópia antiga do briefing — o segundo apagaria
- * o primeiro. Recebendo a função em vez do valor pronto, cada alteração parte
- * do estado atual e nenhuma resposta se perde.
- */
-export function atualizarBriefing(leadId: string, fn: (b: Briefing) => Briefing): void {
-  const atuais = lerBriefings();
-  const base = atuais[leadId] ?? BRIEFING_VAZIO;
-  const todos = {
-    ...atuais,
-    [leadId]: { ...fn(base), atualizadoEm: new Date().toISOString() },
-  };
-  try {
-    localStorage.setItem(CHAVE_BRIEFINGS, JSON.stringify(todos));
-  } catch {
-    brutoBriefings = null;
-    briefingsEmCache = todos;
-  }
-  ouvintesBriefings.forEach((fn) => fn());
-}
-
-export function apagarBriefing(leadId: string): void {
-  const todos = { ...lerBriefings() };
-  delete todos[leadId];
-  try {
-    localStorage.setItem(CHAVE_BRIEFINGS, JSON.stringify(todos));
-  } catch {
-    brutoBriefings = null;
-    briefingsEmCache = todos;
-  }
-  ouvintesBriefings.forEach((fn) => fn());
-}
+export {
+  apagarBriefing,
+  assinarBriefings,
+  atualizarBriefing,
+  guardarBriefing,
+  lerBriefings,
+  lerBriefingsNoServidor,
+  lerStatusBriefings,
+  lerStatusBriefingsNoServidor,
+  novoIdDeAmbiente,
+  sincronizarAgora,
+  type Briefings,
+} from "./remoto";
 
 /* ── progresso ───────────────────────────────────────────────────────────── */
 
@@ -247,8 +172,9 @@ export function briefingInicial(textoAmbientes: string, r: Roteiro): Briefing {
   return {
     ...BRIEFING_VAZIO,
     ambientes: achados.map((a) => ({
-      // Mesmo esquema de id do modo reunião: "cozinha-1", "closet-1"…
-      id: a.id + "-1",
+      // Uuid, como qualquer ambiente criado na reunião: quem manda no id
+      // agora é o banco, e gerar aqui permite inserir sem esperar resposta.
+      id: novoIdDeAmbiente(),
       tipo: a.id,
       apelido: a.nome,
       respostas: {},

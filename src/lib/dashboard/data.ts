@@ -75,24 +75,13 @@ export type Lead = {
    * ser o total com ART calculado no projeto.
    */
   projetoId?: string;
+  /** Do cadastro do cliente. Ausente enquanto ninguém preencheu. */
+  telefone?: string | null;
+  email?: string | null;
 };
 
-export const LEADS: Lead[] = [
-  { id: "l1", name: "Marina Sampaio", value: 62000, idle: 1, ambientes: "Cozinha + closet", stage: "lead" },
-  { id: "l2", name: "Eduardo Prates", value: 28000, idle: 3, ambientes: "Home office", stage: "lead" },
-  { id: "l3", name: "Família Ferraz", value: 94000, idle: 9, ambientes: "Apto 3 dorms completo", stage: "lead" },
-  { id: "l4", name: "Juliana Beltrão", value: 51000, idle: 2, ambientes: "Cozinha + lavanderia", stage: "visita" },
-  { id: "l5", name: "Rogério Matias", value: 37500, idle: 6, ambientes: "Dormitório casal", stage: "visita" },
-  { id: "l6", name: "Studio Anelli", value: 118000, idle: 4, ambientes: "Escritório corporativo", stage: "projeto" },
-  { id: "l7", name: "Camila e Rui Tavares", value: 76000, idle: 11, ambientes: "Cozinha, closet, home", stage: "projeto" },
-  { id: "l8", name: "Bruno Kertész", value: 44000, idle: 2, ambientes: "Closet + banheiro", stage: "orcamento" },
-  { id: "l9", name: "Ana Lúcia Verona", value: 88000, idle: 8, ambientes: "Cozinha gourmet", stage: "orcamento" },
-  { id: "l10", name: "Família Moretti", value: 132000, idle: 1, ambientes: "Casa completa · 5 ambientes", stage: "negociacao", projetoId: "p1" },
-  { id: "l11", name: "Dra. Renata Sampaio", value: 96000, idle: 5, ambientes: "Clínica · recepção e salas", stage: "negociacao" },
-  { id: "l12", name: "Paulo Andrade", value: 42000, idle: 14, ambientes: "Dormitório + home office", stage: "negociacao" },
-  { id: "l13", name: "Helô Bandeira", value: 58000, idle: 0, ambientes: "Cozinha + dormitório", stage: "fechado" },
-  { id: "l14", name: "Sr. Aurélio Braga", value: 71000, idle: 3, ambientes: "Casa de praia · 3 ambientes", stage: "fechado" },
-];
+/* Os 14 leads de protótipo saíram daqui: o funil agora lê `v_funil`. O tipo
+   `Lead` continua, porque é a forma que os componentes recebem. */
 
 /** [nome, detalhe, valor, etapa (0-5), eta] */
 export type Ambiente = [string, string, number, number, string];

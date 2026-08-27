@@ -1,31 +1,49 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { MONO, NUM, mono, panel, sectionTitle } from "./ui";
 import { STAGES, money, type Lead, type StageKey } from "@/lib/dashboard/data";
+import {
+  assinarFunil,
+  lerStatusFunil,
+  lerStatusFunilNoServidor,
+} from "@/lib/dados/funil";
 import type { Progresso } from "@/lib/briefing/tipos";
 
 /** O que o cartão precisa saber do briefing daquele lead. */
 export type SinalDeBriefing = { existe: boolean; progresso: Progresso };
 
-/** Os quatro indicadores do topo são fixos no design original (protótipo). */
-const KPIS: [string, React.ReactNode, string | undefined][] = [
-  ["Clientes no funil", "18", undefined],
-  [
-    "Valor em negociação",
+/** "R$ 986 mil" — a unidade em corpo menor, como no design. */
+function emMil(valor: number): React.ReactNode {
+  const mil = valor / 1000;
+  const texto = mil >= 100 ? Math.round(mil).toString() : mil.toFixed(1).replace(".", ",");
+  return (
     <>
-      R$ 986 <span style={{ fontSize: "22px", fontWeight: 500, color: "#6E6A5F" }}>mil</span>
-    </>,
-    undefined,
-  ],
-  [
-    "Ticket médio",
-    <>
-      R$ 54,8 <span style={{ fontSize: "22px", fontWeight: 500, color: "#6E6A5F" }}>mil</span>
-    </>,
-    undefined,
-  ],
-  ["Parados há + de 7 dias", "05", "#9C2B22"],
-];
+      R$ {texto} <span style={{ fontSize: "22px", fontWeight: 500, color: "#6E6A5F" }}>mil</span>
+    </>
+  );
+}
+
+/**
+ * Os quatro indicadores saem dos leads que estão na tela.
+ *
+ * Eram números fixos do design. Agora vêm do banco, então o cartão não pode
+ * discordar do kanban logo abaixo dele — que é o tipo de incoerência que faz
+ * alguém parar de confiar no painel inteiro.
+ */
+function calcularKpis(leads: Lead[]): [string, React.ReactNode, string | undefined][] {
+  // "Fechado" já saiu do funil: não é cliente em negociação nem esfria.
+  const abertos = leads.filter((l) => l.stage !== "fechado");
+  const total = abertos.reduce((s, l) => s + l.value, 0);
+  const parados = abertos.filter((l) => l.idle > 7).length;
+  const doisDigitos = (n: number) => String(n).padStart(2, "0");
+  return [
+    ["Clientes no funil", doisDigitos(abertos.length), undefined],
+    ["Valor em negociação", emMil(total), undefined],
+    ["Ticket médio", abertos.length ? emMil(total / abertos.length) : "—", undefined],
+    ["Parados há + de 7 dias", doisDigitos(parados), parados ? "#9C2B22" : undefined],
+  ];
+}
 
 export default function Funil({
   leads,
@@ -50,7 +68,7 @@ export default function Funil({
   return (
     <div className="dash-tabpad">
       <div className="dash-grid-4">
-        {KPIS.map(([label, value, color], i) => (
+        {calcularKpis(leads).map(([label, value, color], i) => (
           <div key={i} className="dash-kpi" style={{ ...panel, padding: "24px 26px" }}>
             <div style={mono(10.5, "#8C887C", { ls: "0.08em", upper: true })}>{label}</div>
             <div
@@ -88,6 +106,8 @@ export default function Funil({
           <span className="dash-so-celular">toque no cartão para avançar a etapa</span>
         </div>
       </div>
+
+      <AvisoDoFunil vazio={leads.length === 0} />
 
       <div className="dash-kanban">
         {STAGES.map(([key, label]) => {
@@ -251,6 +271,43 @@ function SeloDeBriefing({ sinal }: { sinal?: SinalDeBriefing }) {
         briefing {resolvidas}/{total}
       </span>
       {alerta && <span>· falta essencial</span>}
+    </div>
+  );
+}
+
+/**
+ * Primeira coisa que ela vê num banco vazio.
+ *
+ * Sem isto, o funil abriria com seis colunas em branco e nenhuma pista de que
+ * está funcionando — o que parece defeito, não ausência de dado.
+ */
+function AvisoDoFunil({ vazio }: { vazio: boolean }) {
+  const { carregando, erro } = useSyncExternalStore(
+    assinarFunil,
+    lerStatusFunil,
+    lerStatusFunilNoServidor,
+  );
+  if (!erro && !carregando && !vazio) return null;
+
+  const texto = erro
+    ? erro
+    : carregando
+      ? "carregando o funil…"
+      : "Nenhum atendimento ainda. Use “+ Novo atendimento” no topo para abrir o primeiro.";
+
+  return (
+    <div
+      role={erro ? "alert" : undefined}
+      style={{
+        ...panel,
+        padding: "18px 22px",
+        marginBottom: 16,
+        fontSize: "13px",
+        lineHeight: 1.55,
+        color: erro ? "#9C2B22" : "#6E6A5F",
+      }}
+    >
+      {texto}
     </div>
   );
 }
