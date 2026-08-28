@@ -25,7 +25,10 @@ export const metadata: Metadata = {
   // `apple-icon.png`, que o Next liga sozinho por convenção de arquivo.
   appleWebApp: {
     capable: true,
-    title: "Amanda Dash",
+    // O rótulo embaixo do ícone na tela de início. Curto de propósito: o iOS
+    // corta com reticências, e numa tela cheia de apps quem identifica é a
+    // marca, não a palavra "dashboard".
+    title: "Terracota",
     // `default` deixa a barra de status clara com texto escuro, que combina
     // com o fundo do painel. `black-translucent` jogaria o conteúdo por baixo
     // do relógio.

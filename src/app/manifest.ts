@@ -14,10 +14,11 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Amanda Dash · Terracota Móveis Planejados",
+    name: "Dashboard - Terracota",
     // O que cabe embaixo do ícone na tela de início. Passando de ~12
-    // caracteres o Android corta com reticências.
-    short_name: "Amanda Dash",
+    // caracteres o Android corta com reticências — e "Terracota" é o que ela
+    // procura na tela cheia de apps.
+    short_name: "Terracota",
     description: "Painel comercial e de projetos de arquitetura",
     lang: "pt-BR",
     dir: "ltr",
