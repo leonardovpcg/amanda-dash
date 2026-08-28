@@ -1943,3 +1943,85 @@ textarea.dash-inline:focus {
 .dash-inline-apos-rotulo {
   margin-left: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Porta de entrada
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* O mesmo gradiente quente do painel, para a primeira tela já parecer o
+   produto — antes o login ficava sobre o cinza cru do `body`. */
+.dash-porta {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(
+    155deg,
+    #faf8f3 0%,
+    #f6f2ea 32%,
+    #f4ece3 62%,
+    #eee0d4 82%,
+    #e8d6c7 100%
+  );
+}
+
+.dash-porta-cartao {
+  width: 100%;
+  max-width: 372px;
+  padding: 38px 34px 32px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  /* Mais funda que os painéis do dashboard: aqui o cartão é a única coisa na
+     tela, e precisa descolar do fundo em vez de se misturar. */
+  box-shadow: 0 18px 48px rgba(52, 56, 50, 0.12);
+}
+
+/* A marca empilhada. No cabeçalho ela é horizontal porque divide a barra;
+   aqui tem a coluna inteira, e centrada é o que equilibra o cartão. */
+.dash-porta-marca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.dash-porta-nome {
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #23231f;
+}
+.dash-porta-tag {
+  margin-top: 3px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: #8c887c;
+}
+
+.dash-porta-titulo {
+  margin: 26px 0 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.dash-porta-texto {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #6e6a5f;
+  text-align: center;
+}
+
+@media (max-width: 380px) {
+  .dash-porta {
+    padding: 16px;
+  }
+  .dash-porta-cartao {
+    padding: 30px 22px 26px;
+  }
+}
