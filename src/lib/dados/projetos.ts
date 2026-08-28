@@ -119,6 +119,8 @@ let projetos: ProjetoDoBanco[] = VAZIO;
 let sincronizado: ProjetoDoBanco[] = VAZIO;
 let carregando = true;
 let erro: string | null = null;
+/** Falha parcial: o essencial carregou, um acessorio nao. */
+let aviso: string | null = null;
 
 const ouvintes = new Set<() => void>();
 let iniciado = false;
@@ -200,13 +202,35 @@ async function buscar() {
 
   if (minha !== geracao) return;
 
-  const falha = ps.error ?? ambs.error ?? linhas.error ?? marcos.error ?? marcosAmb.error;
+  // As três de base. Sem elas não há projeto para mostrar, e engolir a falha
+  // faria a tela dizer "nenhum projeto" para quem tem projeto.
+  const falha = ps.error ?? ambs.error ?? linhas.error;
   if (falha) {
     erro = "Não foi possível carregar os projetos: " + falha.message;
+    aviso = null;
     carregando = false;
     avisar();
     return;
   }
+
+  /*
+    Marcos são acessórios, e falham em separado.
+
+    Isto é conserto de um erro caro: a consulta de marcos passou a pedir uma
+    coluna que a migration ainda não tinha criado, e como a falha era tratada
+    junto com as de base, **a lista inteira de projetos ficou vazia** — sem
+    mensagem nenhuma, porque a tela também não mostrava o erro. Ela achou que
+    tinha perdido os projetos.
+
+    Sem marcos a linha do tempo e a legenda de prazo degradam; o projeto
+    continua abrindo, orçando e fechando contrato. O aviso fica visível de
+    propósito: engolir em silêncio é como o descompasso de schema vira
+    mistério em vez de recado.
+  */
+  const falhaDeMarcos = marcos.error ?? marcosAmb.error;
+  aviso = falhaDeMarcos
+    ? "Prazos e linha do tempo indisponíveis: " + falhaDeMarcos.message
+    : null;
 
   const porAmbiente = new Map<string, AmbienteDoBanco["orcamento"]>();
   for (const l of (linhas.data ?? []) as LinhaOrcamento[]) {
@@ -314,8 +338,35 @@ export function assinarProjetos(aoMudar: () => void): () => void {
   ouvintes.add(aoMudar);
   return () => ouvintes.delete(aoMudar);
 }
-export const lerStatusProjetos = () => ({ carregando, erro });
-export const lerStatusProjetosNoServidor = () => ({ carregando: true, erro: null as string | null });
+export type StatusDosProjetos = {
+  carregando: boolean;
+  erro: string | null;
+  /** Falha parcial: os projetos vieram, um acessório não. */
+  aviso: string | null;
+};
+
+/*
+  O snapshot precisa manter a MESMA referência enquanto nada mudar.
+
+  Montar o objeto na hora da leitura fazia `useSyncExternalStore` ver estado
+  novo a cada render e entrar em laço infinito. Ninguém assinava este status,
+  então o laço nunca disparou — mas a tela de Projetos passa a assinar agora,
+  e o problema apareceria ali.
+*/
+let statusEmCache: StatusDosProjetos = { carregando: true, erro: null, aviso: null };
+const NO_SERVIDOR: StatusDosProjetos = { carregando: true, erro: null, aviso: null };
+
+export const lerStatusProjetos = (): StatusDosProjetos => {
+  if (
+    statusEmCache.carregando !== carregando ||
+    statusEmCache.erro !== erro ||
+    statusEmCache.aviso !== aviso
+  ) {
+    statusEmCache = { carregando, erro, aviso };
+  }
+  return statusEmCache;
+};
+export const lerStatusProjetosNoServidor = (): StatusDosProjetos => NO_SERVIDOR;
 export const recarregarProjetos = buscar;
 
 /* ── escrita ───────────────────────────────────────────────────────────── */

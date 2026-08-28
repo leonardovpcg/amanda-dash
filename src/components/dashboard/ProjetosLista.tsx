@@ -1,6 +1,7 @@
 "use client";
 
 import type { ProjectVM } from "./DashboardArquitetura";
+import type { StatusDosProjetos } from "@/lib/dados/projetos";
 import { MONO, NUM, mono, panel, sectionTitle } from "./ui";
 
 /**
@@ -23,12 +24,15 @@ export default function ProjetosLista({
   gridStyle,
   onOpen,
   onNewProject,
+  status,
 }: {
   projects: ProjectVM[];
   kpis: KpiDeProjetos[];
   gridStyle: React.CSSProperties;
   onOpen: (id: string) => void;
   onNewProject: () => void;
+  /** Carregando, falha total e falha parcial do armazém de projetos. */
+  status: StatusDosProjetos;
 }) {
   return (
     <div className="dash-tabpad" style={{ maxWidth: 1440 }}>
@@ -86,6 +90,26 @@ export default function ProjetosLista({
           <span>Novo projeto</span>
         </button>
       </div>
+
+      {/* Lista vazia e lista quebrada eram indistinguíveis: o erro era
+          guardado no armazém e nunca chegava à tela. Foi assim que uma coluna
+          faltando no banco virou "sumiram meus projetos". */}
+      {status.erro && (
+        <div role="alert" className="dash-recado dash-recado-erro">
+          {status.erro}
+        </div>
+      )}
+      {status.aviso && !status.erro && (
+        <div role="status" className="dash-recado dash-recado-aviso">
+          {status.aviso}
+        </div>
+      )}
+      {!status.erro && !status.carregando && projects.length === 0 && (
+        <div className="dash-recado">
+          Nenhum projeto ainda. Todo atendimento novo já nasce com um — use
+          &quot;+ Novo atendimento&quot; no topo, ou o botão aqui do lado.
+        </div>
+      )}
 
       <div style={gridStyle}>
         {projects.map((p) => (

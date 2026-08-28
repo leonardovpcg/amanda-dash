@@ -1828,3 +1828,28 @@ textarea.dash-inline:focus {
   border-top: none;
   padding-top: 14px;
 }
+
+/* — recado no meio da tela: erro, aviso de falha parcial, lista vazia —
+   Precisa parecer com o painel de vidro em volta, mas não ser um cartão:
+   é um bilhete, não um dado. */
+.dash-recado {
+  border-radius: 20px;
+  padding: 18px 22px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #6e6a5f;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  margin-bottom: 18px;
+}
+.dash-recado-erro {
+  color: #9c2b22;
+  background: #faeae7;
+  border-color: #f1d6d1;
+  font-weight: 600;
+}
+.dash-recado-aviso {
+  color: #8e3a12;
+  background: #f8ede5;
+  border-color: #eedcce;
+}

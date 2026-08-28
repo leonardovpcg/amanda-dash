@@ -5,6 +5,7 @@ import type { ChangeEvent, CSSProperties } from "react";
 import type { Briefing } from "@/lib/briefing/tipos";
 import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
 import type { ProjectVM, PriceResult } from "./DashboardArquitetura";
+import type { StatusDosProjetos } from "@/lib/dados/projetos";
 import BriefingResumo from "./BriefingResumo";
 import ContratoPainel from "./ContratoPainel";
 import Orcamento from "./Orcamento";
@@ -133,6 +134,7 @@ export default function ProjetoDetalhe({
   onOrcamento,
   briefing,
   onAbrirBriefing,
+  status,
 }: {
   sel: DetalheVM;
   onClose: () => void;
@@ -151,6 +153,8 @@ export default function ProjetoDetalhe({
   /** Briefing do lead que originou este projeto, quando existe o vínculo. */
   briefing: Briefing | null;
   onAbrirBriefing: () => void;
+  /** Falha de leitura ou gravação do armazém de projetos. */
+  status: StatusDosProjetos;
 }) {
   return (
     <div className="dash-tabpad" style={{ maxWidth: 1440 }}>
@@ -161,6 +165,19 @@ export default function ProjetoDetalhe({
       >
         ← Voltar aos projetos
       </button>
+
+      {/* Os controles de prazo e da linha do tempo gravam no banco; se a
+          gravação está falhando, ela precisa saber aqui, não só na lista. */}
+      {status.erro && (
+        <div role="alert" className="dash-recado dash-recado-erro" style={{ marginTop: 16 }}>
+          {status.erro}
+        </div>
+      )}
+      {status.aviso && !status.erro && (
+        <div role="status" className="dash-recado dash-recado-aviso" style={{ marginTop: 16 }}>
+          {status.aviso}
+        </div>
+      )}
 
       {/* ── cabeçalho editável ──────────────────────────────────────────── */}
       <div className="dash-proj-head">

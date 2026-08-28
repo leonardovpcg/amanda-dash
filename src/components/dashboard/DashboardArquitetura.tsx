@@ -82,6 +82,8 @@ import {
   atualizarProjeto,
   lerProjetos,
   lerProjetosNoServidor,
+  lerStatusProjetos,
+  lerStatusProjetosNoServidor,
   linhaDoTempo,
   orcamentoDoProjeto,
   prazoLegivel,
@@ -205,6 +207,13 @@ export default function DashboardArquitetura({
   // são a mesma tabela agora: no protótipo eram duas listas que podiam
   // discordar sobre quantos ambientes o projeto tem.
   const doBanco = useSyncExternalStore(assinarProjetos, lerProjetos, lerProjetosNoServidor);
+  // Falha de carregamento precisa chegar à tela: guardada no armazém, ela
+  // vira "sumiram meus projetos" em vez de recado.
+  const statusProjetos = useSyncExternalStore(
+    assinarProjetos,
+    lerStatusProjetos,
+    lerStatusProjetosNoServidor,
+  );
   // O funil vem do banco. `diasParado` é calculado pela view a partir da
   // última interação registrada — no protótipo era um número digitado.
   const funil = useSyncExternalStore(assinarFunil, lerFunil, lerFunilNoServidor);
@@ -1041,6 +1050,7 @@ export default function DashboardArquitetura({
             gridStyle={gridStyle}
             onOpen={selectProject}
             onNewProject={() => setOverlay("projeto")}
+            status={statusProjetos}
           />
         )}
         {showDetail && detail && (
@@ -1082,6 +1092,7 @@ export default function DashboardArquitetura({
             onOrcamento={(orcamento) => {
               if (selected) aplicarOrcamento(selected, orcamento);
             }}
+            status={statusProjetos}
             briefing={leadDoProjeto ? (briefings[leadDoProjeto.id] ?? null) : null}
             onAbrirBriefing={() => leadDoProjeto && abrirBriefing(leadDoProjeto.id)}
           />
