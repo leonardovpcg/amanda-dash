@@ -67,16 +67,19 @@ import {
   moverEtapa,
 } from "@/lib/dados/funil";
 import {
+  MARCOS,
   MARCOS_DE_AMBIENTE,
   SITUACOES_DO_PROJETO,
   adicionarAmbiente,
   aplicarOrcamento,
   avancarAmbiente,
   definirPrevisto,
+  dispensarMarco,
   legendaDoAmbiente,
+  marcarMarco,
+  preverMarco,
   assinarProjetos,
   atualizarProjeto,
-  criarProjeto,
   lerProjetos,
   lerProjetosNoServidor,
   linhaDoTempo,
@@ -216,6 +219,10 @@ export default function DashboardArquitetura({
         stage: l.etapa,
         telefone: l.telefone,
         email: l.email,
+        // Estava declarado no tipo e nunca preenchido. Sem ele o cartão do
+        // funil mostrava a estimativa em vez do orçamento, e o briefing não
+        // chegava ao projeto — o caminho de volta não existia.
+        projetoId: l.projetoId ?? undefined,
       })),
     [funil],
   );
@@ -336,6 +343,9 @@ export default function DashboardArquitetura({
       origem,
       ambientesTexto: (ambPick.length ? ambPick.join(", ") : "A definir") + " · " + origem,
       valorEstimado: parseInt(String(valor).replace(/[^0-9]/g, ""), 10) || undefined,
+      // Os ambientes escolhidos aqui já viram os ambientes do projeto que
+      // nasce junto — ela não precisa recadastrar para começar a orçar.
+      ambientes: ambPick.length ? ambPick : undefined,
     });
     setOverlay(null);
     setTab("funil");
@@ -371,12 +381,18 @@ export default function DashboardArquitetura({
     budget: string;
     deadline: string;
   }) => {
-    await criarProjeto({
-      nome: fm.name,
-      clienteNome: fm.client,
+    // Passa pelo mesmo caminho do "+ Novo atendimento": cliente, lead e
+    // projeto de uma vez. Antes esta tela criava um cliente próprio e um
+    // projeto solto — o mesmo cliente virava duas fichas, e o projeto não
+    // aparecia no funil.
+    await criarAtendimento({
+      nome: fm.client,
+      projetoNome: fm.name,
       endereco: fm.address,
-      valorPrevisto: parseInt(String(fm.budget).replace(/[^0-9]/g, ""), 10) || undefined,
-      // O prazo é `date` no banco; texto livre do protótipo não converte.
+      ambientesTexto: (ambPick.length ? ambPick.join(", ") : "A definir") + " · " + origem,
+      origem,
+      valorEstimado: parseInt(String(fm.budget).replace(/[^0-9]/g, ""), 10) || undefined,
+      // O prazo é `date` no banco; o texto livre do formulário não converte.
       prazo: null,
       ambientes: ambPick.length ? ambPick : ["Cozinha"],
     });
@@ -638,7 +654,13 @@ export default function DashboardArquitetura({
       stagesVM: sel.stages.map(([label, date, st], i) => ({
         label,
         date,
-        textColor: st === "todo" ? "#9A9689" : "#23231F",
+        tipo: MARCOS[i][0],
+        estado: st,
+        // A previsão do marco, para o campo de data da etapa.
+        previsto: doBanco.find((p) => p.id === sel.id)?.marcos[MARCOS[i][0]]?.previsto ?? "",
+        feito: st === "done",
+        dispensado: st === "dispensado",
+        textColor: st === "todo" || st === "dispensado" ? "#9A9689" : "#23231F",
         dotStyle: {
           width: st === "current" ? 15 : 13,
           height: st === "current" ? 15 : 13,
@@ -648,14 +670,26 @@ export default function DashboardArquitetura({
             ? { background: "#A84B1C" }
             : st === "current"
               ? { background: "#FFFFFF", border: "3px solid #A84B1C" }
-              : { background: "#FFFFFF", border: "2px solid #DDD9CE" }),
+              : st === "dispensado"
+                ? // Riscado: a etapa existe na régua, mas não neste projeto.
+                  { background: "#EDEAE2", border: "2px solid #DDD9CE" }
+                : { background: "#FFFFFF", border: "2px solid #DDD9CE" }),
         } as React.CSSProperties,
         lineStyle: {
           height: 2,
           flex: 1,
           background: st === "done" ? "#A84B1C" : "#EDEAE2",
-          ...(i === 5 ? { display: "none" } : null),
+          ...(i === MARCOS.length - 1 ? { display: "none" } : null),
         } as React.CSSProperties,
+        onPrevisto: (e: React.ChangeEvent<HTMLInputElement>) => {
+          if (selected) preverMarco(selected, MARCOS[i][0], e.target.value);
+        },
+        onFeito: () => {
+          if (selected) marcarMarco(selected, MARCOS[i][0], hojeISO(agora));
+        },
+        onDispensar: () => {
+          if (selected) dispensarMarco(selected, MARCOS[i][0]);
+        },
       })),
       // Com orçamento, o painel de categorias vira composição por bloco: custo
       // contra venda, que é a conta que ela realmente faz. A barra desenha a
@@ -1093,6 +1127,13 @@ export default function DashboardArquitetura({
           lead={leadSel}
           onClose={closeOverlay}
           onAdvance={advanceLead}
+          onAbrirProjeto={() => {
+            const id = leadSel.projetoId;
+            if (!id) return;
+            closeOverlay();
+            mudarAba("projetos");
+            selectProject(id);
+          }}
           briefing={sinaisDeBriefing[leadSel.id]}
           onBriefing={() => abrirBriefing(leadSel.id)}
         />

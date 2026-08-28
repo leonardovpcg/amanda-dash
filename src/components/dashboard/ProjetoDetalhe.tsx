@@ -36,7 +36,19 @@ export type DetalheVM = ProjectVM & {
   orcamentoTotal: number;
   rawBudget: string;
   ambientesVM: AmbienteVM[];
-  stagesVM: { label: string; date: string; textColor: string; dotStyle: CSSProperties; lineStyle: CSSProperties }[];
+  stagesVM: {
+    label: string;
+    date: string;
+    previsto: string;
+    feito: boolean;
+    dispensado: boolean;
+    textColor: string;
+    dotStyle: CSSProperties;
+    lineStyle: CSSProperties;
+    onPrevisto: (e: ChangeEvent<HTMLInputElement>) => void;
+    onFeito: () => void;
+    onDispensar: () => void;
+  }[];
   /** Composição por bloco do orçamento; `null` quando o projeto não tem um. */
   composicaoVM:
     | { label: string; custoLabel: string; vendaLabel: string; pct: number; color: string }[]
@@ -484,12 +496,52 @@ export default function ProjetoDetalhe({
                   marginTop: 14,
                   letterSpacing: "-0.01em",
                   color: s.textColor,
+                  textDecoration: s.dispensado ? "line-through" : undefined,
                 }}
               >
                 {s.label}
               </div>
               <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689", marginTop: 4 }}>
                 {s.date}
+              </div>
+
+              {/* Até aqui a linha do tempo só desenhava: não havia como marcar
+                  nada. Sem os controles, o projeto que chega pronto ficava
+                  preso em "Briefing · em curso" para sempre. */}
+              {!s.dispensado && (
+                <input
+                  className="dash-field dash-field-sm"
+                  type="date"
+                  value={s.previsto}
+                  onChange={s.onPrevisto}
+                  aria-label={"Previsão de " + s.label.toLowerCase()}
+                  style={{
+                    width: "100%",
+                    marginTop: 8,
+                    padding: "5px 8px",
+                    fontSize: "11px",
+                    borderRadius: 9,
+                    ...NUM,
+                  }}
+                />
+              )}
+              <div style={{ display: "flex", gap: 10, marginTop: 7, flexWrap: "wrap" }}>
+                {!s.dispensado && (
+                  <button
+                    className="dash-btn-link"
+                    onClick={s.onFeito}
+                    style={{ fontSize: "11px", color: s.feito ? "#9A9689" : "#6B7040" }}
+                  >
+                    {s.feito ? "desfazer" : "feito"}
+                  </button>
+                )}
+                <button
+                  className="dash-btn-link"
+                  onClick={s.onDispensar}
+                  style={{ fontSize: "11px", color: "#9A9689" }}
+                >
+                  {s.dispensado ? "reativar" : "não se aplica"}
+                </button>
               </div>
             </div>
           ))}

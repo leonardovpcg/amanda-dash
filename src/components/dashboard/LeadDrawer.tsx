@@ -14,12 +14,15 @@ export default function LeadDrawer({
   lead,
   onClose,
   onAdvance,
+  onAbrirProjeto,
   briefing,
   onBriefing,
 }: {
   lead: Lead;
   onClose: () => void;
   onAdvance: () => void;
+  /** Abre o projeto deste atendimento — eles nascem juntos. */
+  onAbrirProjeto: () => void;
   briefing?: SinalDeBriefing;
   onBriefing: () => void;
 }) {
@@ -48,9 +51,11 @@ export default function LeadDrawer({
         : lead.idle === 1
           ? "sem contato há 1 dia"
           : "sem contato há " + lead.idle + " dias",
+    // Era "Converter em projeto" na última etapa. Não converte mais nada: o
+    // projeto existe desde a abertura do atendimento.
     advanceLabel:
       stageIdx >= STAGES.length - 1
-        ? "Converter em projeto"
+        ? "Já está fechado"
         : "Avançar para " + STAGES[stageIdx + 1][1],
     history: STAGES.slice(0, stageIdx + 1)
       .reverse()
@@ -249,9 +254,17 @@ export default function LeadDrawer({
           </button>
           <button
             className="dash-btn-ghost"
-            style={{ borderRadius: 999, padding: "13px 20px", fontSize: "13px" }}
+            onClick={onAbrirProjeto}
+            disabled={!lead.projetoId}
+            title={lead.projetoId ? undefined : "Este atendimento é anterior ao vínculo automático"}
+            style={{
+              borderRadius: 999,
+              padding: "13px 20px",
+              fontSize: "13px",
+              opacity: lead.projetoId ? 1 : 0.45,
+            }}
           >
-            Registrar contato
+            Abrir projeto
           </button>
         </div>
       </div>

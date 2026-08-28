@@ -17,7 +17,7 @@ import type { StageKey } from "@/lib/dashboard/data";
 import { supabase } from "@/lib/supabase/cliente";
 import { criarArmazemDeColecao } from "@/lib/supabase/colecao";
 import { lerSessao } from "@/lib/supabase/sessao";
-import { recarregarProjetos } from "./projetos";
+import { criarProjeto, recarregarProjetos } from "./projetos";
 
 export type LeadDoFunil = {
   id: string;
@@ -30,6 +30,13 @@ export type LeadDoFunil = {
   valorEstimado: number;
   ambientesTexto: string;
   diasParado: number;
+  /**
+   * O projeto deste atendimento.
+   *
+   * Nunca nulo em atendimento novo: nascem juntos. Fica nulo só em lead
+   * antigo que a migration 0004 não alcançou.
+   */
+  projetoId: string | null;
 };
 
 type LinhaDaView = {
@@ -40,6 +47,7 @@ type LinhaDaView = {
   valor_estimado: number | null;
   ambientes_texto: string | null;
   dias_parado: number | null;
+  projeto_id: string | null;
 };
 
 type Contato = { id: string; telefone: string | null; email: string | null; origem: string | null };
@@ -52,7 +60,9 @@ const armazem = criarArmazemDeColecao<LeadDoFunil>(async () => {
   const [funil, clientes] = await Promise.all([
     supabase
       .from("v_funil")
-      .select("id, cliente_id, cliente, etapa, valor_estimado, ambientes_texto, dias_parado")
+      .select(
+        "id, cliente_id, cliente, etapa, valor_estimado, ambientes_texto, dias_parado, projeto_id",
+      )
       .order("dias_parado", { ascending: false }),
     supabase.from("clientes").select("id, telefone, email, origem"),
   ]);
@@ -73,6 +83,7 @@ const armazem = criarArmazemDeColecao<LeadDoFunil>(async () => {
     valorEstimado: Number(l.valor_estimado ?? 0),
     ambientesTexto: l.ambientes_texto ?? "",
     diasParado: l.dias_parado ?? 0,
+    projetoId: l.projeto_id,
   }));
   return { dados, erro: null };
 });
@@ -87,18 +98,33 @@ export const recarregarFunil = armazem.recarregar;
 /* ── escritas ──────────────────────────────────────────────────────────── */
 
 /**
- * Cria cliente e lead de uma vez, com o primeiro contato registrado.
+ * Cria cliente, lead **e projeto** de uma vez, com o primeiro contato
+ * registrado.
+ *
+ * O projeto nasce junto porque é assim que ela trabalha: "ele passa naquelas
+ * fases do funil, só que ele já é um projeto desde o início". Independente de
+ * o cliente chegar com projeto pronto ou não, ela vai redesenhar e levantar o
+ * quantitativo — e o quantitativo só existe dentro do projeto. Fazer o
+ * projeto nascer só na negociação a obrigava a criar tudo de novo, com um
+ * cliente duplicado, para conseguir orçar.
  *
  * A interação de abertura não é enfeite: sem ela o lead nasceria contando
  * dias a partir da abertura, e o atendimento que acabou de acontecer não
  * apareceria no histórico.
  */
 export async function criarAtendimento(dados: {
+  /** Nome do cliente. Vira também o nome do projeto quando não vem outro. */
   nome: string;
   telefone?: string;
   origem?: string;
   ambientesTexto?: string;
   valorEstimado?: number;
+  /** Ambientes escolhidos na tela — viram os ambientes do projeto. */
+  ambientes?: string[];
+  /** Nome do projeto, quando a tela pergunta os dois separados. */
+  projetoNome?: string;
+  endereco?: string;
+  prazo?: string | null;
 }): Promise<string | null> {
   const dono = lerSessao().sessao?.user.id;
   if (!supabase || !dono) return "Sem sessão.";
@@ -115,13 +141,17 @@ export async function criarAtendimento(dados: {
     .single();
   if (erroCliente) return "Não foi possível salvar o cliente: " + erroCliente.message;
 
-  const { error: erroLead } = await supabase.from("leads").insert({
-    dono,
-    cliente_id: cliente.id,
-    etapa: "lead",
-    valor_estimado: dados.valorEstimado ?? null,
-    ambientes_texto: dados.ambientesTexto ?? null,
-  });
+  const { data: lead, error: erroLead } = await supabase
+    .from("leads")
+    .insert({
+      dono,
+      cliente_id: cliente.id,
+      etapa: "lead",
+      valor_estimado: dados.valorEstimado ?? null,
+      ambientes_texto: dados.ambientesTexto ?? null,
+    })
+    .select("id")
+    .single();
   if (erroLead) return "Não foi possível abrir o atendimento: " + erroLead.message;
 
   const { error: erroInteracao } = await supabase.from("interacoes").insert({
@@ -131,6 +161,19 @@ export async function criarAtendimento(dados: {
     nota: "Primeiro atendimento",
   });
   if (erroInteracao) return "Não foi possível registrar o contato: " + erroInteracao.message;
+
+  // O projeto do atendimento. Reaproveita o cliente que acabou de nascer, em
+  // vez de criar outro com o mesmo nome — era esse o cliente duplicado.
+  const erroProjeto = await criarProjeto({
+    nome: dados.projetoNome?.trim() || dados.nome.trim() || "Projeto sem nome",
+    clienteId: cliente.id,
+    leadId: lead.id,
+    endereco: dados.endereco,
+    prazo: dados.prazo ?? null,
+    valorPrevisto: dados.valorEstimado,
+    ambientes: dados.ambientes,
+  });
+  if (erroProjeto) return erroProjeto;
 
   await recarregarFunil();
   return null;

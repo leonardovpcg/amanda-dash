@@ -42,7 +42,7 @@ import {
   lerRelogio,
   lerRelogioNoServidor,
 } from "@/lib/dados/relogio";
-import { money } from "@/lib/dashboard/data";
+import { STAGES, money, type StageKey } from "@/lib/dashboard/data";
 import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
 
 const MES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -50,13 +50,9 @@ const MES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set"
 /** Tipos que a fábrica manda — vão para a terceira coluna. */
 const DE_FABRICA = new Set(["producao", "entrega", "montagem"]);
 
-const ETAPAS: Record<string, string> = {
-  lead: "Lead",
-  visita: "Visita técnica",
-  projeto: "Projeto",
-  orcamento: "Orçamento",
-  negociacao: "Negociação",
-};
+/* Os rótulos vêm de STAGES, não de uma cópia local: com duas listas, uma
+   ganha etapa nova e a outra fica para trás. */
+const ETAPAS = new Map(STAGES);
 
 export default function Agenda({
   onAbrirLead,
@@ -166,7 +162,7 @@ export default function Agenda({
                   {r.nome}
                 </div>
                 <div style={{ fontSize: "12.5px", color: "#6E6A5F", marginTop: 3 }}>
-                  {ETAPAS[r.etapa] ?? r.etapa}
+                  {ETAPAS.get(r.etapa as StageKey) ?? r.etapa}
                   {r.valorEstimado > 0 ? ` · ${money(r.valorEstimado)}` : ""}
                 </div>
                 <button

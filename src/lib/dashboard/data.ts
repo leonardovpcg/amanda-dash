@@ -48,13 +48,20 @@ export const AMB_STEPS = [
 
 export const CAT_COLORS = ["#8E3A12", "#A84B1C", "#C0663C", "#8C8A62", "#B9A88A"];
 
-export type StageKey = "lead" | "visita" | "projeto" | "orcamento" | "negociacao" | "fechado";
+export type StageKey = "lead" | "visita" | "projeto" | "negociacao" | "fechado";
 
+/**
+ * As etapas do funil.
+ *
+ * "Orçamento" saiu e virou parte de "Projeto". Nas palavras dela: "projeto e
+ * orçamento pra marcenaria é a mesma coisa" — o orçamento só existe porque o
+ * projeto foi redesenhado, e duas etapas para um trabalho só significavam
+ * arrastar o cartão duas vezes pelo mesmo motivo.
+ */
 export const STAGES: [StageKey, string][] = [
   ["lead", "Lead"],
   ["visita", "Visita técnica"],
   ["projeto", "Projeto"],
-  ["orcamento", "Orçamento"],
   ["negociacao", "Negociação"],
   ["fechado", "Fechado / Perdido"],
 ];
@@ -85,7 +92,7 @@ export type Lead = {
 /** [nome, detalhe, valor, etapa (0-5), eta] */
 export type Ambiente = [string, string, number, number, string];
 /** [rótulo, data, estado] */
-export type ProjectStage = [string, string, "done" | "current" | "todo"];
+export type ProjectStage = [string, string, "done" | "current" | "todo" | "dispensado"];
 /** [rótulo, orçado, gasto] */
 export type BudgetCat = [string, number, number];
 /** [nome, spec, categoria, qtd, unitário, total] */
@@ -164,8 +171,7 @@ export const AMB_OPTS = [
 export const NEXT_STEPS: string[] = [
   "Ligar para qualificar o interesse",
   "Confirmar medição no local",
-  "Enviar projeto 3D para aprovação",
-  "Apresentar orçamento detalhado",
+  "Desenhar o projeto e levantar o quantitativo",
   "Fechar condições de pagamento",
   "Abrir pedido na fábrica",
 ];

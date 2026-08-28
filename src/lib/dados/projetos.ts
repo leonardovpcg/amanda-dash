@@ -43,6 +43,24 @@ export const MARCOS: [TipoDeMarco, string][] = [
 export type SituacaoDoProjeto = "aguardando" | "andamento" | "concluido" | "cancelado";
 
 /**
+ * Um marco do projeto.
+ *
+ * `dispensado` existe porque nem todo projeto passa por todas as etapas: ela
+ * pode receber o projeto pronto de um arquiteto de fora, e aí não há briefing;
+ * pode não haver visita técnica. Sem uma forma de dispensar, a etapa ficaria
+ * "em curso" para sempre — e uma linha do tempo que mente sobre onde o projeto
+ * está é pior que nenhuma.
+ *
+ * Campo próprio, e não uma data mágica: "dispensado" e "sem data marcada" são
+ * estados diferentes, e distinguir os dois é o motivo de ele existir.
+ */
+export type MarcoDoProjeto = {
+  previsto: string | null;
+  realizado: string | null;
+  dispensado: boolean;
+};
+
+/**
  * Os três marcos de fábrica de um ambiente.
  *
  * Correspondem às etapas 2, 3 e 4 do cartão: produção, entrega, montagem.
@@ -91,7 +109,7 @@ export type ProjetoDoBanco = {
   prazo: string | null;
   valorPrevisto: number;
   ambientes: AmbienteDoBanco[];
-  marcos: Partial<Record<TipoDeMarco, { previsto: string | null; realizado: string | null }>>;
+  marcos: Partial<Record<TipoDeMarco, MarcoDoProjeto>>;
 };
 
 const VAZIO: ProjetoDoBanco[] = [];
@@ -176,7 +194,7 @@ async function buscar() {
       .from("orcamento_linhas")
       .select("id, ambiente_id, bloco, item_id, espessura, qnt, ordem")
       .order("ordem"),
-    supabase.from("projeto_marcos").select("projeto_id, tipo, previsto, realizado"),
+    supabase.from("projeto_marcos").select("projeto_id, tipo, previsto, realizado, dispensado"),
     supabase.from("ambiente_marcos").select("ambiente_id, tipo, previsto, realizado"),
   ]);
 
@@ -244,9 +262,14 @@ async function buscar() {
     tipo: TipoDeMarco;
     previsto: string | null;
     realizado: string | null;
+    dispensado: boolean;
   }[]) {
     const atual = marcosPorProjeto.get(m.projeto_id) ?? {};
-    atual[m.tipo] = { previsto: m.previsto, realizado: m.realizado };
+    atual[m.tipo] = {
+      previsto: m.previsto,
+      realizado: m.realizado,
+      dispensado: Boolean(m.dispensado),
+    };
     marcosPorProjeto.set(m.projeto_id, atual);
   }
 
@@ -506,7 +529,14 @@ async function sincronizar(id: string): Promise<void> {
       continue;
     }
     const { error } = await supabase.from("projeto_marcos").upsert(
-      { dono, projeto_id: id, tipo, previsto: agora.previsto, realizado: agora.realizado },
+      {
+        dono,
+        projeto_id: id,
+        tipo,
+        previsto: agora.previsto,
+        realizado: agora.realizado,
+        dispensado: agora.dispensado,
+      },
       { onConflict: "projeto_id,tipo" },
     );
     if (error) return falhar("Não foi possível salvar o marco: " + error.message);
@@ -793,10 +823,16 @@ export const SITUACOES_DO_PROJETO = Object.entries(SITUACOES) as [
  * em vez de guardar `done|current|todo` evita o retrato que envelhece — no
  * protótipo esse estado era digitado e podia contradizer as datas ao lado.
  */
-export function linhaDoTempo(p: ProjetoDoBanco): [string, string, "done" | "current" | "todo"][] {
+export type EstadoDoMarco = "done" | "current" | "todo" | "dispensado";
+
+export function linhaDoTempo(p: ProjetoDoBanco): [string, string, EstadoDoMarco][] {
   let achouAtual = false;
   return MARCOS.map(([tipo, rotulo]) => {
     const m = p.marcos[tipo];
+    // Dispensado sai da corrida antes de tudo: não é a etapa atual nem
+    // conta como pendente, e é o que permite o projeto que chegou pronto
+    // não ficar preso no briefing.
+    if (m?.dispensado) return [rotulo, "não se aplica", "dispensado"];
     if (m?.realizado) return [rotulo, prazoLegivel(m.realizado), "done"];
     if (!achouAtual) {
       achouAtual = true;
@@ -804,4 +840,50 @@ export function linhaDoTempo(p: ProjetoDoBanco): [string, string, "done" | "curr
     }
     return [rotulo, m?.previsto ? prazoLegivel(m.previsto) : "a definir", "todo"];
   });
+}
+
+/** O marco como está hoje, com os padrões de quem ainda não tem linha. */
+const marcoAtual = (p: ProjetoDoBanco, tipo: TipoDeMarco): MarcoDoProjeto =>
+  p.marcos[tipo] ?? { previsto: null, realizado: null, dispensado: false };
+
+/**
+ * Marca o marco como feito, ou desfaz.
+ *
+ * Dispensar e realizar são excludentes: marcar feito reativa o que estava
+ * dispensado, porque a etapa evidentemente se aplicava.
+ */
+export function marcarMarco(projetoId: string, tipo: TipoDeMarco, hoje: string): void {
+  atualizarProjeto(projetoId, (p) => {
+    const m = marcoAtual(p, tipo);
+    return {
+      ...p,
+      marcos: {
+        ...p.marcos,
+        [tipo]: { ...m, realizado: m.realizado ? null : hoje, dispensado: false },
+      },
+    };
+  });
+}
+
+/** Dispensa o marco, ou traz de volta. Dispensar limpa o realizado. */
+export function dispensarMarco(projetoId: string, tipo: TipoDeMarco): void {
+  atualizarProjeto(projetoId, (p) => {
+    const m = marcoAtual(p, tipo);
+    const dispensado = !m.dispensado;
+    return {
+      ...p,
+      marcos: {
+        ...p.marcos,
+        [tipo]: { ...m, dispensado, realizado: dispensado ? null : m.realizado },
+      },
+    };
+  });
+}
+
+/** A data prevista do marco. Campo vazio limpa. */
+export function preverMarco(projetoId: string, tipo: TipoDeMarco, previsto: string): void {
+  atualizarProjeto(projetoId, (p) => ({
+    ...p,
+    marcos: { ...p.marcos, [tipo]: { ...marcoAtual(p, tipo), previsto: previsto || null } },
+  }));
 }
