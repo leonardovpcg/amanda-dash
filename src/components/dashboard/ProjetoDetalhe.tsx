@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { Briefing } from "@/lib/briefing/tipos";
 import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
@@ -50,9 +51,58 @@ export type DetalheVM = ProjectVM & {
     doOrcamento: boolean;
   }[];
   materialsCount: number;
+  /** ISO do prazo, para o seletor de data. Vazio quando ainda nao ha prazo. */
+  prazoISO: string;
+  situacao: string;
+  /** As situacoes possiveis, ja rotuladas. Vem da camada de dados. */
+  situacoes: [string, string][];
 };
 
 const MAT_COLS = "2.4fr 1.2fr 0.8fr 1fr 1fr";
+
+/**
+ * O nome do cliente.
+ *
+ * Estado local, gravado ao sair do campo ou no Enter — não a cada tecla. A
+ * gravação renomeia o cliente em todo o histórico e recarrega dois armazéns;
+ * por tecla digitada seria uma ida ao banco por letra, com o cursor pulando
+ * de volta no meio da palavra.
+ *
+ * A `key` do projeto descarta o rascunho ao trocar de projeto: sem ela, abrir
+ * outro herdaria o nome que ficou digitado no anterior. Esc desiste.
+ */
+function CampoCliente({
+  id,
+  nome,
+  onSalvar,
+}: {
+  id: string;
+  nome: string;
+  onSalvar: (nome: string) => void;
+}) {
+  const [rascunho, setRascunho] = useState(nome);
+  const gravar = () => {
+    if (rascunho.trim() && rascunho.trim() !== nome) onSalvar(rascunho);
+    // Campo apagado volta ao nome que estava: cliente sem nome some das
+    // listas que ordenam por ele.
+    else setRascunho(nome);
+  };
+  return (
+    <input
+      key={id}
+      className="dash-inline"
+      value={rascunho}
+      onChange={(e) => setRascunho(e.target.value)}
+      onBlur={gravar}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") setRascunho(nome);
+      }}
+      aria-label="Nome do cliente"
+      style={{ fontSize: "14px", width: 220 }}
+    />
+  );
+}
 
 export default function ProjetoDetalhe({
   sel,
@@ -61,6 +111,7 @@ export default function ProjetoDetalhe({
   onClient,
   onAddress,
   onDeadline,
+  onSituacao,
   onBudget,
   onAddAmbiente,
   query,
@@ -74,9 +125,10 @@ export default function ProjetoDetalhe({
   sel: DetalheVM;
   onClose: () => void;
   onName: (e: ChangeEvent<HTMLInputElement>) => void;
-  onClient: (e: ChangeEvent<HTMLInputElement>) => void;
+  onClient: (nome: string) => void;
   onAddress: (e: ChangeEvent<HTMLInputElement>) => void;
   onDeadline: (e: ChangeEvent<HTMLInputElement>) => void;
+  onSituacao: (e: ChangeEvent<HTMLSelectElement>) => void;
   onBudget: (e: ChangeEvent<HTMLInputElement>) => void;
   onAddAmbiente: () => void;
   query: string;
@@ -116,12 +168,7 @@ export default function ProjetoDetalhe({
             <span style={sel.badgeStyle}>{sel.status}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
-            <input
-              className="dash-inline"
-              value={sel.client}
-              onChange={onClient}
-              style={{ fontSize: "14px", width: 220 }}
-            />
+            <CampoCliente id={sel.id} nome={sel.client} onSalvar={onClient} />
             <span style={{ fontSize: "14px", color: "#B4AFA1" }}>·</span>
             <input
               className="dash-inline"
@@ -199,19 +246,41 @@ export default function ProjetoDetalhe({
           </div>
           <div>
             <div style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>Prazo</div>
+            {/* Seletor de data, não texto livre. Antes o campo mostrava
+                "18 set 2026" e mandava esse texto cru para uma coluna `date`
+                do Postgres, que recusava a gravação inteira. */}
             <input
               className="dash-inline"
-              value={sel.deadline}
+              type="date"
+              value={sel.prazoISO}
               onChange={onDeadline}
+              aria-label="Prazo do projeto"
               style={{
-                fontSize: "24px",
+                fontSize: "19px",
                 fontWeight: 600,
                 letterSpacing: "-0.02em",
-                width: 160,
-                marginTop: 6,
+                marginTop: 8,
                 ...NUM,
               }}
             />
+          </div>
+          <div>
+            <div style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>Situação</div>
+            {/* Faltava desde sempre: todo projeto nascia "Aguardando
+                aprovação" e não havia por onde mudar. */}
+            <select
+              className="dash-field dash-field-sm"
+              value={sel.situacao}
+              onChange={onSituacao}
+              aria-label="Situação do projeto"
+              style={{ marginTop: 8, fontSize: "13.5px", fontWeight: 600 }}
+            >
+              {sel.situacoes.map(([valor, rotulo]) => (
+                <option key={valor} value={valor}>
+                  {rotulo}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

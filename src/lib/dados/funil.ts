@@ -17,6 +17,7 @@ import type { StageKey } from "@/lib/dashboard/data";
 import { supabase } from "@/lib/supabase/cliente";
 import { criarArmazemDeColecao } from "@/lib/supabase/colecao";
 import { lerSessao } from "@/lib/supabase/sessao";
+import { recarregarProjetos } from "./projetos";
 
 export type LeadDoFunil = {
   id: string;
@@ -133,6 +134,31 @@ export async function criarAtendimento(dados: {
 
   await recarregarFunil();
   return null;
+}
+
+/**
+ * Corrige o nome do cliente.
+ *
+ * Muda em todo lugar de uma vez — funil, projeto, contrato, garantia — porque
+ * é a mesma pessoa em todos eles. Era esse o motivo de o campo estar
+ * desligado no projeto, mas desligado ele era pior: aceitava a digitação e
+ * descartava em silêncio, e ela não tinha por onde arrumar um nome escrito
+ * errado no cadastro.
+ *
+ * Nome vazio é recusado em vez de gravado: cliente sem nome some das listas
+ * que ordenam por ele.
+ */
+export async function renomearCliente(clienteId: string, nome: string): Promise<string | null> {
+  if (!supabase) return "Sem conexão.";
+  const limpo = nome.trim();
+  if (!limpo) return null;
+  const erro = await armazem.escrever(async () =>
+    supabase!.from("clientes").update({ nome: limpo }).eq("id", clienteId),
+  );
+  // O projeto carrega o nome do cliente junto, então o armazém dele também
+  // precisa reler — senão o funil mostra o nome novo e o projeto, o antigo.
+  if (!erro) await recarregarProjetos();
+  return erro;
 }
 
 /**

@@ -62,11 +62,13 @@ import {
   assinarFunil,
   criarAtendimento,
   lerFunil,
+  renomearCliente,
   lerFunilNoServidor,
   moverEtapa,
 } from "@/lib/dados/funil";
 import {
   MARCOS_DE_AMBIENTE,
+  SITUACOES_DO_PROJETO,
   adicionarAmbiente,
   aplicarOrcamento,
   avancarAmbiente,
@@ -81,6 +83,7 @@ import {
   orcamentoDoProjeto,
   prazoLegivel,
   rotuloDaSituacao,
+  type SituacaoDoProjeto,
   sincronizarProjetoAgora,
   type ProjetoDoBanco,
 } from "@/lib/dados/projetos";
@@ -598,6 +601,8 @@ export default function DashboardArquitetura({
       orcamentoTotal: orcamentoCalculado?.totalComArt ?? 0,
       rawBudget: sel.budget.toLocaleString("pt-BR"),
       prazoISO: doBanco.find((p) => p.id === sel.id)?.prazo ?? "",
+      situacao: doBanco.find((p) => p.id === sel.id)?.situacao ?? "aguardando",
+      situacoes: SITUACOES_DO_PROJETO as [string, string][],
       // O valor do ambiente é calculado do orçamento, não digitado: era a
       // segunda fonte que podia discordar do painel logo abaixo.
       ambientesVM: sel.ambientes.map(([name, dtl, , step], i) => {
@@ -1012,10 +1017,12 @@ export default function DashboardArquitetura({
               const v = e.target.value;
               editar((p) => ({ ...p, nome: v }));
             }}
-            onClient={() => {
-              // O cliente é entidade própria agora: trocar o nome aqui
-              // renomearia a pessoa em todo o histórico. Isso passa a ser
-              // edição da ficha do cliente, quando ela existir.
+            onClient={(nome) => {
+              // Renomeia a pessoa em todo o histórico, que é o certo: é a
+              // mesma pessoa no funil, no contrato e na garantia, e o que ela
+              // está fazendo aqui é corrigir como o nome foi escrito.
+              const cliente = doBanco.find((p) => p.id === selected)?.clienteId;
+              if (cliente) void renomearCliente(cliente, nome);
             }}
             onAddress={(e) => {
               const v = e.target.value;
@@ -1024,6 +1031,10 @@ export default function DashboardArquitetura({
             onDeadline={(e) => {
               const v = e.target.value;
               editar((p) => ({ ...p, prazo: v || null }));
+            }}
+            onSituacao={(e) => {
+              const v = e.target.value as SituacaoDoProjeto;
+              editar((p) => ({ ...p, situacao: v }));
             }}
             onBudget={(e) => {
               const v = parseInt(String(e.target.value).replace(/[^0-9]/g, ""), 10) || 0;

@@ -38,8 +38,16 @@ export default function LeadDrawer({
     // verdade, número fabricado é pior que campo vazio: ela ligaria para ele.
     phone: lead.telefone?.trim() || null,
     email: lead.email?.trim() || null,
-    next: NEXT_STEPS[stageIdx][0],
-    nextDate: NEXT_STEPS[stageIdx][1],
+    next: NEXT_STEPS[stageIdx],
+    // A segunda linha era inventada — "agenda sugerida: 27 ago, 14:30" para
+    // uma reunião que ninguém marcou. Em vez de uma data falsa, o que a tela
+    // tem de verdade: há quanto tempo o lead está parado.
+    nextDate:
+      lead.idle === 0
+        ? "contato hoje"
+        : lead.idle === 1
+          ? "sem contato há 1 dia"
+          : "sem contato há " + lead.idle + " dias",
     advanceLabel:
       stageIdx >= STAGES.length - 1
         ? "Converter em projeto"

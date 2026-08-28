@@ -154,12 +154,18 @@ export const AMB_OPTS = [
    estão no banco, em `src/lib/dados/avisos.ts`. Sem tabela de propósito —
    aviso guardado precisaria de alguém para apagá-lo quando o motivo passa. */
 
-/** Próximo passo sugerido por etapa do funil. */
-export const NEXT_STEPS: [string, string][] = [
-  ["Ligar para qualificar o interesse", "sem contato desde a entrada"],
-  ["Confirmar medição no local", "agenda sugerida: 27 ago, 14:30"],
-  ["Enviar projeto 3D para aprovação", "prazo interno: 3 dias úteis"],
-  ["Apresentar orçamento detalhado", "proposta pronta para envio"],
-  ["Fechar condições de pagamento", "desconto máximo aprovado: 7%"],
-  ["Abrir pedido na fábrica", "contrato assinado"],
+/**
+ * Próximo passo sugerido por etapa do funil.
+ *
+ * Só a ação. A linha de apoio que existia aqui era inventada — data de
+ * reunião que ninguém marcou, desconto que ninguém aprovou. A gaveta do lead
+ * mostra no lugar dela o tempo parado, que é dado real.
+ */
+export const NEXT_STEPS: string[] = [
+  "Ligar para qualificar o interesse",
+  "Confirmar medição no local",
+  "Enviar projeto 3D para aprovação",
+  "Apresentar orçamento detalhado",
+  "Fechar condições de pagamento",
+  "Abrir pedido na fábrica",
 ];

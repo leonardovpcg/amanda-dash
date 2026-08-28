@@ -776,6 +776,17 @@ const SITUACOES: Record<SituacaoDoProjeto, string> = {
 export const rotuloDaSituacao = (s: SituacaoDoProjeto) => SITUACOES[s] ?? s;
 
 /**
+ * As situações na ordem em que acontecem, para o seletor do projeto.
+ *
+ * Derivada do mesmo mapa que dá o rótulo do selo: duas listas soltas é como
+ * uma ganha situação nova e a outra não.
+ */
+export const SITUACOES_DO_PROJETO = Object.entries(SITUACOES) as [
+  SituacaoDoProjeto,
+  string,
+][];
+
+/**
  * A linha do tempo, com o estado de cada etapa.
  *
  * "Realizado" é concluído; a primeira etapa sem realizar é a atual. Derivar
