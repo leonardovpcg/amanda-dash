@@ -376,9 +376,16 @@ textarea.dash-inline:focus {
 }
 
 /* — kanban — */
+/* Uma coluna por etapa, sem dizer quantas.
+
+   Estava fixo em `repeat(6, ...)`, de quando o funil tinha seis etapas.
+   Ao fundir "Projeto" e "Orçamento" sobrou uma coluna vazia no fim — e com
+   `grid-auto-flow: column` o número de faixas passa a ser o número de
+   cartões, então a próxima mudança de régua não deixa buraco. */
 .dash-kanban {
   display: grid;
-  grid-template-columns: repeat(6, minmax(190px, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(190px, 1fr);
   gap: 14px;
   align-items: start;
   overflow-x: auto;
@@ -544,7 +551,7 @@ textarea.dash-inline:focus {
 
   /* uma etapa do funil por tela, com encaixe ao rolar */
   .dash-kanban {
-    grid-template-columns: repeat(6, 82vw);
+    grid-auto-columns: 82vw;
     gap: 10px;
     scroll-snap-type: x mandatory;
     margin-inline: -16px;
