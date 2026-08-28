@@ -855,51 +855,39 @@ export default function DashboardArquitetura({
           <div className="dash-actions">
             <button
               className="dash-btn-notif"
+              data-tem-aviso={avisos.length > 0}
               onClick={() => setOverlay("notif")}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 999,
-                width: 40,
-                height: 40,
-                background: overlay === "notif" ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)",
-              }}
-              aria-label={avisos.length > 0 ? `Avisos · ${avisos.length}` : "Avisos"}
+              aria-label={
+                avisos.length > 0
+                  ? `Avisos · ${avisos.length} ${avisos.length === 1 ? "item" : "itens"}`
+                  : "Avisos · nada pendente"
+              }
+              style={{ background: overlay === "notif" ? "rgba(255,255,255,.9)" : undefined }}
             >
-              <span
-                style={{
-                  position: "relative",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 16,
-                  height: 16,
-                }}
-              >
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 999,
-                    border: "1.6px solid #4A473F",
-                  }}
+              {/* Um sino de verdade. O que havia antes era um círculo de 12px
+                  com borda, que de longe parecia um botão de rádio. */}
+              <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden fill="none">
+                <path
+                  d="M10 2.6a4.9 4.9 0 0 0-4.9 4.9c0 3.2-.8 4.6-1.4 5.3-.3.3-.1.9.4.9h11.8c.5 0 .7-.6.4-.9-.6-.7-1.4-2.1-1.4-5.3A4.9 4.9 0 0 0 10 2.6Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
                 />
-                {avisos.length > 0 && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: -1,
-                      right: -2,
-                      width: 7,
-                      height: 7,
-                      borderRadius: 999,
-                      background: "#9C2B22",
-                      border: "1.5px solid #F4F3EE",
-                    }}
-                  />
-                )}
-              </span>
+                <path
+                  d="M8.2 16.2a1.9 1.9 0 0 0 3.6 0"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {/* O número, não só um ponto: "tem coisa" e "tem seis coisas"
+                  pedem decisões diferentes. Acima de 9 vira "9+" — o que
+                  importa aí é que é muito, não quanto. */}
+              {avisos.length > 0 && (
+                <span className="dash-notif-conta" aria-hidden>
+                  {avisos.length > 9 ? "9+" : avisos.length}
+                </span>
+              )}
             </button>
             <button
               className="dash-btn-new"

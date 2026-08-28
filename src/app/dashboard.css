@@ -216,12 +216,58 @@ textarea.dash-inline:focus {
   color: #a84b1c;
 }
 
+/* — sino de avisos —
+   O estilo saiu do inline do JSX para cá: o botão tem estado (hover, foco,
+   com aviso, aberto), e estado é o que inline não sabe descrever. */
 .dash-btn-notif {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.85);
-  transition: background 0.18s ease;
+  background: rgba(255, 255, 255, 0.5);
+  color: #4a473f;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 .dash-btn-notif:hover {
-  background: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 255, 255, 0.9);
+  color: #23231f;
+}
+.dash-btn-notif:focus-visible {
+  outline: 2px solid #a84b1c;
+  outline-offset: 3px;
+}
+/* Com aviso, o sino inteiro fica terracota — o número diz quantos, a cor diz
+   que há algo. Quem não distingue bem vermelho ainda vê o contraste e o
+   texto. */
+.dash-btn-notif[data-tem-aviso="true"] {
+  color: #a84b1c;
+  border-color: #eedcce;
+}
+
+.dash-notif-conta {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #9c2b22;
+  color: #fdf7f5;
+  /* 10.5px com peso 700 é o menor que ainda se lê em tela de celular. */
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  /* O anel da cor do fundo separa o contador do sino sem precisar de sombra. */
+  box-shadow: 0 0 0 2px #f4f3ee;
+  pointer-events: none;
 }
 
 .dash-btn-new:hover {
