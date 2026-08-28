@@ -329,7 +329,7 @@ function FormNovo({ hoje, onPronto }: { hoje: string; onPronto: () => void }) {
         <label style={{ display: "block", minWidth: 0 }}>
           <span style={colLabel()}>Tipo</span>
           <select
-            className="dash-field dash-field-sm"
+            className="dash-select"
             value={tipo}
             onChange={(e) => setTipo(e.target.value as TipoDeCompromisso)}
             style={{ width: "100%", marginTop: 5 }}

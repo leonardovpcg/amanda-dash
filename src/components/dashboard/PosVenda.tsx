@@ -196,7 +196,7 @@ export default function PosVenda({
                       {rotuloDaAssistencia(a.situacao)}
                     </span>
                     <select
-                      className="dash-field dash-field-sm"
+                      className="dash-select"
                       value={a.situacao}
                       onChange={(e) =>
                         void mudarSituacaoDaAssistencia(
@@ -206,7 +206,13 @@ export default function PosVenda({
                         )
                       }
                       aria-label={"Situação do chamado de " + a.cliente}
-                      style={{ padding: "6px 8px", fontSize: "11.5px", borderRadius: 9 }}
+                      style={{
+                        padding: "6px 26px 6px 9px",
+                        fontSize: "11.5px",
+                        borderRadius: 9,
+                        width: "auto",
+                        backgroundPosition: "right 8px center",
+                      }}
                     >
                       {SITUACOES_DA_ASSISTENCIA.map(([v, r]) => (
                         <option key={v} value={v}>
@@ -348,7 +354,7 @@ function FormAssistencia({
         <label style={{ display: "block", minWidth: 0 }}>
           <span style={colLabel()}>Projeto</span>
           <select
-            className="dash-field dash-field-sm"
+            className="dash-select"
             value={projetoId}
             onChange={(e) => setProjetoId(e.target.value)}
             style={{ width: "100%", marginTop: 5 }}

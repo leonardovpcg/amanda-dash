@@ -249,7 +249,7 @@ export default function ProjetoDetalhe({
                   R$
                 </span>
                 <input
-                  className="dash-inline"
+                  className="dash-inline dash-inline-apos-rotulo"
                   value={sel.rawBudget}
                   onChange={onBudget}
                   style={{
@@ -304,11 +304,11 @@ export default function ProjetoDetalhe({
             {/* Faltava desde sempre: todo projeto nascia "Aguardando
                 aprovação" e não havia por onde mudar. */}
             <select
-              className="dash-field dash-field-sm"
+              className="dash-select"
               value={sel.situacao}
               onChange={onSituacao}
               aria-label="Situação do projeto"
-              style={{ marginTop: 8, fontSize: "13.5px", fontWeight: 600 }}
+              style={{ marginTop: 8, fontSize: "13.5px", fontWeight: 600, width: "auto" }}
             >
               {sel.situacoes.map(([valor, rotulo]) => (
                 <option key={valor} value={valor}>

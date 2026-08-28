@@ -1863,3 +1863,30 @@ textarea.dash-inline:focus {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* — interruptor da ART no orçamento —
+   Este bloco tinha se perdido: sem ele a caixa de marcar ficava colada no
+   texto, porque não havia gap nenhum entre os filhos do label. */
+.dash-orc-art {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 13px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+.dash-orc-art:hover {
+  border-color: #ebd3c2;
+}
+
+/* — campo inline dentro de uma linha com rótulo ("R$ 42.000") —
+   `.dash-inline` puxa 8px para a esquerda para alinhar com o texto ao redor
+   quando está sozinho. Ao lado de um rótulo isso o faz avançar por cima dele,
+   e ao focar o fundo branco cobria o "R$". */
+.dash-inline-apos-rotulo {
+  margin-left: 0;
+}
