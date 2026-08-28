@@ -11,7 +11,7 @@
    por conta própria — se aparecer conta neste arquivo, é bug.
    ═════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { brl, calcularProjeto } from "@/lib/orcamento/calculo";
 import {
   assinarCatalogo,
@@ -19,9 +19,10 @@ import {
   lerCatalogoNoServidor,
   type Catalogo,
 } from "@/lib/orcamento/catalogo";
+import { totalFinal } from "@/lib/orcamento/derivar";
 import { baixarXlsx } from "@/lib/orcamento/exportar";
 import type { Briefing } from "@/lib/briefing/tipos";
-import { nomeCor } from "@/lib/orcamento/tabela";
+import { coresPorFabricante, nomeCor, porOrdemAlfabetica } from "@/lib/orcamento/tabela";
 import {
   ESPESSURAS,
   type AmbienteCalculado,
@@ -49,6 +50,8 @@ export default function Orcamento({
   onChange,
   projeto,
   briefing,
+  comArt,
+  onComArt,
 }: {
   ambientes: OrcamentoAmbiente[];
   onChange: (a: OrcamentoAmbiente[]) => void;
@@ -56,12 +59,44 @@ export default function Orcamento({
   projeto: { nome: string; cliente: string; endereco: string };
   /** Briefing do cliente, quando o projeto veio de um lead que tem um. */
   briefing: Briefing | null;
+  /** ART entra no total deste projeto. */
+  comArt: boolean;
+  onComArt: (v: boolean) => void;
 }) {
   const [abertos, setAbertos] = useState<string[]>([]);
   const [sugerindo, setSugerindo] = useState(false);
   // A tabela de valores mora fora do React (localStorage), como o perfil.
   const cat = useSyncExternalStore(assinarCatalogo, lerCatalogo, lerCatalogoNoServidor);
   const proj = calcularProjeto(ambientes, cat);
+  // O motor calcula os dois; quem escolhe é o projeto. Um lugar só, porque
+  // são muitos consumidores e um deles com o número errado é uma proposta
+  // enviada 10% fora.
+  const total = totalFinal(proj, comArt);
+  // Quanto a ART acrescenta, para o interruptor dizer o que está em jogo.
+  const valorDaArt = proj.totalComArt - proj.total;
+  // Qual modo de impressão a proposta vai usar. Estado local: é escolha do
+  // momento de imprimir, não coisa do projeto.
+  const [modoImpressao, setModoImpressao] = useState<"cliente" | "interna">("cliente");
+  /*
+    Imprimir só depois que o modo estiver montado.
+
+    `window.print()` logo após o `setState` imprimiria o modo anterior — e aqui
+    isso significa mandar o quantitativo para o cliente, que é exatamente o que
+    ela pediu para não acontecer. O efeito roda depois do commit, então o que o
+    navegador captura é o que está na tela.
+  */
+  // Contador em vez de um sinalizador que o efeito desliga: cada clique é um
+  // número novo, e o efeito não precisa mexer no estado para se rearmar.
+  const [pedidoDeImpressao, setPedidoDeImpressao] = useState(0);
+  useEffect(() => {
+    if (pedidoDeImpressao === 0) return;
+    window.print();
+  }, [pedidoDeImpressao]);
+
+  const imprimir = (modo: "cliente" | "interna") => {
+    setModoImpressao(modo);
+    setPedidoDeImpressao((n) => n + 1);
+  };
   // Sem nenhuma linha lançada não há o que exportar nem o que propor.
   const vazio = proj.total === 0;
 
@@ -111,28 +146,58 @@ export default function Orcamento({
           )}
           <button
             className="dash-btn-outline"
-            onClick={() => baixarXlsx(projeto.nome, projeto.cliente, ambientes, cat)}
+            onClick={() => baixarXlsx(projeto.nome, projeto.cliente, ambientes, cat, comArt)}
             disabled={vazio}
             style={{ borderRadius: 999, padding: "8px 15px", fontSize: "12.5px", opacity: vazio ? 0.45 : 1 }}
           >
             Exportar .xlsx
           </button>
+          {/* Duas impressões, não uma. A do cliente não leva quantitativo —
+              nas palavras dela, "quando envia para o cliente não se manda com
+              quantitativo". A interna leva, que é o que ela confere. */}
           <button
             className="dash-btn-terra"
-            onClick={() => window.print()}
+            onClick={() => imprimir("cliente")}
             disabled={vazio}
             style={{ borderRadius: 999, padding: "9px 16px", fontSize: "12.5px", opacity: vazio ? 0.45 : 1 }}
           >
-            Imprimir proposta
+            Proposta do cliente
+          </button>
+          <button
+            className="dash-btn-outline"
+            onClick={() => imprimir("interna")}
+            disabled={vazio}
+            style={{ borderRadius: 999, padding: "8px 15px", fontSize: "12.5px", opacity: vazio ? 0.45 : 1 }}
+          >
+            Com quantitativo
           </button>
         </div>
       </div>
+
+      {/* ── ART ───────────────────────────────────────────────────────── */}
+      {/* Nem todo trabalho leva ART, e antes ela entrava sempre. É do projeto
+          inteiro, não por ambiente: quem assina a responsabilidade técnica
+          assina o projeto todo. */}
+      <label className="dash-orc-art">
+        <input
+          type="checkbox"
+          checked={comArt}
+          onChange={(e) => onComArt(e.target.checked)}
+          style={{ width: 16, height: 16, accentColor: "#A84B1C", flex: "none" }}
+        />
+        <span style={{ fontSize: "13.5px", fontWeight: 600 }}>Cobrar ART neste projeto</span>
+        <span style={{ ...mono(11, "#9A9689"), ...NUM }}>
+          {comArt ? "+" : ""}
+          {brl(valorDaArt)}
+          {comArt ? " no total" : " se marcar"}
+        </span>
+      </label>
 
       {/* ── totais do projeto ─────────────────────────────────────────── */}
       <div className="dash-orc-kpis">
         <Kpi rotulo="Custo" valor={brl(proj.custoTotal)} />
         <Kpi rotulo="Valor de venda" valor={brl(proj.total)} />
-        <Kpi rotulo="Com ART" valor={brl(proj.totalComArt)} destaque />
+        <Kpi rotulo={comArt ? "Com ART" : "Sem ART"} valor={brl(total)} destaque />
         <Kpi
           rotulo="Pendências"
           valor={proj.alertas === 0 ? "nenhuma" : String(proj.alertas)}
@@ -155,10 +220,13 @@ export default function Orcamento({
               onEditar={(fn) => editar(calc.id, fn)}
               onRemover={() => onChange(ambientes.filter((a) => a.id !== calc.id))}
               cat={cat}
+              comArt={comArt}
             />
           );
         })}
-        {!vazio && <Proposta projeto={projeto} proj={proj} />}
+        {!vazio && (
+          <Proposta projeto={projeto} proj={proj} comArt={comArt} modo={modoImpressao} />
+        )}
         {sugerindo && briefing && (
           <SugestaoBriefing
             briefing={briefing}
@@ -227,6 +295,7 @@ function AmbienteCartao({
   onEditar,
   onRemover,
   cat,
+  comArt,
 }: {
   bruto: OrcamentoAmbiente;
   calc: AmbienteCalculado;
@@ -235,6 +304,8 @@ function AmbienteCartao({
   onEditar: (fn: (a: OrcamentoAmbiente) => OrcamentoAmbiente) => void;
   onRemover: () => void;
   cat: Catalogo;
+  /** ART do projeto: decide qual dos dois totais o cartão mostra. */
+  comArt: boolean;
 }) {
   const alertas = calc.alertas.length;
 
@@ -295,7 +366,7 @@ function AmbienteCartao({
         )}
         <div style={{ textAlign: "right", flex: "none" }}>
           <div style={{ fontSize: "14px", fontWeight: 600, color: "#A84B1C", ...NUM }}>
-            {brl(calc.totalComArt)}
+            {brl(totalFinal(calc, comArt))}
           </div>
           <div style={{ fontFamily: MONO, fontSize: "10px", color: "#9A9689", ...NUM }}>
             {brl(calc.total)} sem ART
@@ -308,6 +379,10 @@ function AmbienteCartao({
           <Bloco
             calc={calc.blocos.chapas}
             itens={cat.cores.map((c) => ({ id: c.id, nome: nomeCor(c) }))}
+            grupos={coresPorFabricante(cat.cores).map(([f, cs]) => [
+              f,
+              cs.map((c) => ({ id: c.id, nome: c.nome })),
+            ])}
             linhas={bruto.chapas.map((l) => ({ itemId: l.corId, qnt: l.qnt }))}
             detalhe={(i) => (
               <Select
@@ -350,6 +425,10 @@ function AmbienteCartao({
           <Bloco
             calc={calc.blocos.fita}
             itens={cat.cores.map((c) => ({ id: c.id, nome: nomeCor(c) }))}
+            grupos={coresPorFabricante(cat.cores).map(([f, cs]) => [
+              f,
+              cs.map((c) => ({ id: c.id, nome: c.nome })),
+            ])}
             linhas={bruto.fita.map((l) => ({ itemId: l.corId, qnt: l.metros }))}
             onItem={(i, v) =>
               onEditar((a) => ({
@@ -372,8 +451,26 @@ function AmbienteCartao({
 
           <Bloco
             calc={calc.blocos.acessorios}
-            itens={cat.acessorios.map((x) => ({ id: x.id, nome: x.nome }))}
+            itens={porOrdemAlfabetica(cat.acessorios).map((x) => ({ id: x.id, nome: x.nome }))}
             linhas={bruto.acessorios.map((l) => ({ itemId: l.acessorioId, qnt: l.qnt }))}
+            detalhe={(i) => {
+              const l = bruto.acessorios[i];
+              const item = cat.acessorios.find((x) => x.id === l.acessorioId);
+              return (
+                <ValorDaLinha
+                  custo={l.custo}
+                  markup={l.markup}
+                  custoPadrao={item?.custo ?? 0}
+                  markupPadrao={item?.markup ?? cat.markups.acessorios}
+                  onChange={(v) =>
+                    onEditar((a) => ({
+                      ...a,
+                      acessorios: a.acessorios.map((x, k) => (k === i ? { ...x, ...v } : x)),
+                    }))
+                  }
+                />
+              );
+            }}
             onItem={(i, v) =>
               onEditar((a) => ({
                 ...a,
@@ -400,8 +497,26 @@ function AmbienteCartao({
 
           <Bloco
             calc={calc.blocos.maoDeObra}
-            itens={cat.maoDeObra.map((x) => ({ id: x.id, nome: x.nome }))}
+            itens={porOrdemAlfabetica(cat.maoDeObra).map((x) => ({ id: x.id, nome: x.nome }))}
             linhas={bruto.maoDeObra.map((l) => ({ itemId: l.servicoId, qnt: l.qnt }))}
+            detalhe={(i) => {
+              const l = bruto.maoDeObra[i];
+              const item = cat.maoDeObra.find((x) => x.id === l.servicoId);
+              return (
+                <ValorDaLinha
+                  custo={l.custo}
+                  markup={l.markup}
+                  custoPadrao={item?.custo ?? 0}
+                  markupPadrao={item?.markup ?? 1}
+                  onChange={(v) =>
+                    onEditar((a) => ({
+                      ...a,
+                      maoDeObra: a.maoDeObra.map((x, k) => (k === i ? { ...x, ...v } : x)),
+                    }))
+                  }
+                />
+              );
+            }}
             onItem={(i, v) =>
               onEditar((a) => ({
                 ...a,
@@ -442,7 +557,11 @@ function AmbienteCartao({
             <div style={{ display: "flex", gap: 26, alignItems: "baseline" }}>
               <Fecho rotulo="Custo" valor={brl(calc.custoTotal)} />
               <Fecho rotulo="Venda" valor={brl(calc.total)} />
-              <Fecho rotulo="Com ART" valor={brl(calc.totalComArt)} destaque />
+              <Fecho
+                rotulo={comArt ? "Com ART" : "Total do ambiente"}
+                valor={brl(totalFinal(calc, comArt))}
+                destaque
+              />
             </div>
           </div>
         </div>
@@ -477,6 +596,7 @@ type Opcao = { id: string; nome: string };
 function Bloco({
   calc,
   itens,
+  grupos,
   linhas,
   detalhe,
   onItem,
@@ -487,6 +607,8 @@ function Bloco({
 }: {
   calc: BlocoCalculado;
   itens: Opcao[];
+  /** Opções agrupadas, quando o grupo ajuda a achar (chapas por fabricante). */
+  grupos?: [string, Opcao[]][];
   linhas: { itemId: string; qnt: number }[];
   detalhe?: (i: number) => ReactNode;
   onItem: (i: number, v: string) => void;
@@ -536,7 +658,12 @@ function Bloco({
                   className="dash-orc-row"
                   style={{ padding: "9px 0", borderBottom: alerta ? "none" : "1px solid #F4F1EA" }}
                 >
-                  <Select valor={l.itemId} opcoes={itens} onChange={(v) => onItem(i, v)} />
+                  <Select
+                    valor={l.itemId}
+                    opcoes={itens}
+                    grupos={grupos}
+                    onChange={(v) => onItem(i, v)}
+                  />
                   <div style={{ fontSize: "12px", color: "#8C887C" }}>
                     {detalhe ? detalhe(i) : c?.detalhe || c?.unidade}
                   </div>
@@ -612,13 +739,83 @@ function Bloco({
   );
 }
 
+/**
+ * Custo e markup que valem só nesta linha, deste projeto.
+ *
+ * Nas palavras dela, a mão de obra "varia muito" — e o catálogo não consegue
+ * ser a verdade de todas as obras. Aqui ela sobrescreve sem mexer na tabela,
+ * que continua servindo de ponto de partida para o próximo orçamento.
+ *
+ * Campo vazio devolve `undefined`, não zero: vazio é "usa o do catálogo" e
+ * zero é um custo digitado de propósito. Confundir os dois faria a linha
+ * valer nada em vez de valer a tabela.
+ */
+function ValorDaLinha({
+  custo,
+  markup,
+  custoPadrao,
+  markupPadrao,
+  onChange,
+}: {
+  custo?: number;
+  markup?: number;
+  custoPadrao: number;
+  markupPadrao: number;
+  onChange: (v: { custo?: number; markup?: number }) => void;
+}) {
+  const proprio = custo !== undefined || markup !== undefined;
+  const ler = (t: string) => (t.trim() === "" ? undefined : lerNumero(t));
+  return (
+    <div className="dash-orc-valor">
+      <input
+        className="dash-field dash-field-sm"
+        inputMode="decimal"
+        value={custo === undefined ? "" : paraCampo(custo)}
+        placeholder={paraCampo(custoPadrao) || "0"}
+        onChange={(e) => onChange({ custo: ler(e.target.value), markup })}
+        aria-label="Custo desta linha"
+        title="Custo só neste projeto. Vazio usa o da tabela de valores."
+        style={{ width: 74, padding: "5px 8px", fontSize: "11.5px", borderRadius: 9, ...NUM }}
+      />
+      <span style={{ ...mono(10, "#B4AFA1") }}>×</span>
+      <input
+        className="dash-field dash-field-sm"
+        inputMode="decimal"
+        value={markup === undefined ? "" : paraCampo(markup)}
+        placeholder={paraCampo(markupPadrao) || "1"}
+        onChange={(e) => onChange({ custo, markup: ler(e.target.value) })}
+        aria-label="Markup desta linha"
+        title="Multiplicador só neste projeto. Vazio usa o da tabela de valores."
+        style={{ width: 50, padding: "5px 8px", fontSize: "11.5px", borderRadius: 9, ...NUM }}
+      />
+      {proprio && (
+        <button
+          className="dash-btn-link"
+          onClick={() => onChange({ custo: undefined, markup: undefined })}
+          title="Voltar ao valor da tabela de valores"
+          style={{ fontSize: "10.5px", color: "#9A9689" }}
+        >
+          da tabela
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Select({
   valor,
   opcoes,
+  grupos,
   onChange,
 }: {
   valor: string;
   opcoes: Opcao[];
+  /**
+   * Opções agrupadas, quando o grupo ajuda a achar — as chapas por
+   * fabricante, que é como o fornecedor manda a tabela. Sem isto a lista
+   * saía na ordem de cadastro, que não é ordem nenhuma para quem procura.
+   */
+  grupos?: [string, Opcao[]][];
   onChange: (v: string) => void;
 }) {
   // Se o id não estiver mais no catálogo, ele vira uma opção própria para a
@@ -627,11 +824,21 @@ function Select({
   return (
     <select className="dash-select" value={valor} onChange={(e) => onChange(e.target.value)}>
       {orfao && <option value={valor}>{valor} (fora do catálogo)</option>}
-      {opcoes.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.nome}
-        </option>
-      ))}
+      {grupos
+        ? grupos.map(([titulo, itens]) => (
+            <optgroup key={titulo} label={titulo}>
+              {itens.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.nome}
+                </option>
+              ))}
+            </optgroup>
+          ))
+        : opcoes.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.nome}
+            </option>
+          ))}
     </select>
   );
 }

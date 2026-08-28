@@ -16,6 +16,7 @@
 
 import { calcularProjeto } from "./calculo";
 import { CATALOGO_PADRAO, type Catalogo } from "./catalogo";
+import { totalFinal } from "./derivar";
 import type { AmbienteCalculado, BlocoId, OrcamentoAmbiente } from "./tipos";
 
 /* ── zip ─────────────────────────────────────────────────────────────────── */
@@ -203,7 +204,7 @@ function nomeDeAba(bruto: string, usados: Set<string>): string {
 const BLOCOS: BlocoId[] = ["chapas", "fita", "acessorios", "maoDeObra"];
 
 /** Uma aba por ambiente, no desenho da planilha antiga. */
-function abaDoAmbiente(a: AmbienteCalculado): Celula[][] {
+function abaDoAmbiente(a: AmbienteCalculado, comArt: boolean): Celula[][] {
   const ls: Celula[][] = [];
   const vazia = (): Celula[] => [];
 
@@ -258,12 +259,12 @@ function abaDoAmbiente(a: AmbienteCalculado): Celula[][] {
 
   ls.push([{ v: "VALOR TOTAL DA VENDA", s: 1 }, null, null, null, null, { v: a.total, s: 3 }]);
   ls.push([
-    { v: "VALOR TOTAL DA VENDA COM ART", s: 1 },
+    { v: comArt ? "VALOR TOTAL DA VENDA COM ART" : "VALOR TOTAL DA VENDA", s: 1 },
     null,
     null,
     null,
     null,
-    { v: a.totalComArt, s: 3 },
+    { v: totalFinal(a, comArt), s: 3 },
   ]);
 
   if (a.alertas.length) {
@@ -281,6 +282,7 @@ function abaResumo(
   cliente: string,
   ambientes: AmbienteCalculado[],
   totais: { custo: number; total: number; comArt: number },
+  comArt: boolean,
 ): Celula[][] {
   const ls: Celula[][] = [];
   ls.push([{ v: nomeProjeto, s: 1 }]);
@@ -305,7 +307,7 @@ function abaResumo(
       { v: a.nome },
       { v: a.custoTotal, s: 2 },
       { v: a.total, s: 2 },
-      { v: a.totalComArt, s: 2 },
+      { v: totalFinal(a, comArt), s: 2 },
     ]);
   }
   ls.push([
@@ -324,6 +326,7 @@ export function gerarXlsx(
   cliente: string,
   ambientes: OrcamentoAmbiente[],
   cat: Catalogo = CATALOGO_PADRAO,
+  comArt = true,
 ): Blob {
   const proj = calcularProjeto(ambientes, cat);
   const cod = new TextEncoder();
@@ -336,14 +339,14 @@ export function gerarXlsx(
         abaResumo(nomeProjeto, cliente, proj.ambientes, {
           custo: proj.custoTotal,
           total: proj.total,
-          comArt: proj.totalComArt,
-        }),
+          comArt: totalFinal(proj, comArt),
+        }, comArt),
         [34, 16, 16, 16],
       ),
     },
     ...proj.ambientes.map((a) => ({
       nome: nomeDeAba(a.nome, usados),
-      xml: planilha(abaDoAmbiente(a), [40, 16, 9, 9, 14, 14]),
+      xml: planilha(abaDoAmbiente(a, comArt), [40, 16, 9, 9, 14, 14]),
     })),
   ];
 
@@ -431,8 +434,9 @@ export function baixarXlsx(
   cliente: string,
   ambientes: OrcamentoAmbiente[],
   cat: Catalogo = CATALOGO_PADRAO,
+  comArt = true,
 ): void {
-  const blob = gerarXlsx(nomeProjeto, cliente, ambientes, cat);
+  const blob = gerarXlsx(nomeProjeto, cliente, ambientes, cat, comArt);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

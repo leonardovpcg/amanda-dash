@@ -72,6 +72,30 @@ function bloco(id: BlocoId, linhas: LinhaCalculada[], markup: number): BlocoCalc
   return { id, titulo: TITULOS[id], linhas, custo, markup, venda: cents(custo * markup) };
 }
 
+/**
+ * A legenda da linha: qual markup vale e se o valor foi trocado neste projeto.
+ *
+ * É conversa interna — a proposta do cliente não mostra. Serve para ela abrir
+ * um orçamento de três meses atrás e saber por que aquele número é aquele:
+ * veio da tabela, ou ela negociou naquela obra.
+ */
+function rotuloDoValor(
+  linha: { custo?: number; markup?: number },
+  custoDoCatalogo: number,
+  markupDoCatalogo: number,
+  markupEmUso: number,
+): string {
+  const proprio = linha.custo !== undefined || linha.markup !== undefined;
+  const base = markupEmUso === 1 ? "preço fechado" : `markup ${markupEmUso}×`;
+  if (!proprio) return base;
+  // Só chama de "deste projeto" quando o número realmente difere do catálogo:
+  // repetir o valor da tabela num campo próprio não é exceção nenhuma.
+  const igual =
+    (linha.custo ?? custoDoCatalogo) === custoDoCatalogo &&
+    (linha.markup ?? markupDoCatalogo) === markupDoCatalogo;
+  return igual ? base : `${base} · deste projeto`;
+}
+
 export function calcularAmbiente(
   amb: OrcamentoAmbiente,
   cat: Catalogo = CATALOGO_PADRAO,
@@ -134,7 +158,12 @@ export function calcularAmbiente(
   });
 
   // ── acessórios ─────────────────────────────────────────────────────────
-  const acessorios: LinhaCalculada[] = amb.acessorios.map((l, i) => {
+  // Deixou de somar no fim com um markup só: cada linha pode ter o seu, do
+  // item ou digitado no projeto, e o bloco soma a venda linha a linha — como
+  // a mão de obra sempre fez.
+  const acessorios: LinhaCalculada[] = [];
+  let acessoriosVenda = 0;
+  amb.acessorios.forEach((l, i) => {
     const item = ix.acessorios.get(l.acessorioId);
     if (!item) {
       avisar(
@@ -143,17 +172,28 @@ export function calcularAmbiente(
         "item-desconhecido",
         `Acessório "${l.acessorioId}" não está na tabela de valores.`,
       );
-      return { nome: l.acessorioId, detalhe: "", qnt: l.qnt, unidade: "un", custoUnitario: 0, custo: 0 };
+      acessorios.push({
+        nome: l.acessorioId,
+        detalhe: "",
+        qnt: l.qnt,
+        unidade: "un",
+        custoUnitario: 0,
+        custo: 0,
+      });
+      return;
     }
     if (!l.qnt) avisar("acessorios", i, "sem-quantidade", `${item.nome} está sem quantidade.`);
-    return {
+    const custo = l.custo ?? item.custo;
+    const markup = l.markup ?? item.markup ?? markups.acessorios;
+    acessoriosVenda += custo * markup * l.qnt;
+    acessorios.push({
       nome: item.nome,
-      detalhe: "",
+      detalhe: rotuloDoValor(l, item.custo, item.markup ?? markups.acessorios, markup),
       qnt: l.qnt,
       unidade: item.unidade,
-      custoUnitario: item.custo,
-      custo: item.custo * l.qnt,
-    };
+      custoUnitario: custo,
+      custo: custo * l.qnt,
+    });
   });
 
   // ── mão de obra ────────────────────────────────────────────────────────
@@ -176,22 +216,33 @@ export function calcularAmbiente(
       return;
     }
     if (!l.qnt) avisar("maoDeObra", i, "sem-quantidade", `${s.nome} está sem quantidade.`);
-    if (!s.custo) avisar("maoDeObra", i, "sem-preco", `${s.nome} ainda não tem custo cotado.`);
-    maoDeObraVenda += s.custo * s.markup * l.qnt;
+    // O custo próprio da linha resolve a pendência do catálogo: serviço sem
+    // custo cotado só é problema se ela também não digitou um aqui.
+    const custo = l.custo ?? s.custo;
+    const markup = l.markup ?? s.markup;
+    if (!custo) avisar("maoDeObra", i, "sem-preco", `${s.nome} ainda não tem custo cotado.`);
+    maoDeObraVenda += custo * markup * l.qnt;
     maoDeObraLinhas.push({
       nome: s.nome,
-      detalhe: s.markup === 1 ? "preço fechado" : `markup ${s.markup}×`,
+      detalhe: rotuloDoValor(l, s.custo, s.markup, markup),
       qnt: l.qnt,
       unidade: s.unidade,
-      custoUnitario: s.custo,
-      custo: s.custo * l.qnt,
+      custoUnitario: custo,
+      custo: custo * l.qnt,
     });
   });
 
   const blocos = {
     chapas: bloco("chapas", chapas, markups.chapas),
     fita: bloco("fita", fita, markups.fita),
-    acessorios: bloco("acessorios", acessorios, markups.acessorios),
+    acessorios: {
+      ...bloco("acessorios", acessorios, markups.acessorios),
+      // Como a mão de obra: markup 0 é o sinal de "varia por item".
+      markup: amb.acessorios.some((l) => l.markup ?? ix.acessorios.get(l.acessorioId)?.markup)
+        ? 0
+        : markups.acessorios,
+      venda: cents(acessoriosVenda),
+    } as BlocoCalculado,
     maoDeObra: {
       ...bloco("maoDeObra", maoDeObraLinhas, 1),
       // markup 0 sinaliza "varia por item" — a UI mostra "por item".

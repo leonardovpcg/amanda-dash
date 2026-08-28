@@ -99,3 +99,35 @@ export const MAO_DE_OBRA_POR_ID = new Map(MAO_DE_OBRA.map((s) => [s.id, s]));
 
 /** Nome completo da cor como ela aparece nos selects e na proposta. */
 export const nomeCor = (c: CorChapa) => `${c.nome} (${c.fabricante})`;
+
+/**
+ * Compara nomes como gente lê: sem caixa e sem acento pesando na ordem.
+ *
+ * `localeCompare` com `sensitivity: "base"` põe "Ébano" junto de "Ebano" em
+ * vez de jogar para o fim da lista, que é onde o `<` cru colocaria.
+ */
+const porNome = (a: string, b: string) =>
+  a.localeCompare(b, "pt-BR", { sensitivity: "base", numeric: true });
+
+/**
+ * As cores agrupadas por fabricante, alfabéticas dentro de cada grupo.
+ *
+ * A lista saía na ordem em que foi cadastrada, que não é ordem nenhuma para
+ * quem procura. Agrupar por fabricante é o que ela pediu — é assim que o
+ * fornecedor manda a tabela, e é assim que ela procura.
+ */
+export function coresPorFabricante(cores: CorChapa[]): [string, CorChapa[]][] {
+  const grupos = new Map<string, CorChapa[]>();
+  for (const c of cores) {
+    const chave = c.fabricante || "Sem fabricante";
+    grupos.set(chave, [...(grupos.get(chave) ?? []), c]);
+  }
+  return [...grupos.entries()]
+    .sort((a, b) => porNome(a[0], b[0]))
+    .map(([f, lista]) => [f, [...lista].sort((a, b) => porNome(a.nome, b.nome))]);
+}
+
+/** Ordena qualquer lista de itens de catálogo pelo nome. */
+export function porOrdemAlfabetica<T extends { nome: string }>(itens: T[]): T[] {
+  return [...itens].sort((a, b) => porNome(a.nome, b.nome));
+}

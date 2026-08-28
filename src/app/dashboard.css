@@ -1853,3 +1853,13 @@ textarea.dash-inline:focus {
   background: #f8ede5;
   border-color: #eedcce;
 }
+
+/* — custo e markup por linha do orçamento —
+   Cabem na coluna do "detalhe", que antes só tinha texto. Quebram para baixo
+   em telas estreitas em vez de espremer o campo de quantidade ao lado. */
+.dash-orc-valor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}

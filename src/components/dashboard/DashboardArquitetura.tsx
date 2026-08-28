@@ -25,7 +25,13 @@ import {
 import { brl, calcularProjeto } from "@/lib/orcamento/calculo";
 import { assinarCatalogo, lerCatalogo, lerCatalogoNoServidor } from "@/lib/orcamento/catalogo";
 import { consultarPreco } from "@/lib/orcamento/consultar";
-import { composicao, materiais, temOrcamento, valorDeContrato } from "@/lib/orcamento/derivar";
+import {
+  composicao,
+  materiais,
+  temOrcamento,
+  totalFinal,
+  valorDeContrato,
+} from "@/lib/orcamento/derivar";
 import {
   assinarBriefings,
   assinarRoteiro,
@@ -438,7 +444,8 @@ export default function DashboardArquitetura({
     (p: Project): ProjectVM => {
       // Assinado manda em tudo. Sem contrato, com orçamento lançado vale o
       // total com ART; sem nenhum dos dois, o número digitado no cabeçalho.
-      const contrato = p.contratoAssinado ?? valorDeContrato(p.orcamento, p.budget, catalogo);
+      const contrato =
+        p.contratoAssinado ?? valorDeContrato(p.orcamento, p.budget, catalogo, p.comArt);
       // Sem contrato nenhum o denominador é zero e a conta dá NaN.
       const pct = contrato > 0 ? Math.round((p.spent / contrato) * 100) : 0;
       return {
@@ -492,6 +499,7 @@ export default function DashboardArquitetura({
         materials: [],
         orcamento: orcamentoDoProjeto(p),
         contratoAssinado: contratoPorProjeto.get(p.id)?.valor,
+        comArt: p.comArt,
       })),
     [doBanco, contratoPorProjeto],
   );
@@ -617,16 +625,18 @@ export default function DashboardArquitetura({
 
   const detail = useMemo(() => {
     if (!sel) return null;
+    const comArtDoProjeto = doBanco.find((p) => p.id === sel.id)?.comArt ?? true;
     return {
       ...decorate(sel),
       ambienteCount: sel.ambientes.length,
       // O total vivo do orçamento, separado do valor do contrato: com contrato
       // assinado os dois divergem quando a tabela é reajustada depois, e o
       // painel de contrato mostra a diferença em vez de escondê-la.
-      orcamentoTotal: orcamentoCalculado?.totalComArt ?? 0,
+      orcamentoTotal: orcamentoCalculado ? totalFinal(orcamentoCalculado, comArtDoProjeto) : 0,
       rawBudget: sel.budget.toLocaleString("pt-BR"),
       prazoISO: doBanco.find((p) => p.id === sel.id)?.prazo ?? "",
       situacao: doBanco.find((p) => p.id === sel.id)?.situacao ?? "aguardando",
+      comArt: doBanco.find((p) => p.id === sel.id)?.comArt ?? true,
       situacoes: SITUACOES_DO_PROJETO as [string, string][],
       // O valor do ambiente é calculado do orçamento, não digitado: era a
       // segunda fonte que podia discordar do painel logo abaixo.
@@ -636,7 +646,7 @@ export default function DashboardArquitetura({
         return {
           name,
           detail: dtl,
-          valueLabel: calc ? brl(calc.totalComArt) : money(0),
+          valueLabel: calc ? brl(totalFinal(calc, comArtDoProjeto)) : money(0),
           // A legenda era texto livre; agora é o próximo prazo de fábrica em
           // aberto, e cai no nome da etapa quando não há data marcada.
           eta: cru ? legendaDoAmbiente(cru, AMB_STEPS[Math.min(step, 5)]) : AMB_STEPS[Math.min(step, 5)],
@@ -1080,6 +1090,7 @@ export default function DashboardArquitetura({
               const v = e.target.value as SituacaoDoProjeto;
               editar((p) => ({ ...p, situacao: v }));
             }}
+            onComArt={(v) => editar((p) => ({ ...p, comArt: v }))}
             onBudget={(e) => {
               const v = parseInt(String(e.target.value).replace(/[^0-9]/g, ""), 10) || 0;
               editar((p) => ({ ...p, valorPrevisto: v }));

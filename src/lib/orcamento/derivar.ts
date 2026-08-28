@@ -19,19 +19,35 @@ export function temOrcamento(orcamento: OrcamentoAmbiente[]): boolean {
 }
 
 /**
+ * O total que vale, conforme o projeto leve ART ou não.
+ *
+ * O motor sempre calcula os dois; quem escolhe é o projeto. Um lugar só para
+ * essa escolha porque são onze pontos de consumo — proposta, planilha, cartão
+ * do ambiente, valor do contrato — e um deles ficar com o número errado é uma
+ * proposta enviada 10% fora.
+ */
+export function totalFinal(
+  calc: { total: number; totalComArt: number },
+  comArt: boolean,
+): number {
+  return comArt ? calc.totalComArt : calc.total;
+}
+
+/**
  * Valor de contrato do projeto.
  *
- * Com orçamento lançado, é o total com ART — o número que ela passa para o
- * cliente. Sem orçamento, continua sendo o valor digitado no cabeçalho, que é
+ * Com orçamento lançado, é o total do orçamento — com ART quando o projeto
+ * leva. Sem orçamento, continua sendo o valor digitado no cabeçalho, que é
  * como todos os projetos funcionavam antes deste módulo.
  */
 export function valorDeContrato(
   orcamento: OrcamentoAmbiente[],
   digitado: number,
   cat: Catalogo = CATALOGO_PADRAO,
+  comArt = true,
 ): number {
   if (!temOrcamento(orcamento)) return digitado;
-  return calcularProjeto(orcamento, cat).totalComArt;
+  return totalFinal(calcularProjeto(orcamento, cat), comArt);
 }
 
 export type Composicao = {

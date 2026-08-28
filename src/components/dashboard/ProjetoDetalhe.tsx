@@ -67,6 +67,8 @@ export type DetalheVM = ProjectVM & {
   /** ISO do prazo, para o seletor de data. Vazio quando ainda nao ha prazo. */
   prazoISO: string;
   situacao: string;
+  /** ART entra no total deste projeto. */
+  comArt: boolean;
   /** As situacoes possiveis, ja rotuladas. Vem da camada de dados. */
   situacoes: [string, string][];
 };
@@ -125,6 +127,7 @@ export default function ProjetoDetalhe({
   onAddress,
   onDeadline,
   onSituacao,
+  onComArt,
   onBudget,
   onAddAmbiente,
   query,
@@ -143,6 +146,7 @@ export default function ProjetoDetalhe({
   onAddress: (e: ChangeEvent<HTMLInputElement>) => void;
   onDeadline: (e: ChangeEvent<HTMLInputElement>) => void;
   onSituacao: (e: ChangeEvent<HTMLSelectElement>) => void;
+  onComArt: (v: boolean) => void;
   onBudget: (e: ChangeEvent<HTMLInputElement>) => void;
   onAddAmbiente: () => void;
   query: string;
@@ -226,7 +230,9 @@ export default function ProjetoDetalhe({
                 >
                   {sel.budgetLabel}
                 </div>
-                <div style={{ ...mono(10, "#A84B1C"), marginTop: 3 }}>do orçamento · com ART</div>
+                <div style={{ ...mono(10, "#A84B1C"), marginTop: 3 }}>
+                  do orçamento · {sel.comArt ? "com ART" : "sem ART"}
+                </div>
               </>
             ) : (
               <div
@@ -491,6 +497,8 @@ export default function ProjetoDetalhe({
         onChange={onOrcamento}
         projeto={{ nome: sel.name, cliente: sel.client, endereco: sel.address }}
         briefing={briefing}
+        comArt={sel.comArt}
+        onComArt={onComArt}
       />
 
       {/* ── contrato e recebimentos ───────────────────────── */}

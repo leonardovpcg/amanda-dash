@@ -88,6 +88,20 @@ Três coisas que a tela deixa de fora de propósito, porque não são digitadas:
 A coluna "Entregas e montagens" da agenda vem dos três prazos de fábrica no
 cartão de cada ambiente, dentro do projeto — não se digita na agenda.
 
+## Orçamento
+
+A **ART é opcional por projeto** — o interruptor fica no painel de orçamento.
+É do projeto inteiro e não por ambiente: quem assina a responsabilidade
+técnica assina o projeto todo.
+
+**Custo e markup podem ser trocados por linha**, dentro do projeto, sem mexer
+na tabela de valores. Campo vazio usa o do catálogo; vazio e zero são coisas
+diferentes, e zero é um custo digitado de propósito.
+
+A proposta imprime em **duas vias**: a do cliente, sem quantitativos, e a
+interna, com. O multiplicador de cada linha nunca sai em nenhuma das duas —
+é a margem da loja.
+
 ## Ícone de app
 
 Dá para instalar na tela de início do celular: no Android, "Instalar app" no

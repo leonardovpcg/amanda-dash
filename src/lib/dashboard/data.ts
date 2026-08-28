@@ -129,6 +129,8 @@ export type Project = {
    * proposta aberta, nunca contrato fechado.
    */
   contratoAssinado?: number;
+  /** ART entra no total deste projeto. Nem todo trabalho leva. */
+  comArt: boolean;
 };
 
 /* Os seis projetos de protótipo saíram: projetos, ambientes e orçamento vêm

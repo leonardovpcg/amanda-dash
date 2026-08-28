@@ -31,6 +31,14 @@ export type Acessorio = {
   /** Unidade de cobrança — "un", "par", "3 m"… Só rótulo. */
   unidade: string;
   custo: number;
+  /**
+   * Markup próprio do item. Sem ele vale o do bloco.
+   *
+   * Existe porque nem toda ferragem sai pelo mesmo multiplicador: puxador de
+   * grife e dobradiça comum não têm a mesma margem. Opcional para o catálogo
+   * não precisar de uma revisão inteira só por causa disso.
+   */
+  markup?: number;
 };
 
 /**
@@ -56,8 +64,21 @@ export type ServicoMaoDeObra = {
 
 export type LinhaChapa = { corId: string; espessura: Espessura; qnt: number };
 export type LinhaFita = { corId: string; metros: number };
-export type LinhaAcessorio = { acessorioId: string; qnt: number };
-export type LinhaMaoDeObra = { servicoId: string; qnt: number };
+/**
+ * Custo e markup que valem só nesta linha, deste projeto.
+ *
+ * "varia muito", nas palavras dela — o valor da mão de obra muda de obra para
+ * obra, e o catálogo não consegue ser a verdade de todas. Ausente significa
+ * "usa o do catálogo"; ausente e zero são coisas diferentes, e é por isso que
+ * são opcionais em vez de terem zero como padrão.
+ */
+export type ValorProprio = {
+  custo?: number;
+  markup?: number;
+};
+
+export type LinhaAcessorio = { acessorioId: string; qnt: number } & ValorProprio;
+export type LinhaMaoDeObra = { servicoId: string; qnt: number } & ValorProprio;
 
 export type OrcamentoAmbiente = {
   id: string;

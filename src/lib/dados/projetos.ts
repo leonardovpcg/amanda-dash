@@ -108,6 +108,8 @@ export type ProjetoDoBanco = {
   etapa: string;
   prazo: string | null;
   valorPrevisto: number;
+  /** ART entra no total deste projeto. Nem todo trabalho leva. */
+  comArt: boolean;
   ambientes: AmbienteDoBanco[];
   marcos: Partial<Record<TipoDeMarco, MarcoDoProjeto>>;
 };
@@ -158,6 +160,8 @@ type LinhaProjeto = {
   etapa: string | null;
   prazo: string | null;
   valor_previsto: number | null;
+  /** Ausente quando a 0005 ainda nao rodou. */
+  com_art?: boolean | null;
   clientes: { nome: string } | { nome: string }[] | null;
 };
 
@@ -169,7 +173,36 @@ type LinhaOrcamento = {
   espessura: number | null;
   qnt: number;
   ordem: number;
+  /** Ausentes quando a 0005 ainda nao rodou. */
+  custo_unitario?: number | null;
+  markup?: number | null;
 };
+
+/**
+ * Consulta que sobrevive a uma coluna que ainda não foi migrada.
+ *
+ * O app é publicado automaticamente no push; a migration é rodada à mão. No
+ * intervalo entre as duas, o código pede coluna que o banco ainda não tem — e
+ * foi assim que a lista inteira de projetos ficou vazia para ela uma vez.
+ *
+ * Aqui a consulta cai para a lista de colunas anterior quando o Postgres
+ * reclama de coluna inexistente (42703), e devolve o aviso para a tela dizer
+ * o que está faltando. Custa uma ida extra à rede só no estado quebrado.
+ */
+type Resposta = { data: unknown; error: { code?: string; message: string } | null };
+
+async function comQuedaDeColuna<T>(
+  completa: () => PromiseLike<Resposta>,
+  reduzida: () => PromiseLike<Resposta>,
+): Promise<{ data: T[] | null; error: { message: string } | null; faltando: string | null }> {
+  const r = await completa();
+  const usar = r.error?.code === "42703" ? await reduzida() : r;
+  return {
+    data: (usar.data ?? null) as T[] | null,
+    error: usar.error,
+    faltando: r.error?.code === "42703" ? r.error.message : null,
+  };
+}
 
 async function buscar() {
   const minha = ++geracao;
@@ -181,21 +214,36 @@ async function buscar() {
     return;
   }
 
+  // As duas listas de colunas escritas por extenso, sem montar uma da outra:
+  // a que o banco tem hoje e a que ele tinha antes da 0005.
+  const PROJETO =
+    "id, cliente_id, lead_id, nome, endereco, situacao, etapa, prazo, valor_previsto, com_art, clientes(nome)";
+  const PROJETO_ANTES =
+    "id, cliente_id, lead_id, nome, endereco, situacao, etapa, prazo, valor_previsto, clientes(nome)";
+  const LINHA = "id, ambiente_id, bloco, item_id, espessura, qnt, ordem, custo_unitario, markup";
+  const LINHA_ANTES = "id, ambiente_id, bloco, item_id, espessura, qnt, ordem";
+
   const [ps, ambs, linhas, marcos, marcosAmb] = await Promise.all([
-    supabase
-      .from("projetos")
-      .select(
-        "id, cliente_id, lead_id, nome, endereco, situacao, etapa, prazo, valor_previsto, clientes(nome)",
-      )
-      .order("criado_em", { ascending: false }),
+    comQuedaDeColuna<LinhaProjeto>(
+      () =>
+        supabase!
+          .from("projetos")
+          .select(PROJETO)
+          .order("criado_em", { ascending: false }),
+      () => supabase!.from("projetos").select(PROJETO_ANTES).order("criado_em", { ascending: false }),
+    ),
     supabase
       .from("ambientes")
       .select("id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing")
       .order("ordem"),
-    supabase
-      .from("orcamento_linhas")
-      .select("id, ambiente_id, bloco, item_id, espessura, qnt, ordem")
-      .order("ordem"),
+    comQuedaDeColuna<LinhaOrcamento>(
+      () =>
+        supabase!
+          .from("orcamento_linhas")
+          .select(LINHA)
+          .order("ordem"),
+      () => supabase!.from("orcamento_linhas").select(LINHA_ANTES).order("ordem"),
+    ),
     supabase.from("projeto_marcos").select("projeto_id, tipo, previsto, realizado, dispensado"),
     supabase.from("ambiente_marcos").select("ambiente_id, tipo, previsto, realizado"),
   ]);
@@ -228,9 +276,15 @@ async function buscar() {
     mistério em vez de recado.
   */
   const falhaDeMarcos = marcos.error ?? marcosAmb.error;
-  aviso = falhaDeMarcos
-    ? "Prazos e linha do tempo indisponíveis: " + falhaDeMarcos.message
-    : null;
+  // Coluna que ainda não foi migrada não apaga a lista: a consulta caiu para
+  // a versão anterior e a tela diz o que falta rodar.
+  const colunaFaltando = ps.faltando ?? linhas.faltando;
+  aviso =
+    falhaDeMarcos
+      ? "Prazos e linha do tempo indisponíveis: " + falhaDeMarcos.message
+      : colunaFaltando
+        ? "Falta rodar uma migration — " + colunaFaltando
+        : null;
 
   const porAmbiente = new Map<string, AmbienteDoBanco["orcamento"]>();
   for (const l of (linhas.data ?? []) as LinhaOrcamento[]) {
@@ -240,10 +294,18 @@ async function buscar() {
       porAmbiente.set(l.ambiente_id, o);
     }
     const qnt = Number(l.qnt);
+    // Coluna nula some do objeto em vez de virar `undefined` explícito: o
+    // diff da gravação compara por JSON, e chave a mais conta como mudança.
+    const proprio = {
+      ...(l.custo_unitario === null || l.custo_unitario === undefined
+        ? null
+        : { custo: Number(l.custo_unitario) }),
+      ...(l.markup === null || l.markup === undefined ? null : { markup: Number(l.markup) }),
+    };
     if (l.bloco === "chapas") o.chapas.push({ corId: l.item_id, espessura: (l.espessura ?? 18) as 6 | 15 | 18, qnt });
     else if (l.bloco === "fita") o.fita.push({ corId: l.item_id, metros: qnt });
-    else if (l.bloco === "acessorios") o.acessorios.push({ acessorioId: l.item_id, qnt });
-    else o.maoDeObra.push({ servicoId: l.item_id, qnt });
+    else if (l.bloco === "acessorios") o.acessorios.push({ acessorioId: l.item_id, qnt, ...proprio });
+    else o.maoDeObra.push({ servicoId: l.item_id, qnt, ...proprio });
   }
 
   const marcosPorAmbiente = new Map<string, AmbienteDoBanco["marcos"]>();
@@ -310,6 +372,8 @@ async function buscar() {
       etapa: linha.etapa ?? "",
       prazo: linha.prazo,
       valorPrevisto: Number(linha.valor_previsto ?? 0),
+      // Ausente vale como ligada: e o que os orcamentos ja lancados assumiam.
+      comArt: linha.com_art ?? true,
       ambientes: ambientesPorProjeto.get(linha.id) ?? [],
       marcos: marcosPorProjeto.get(linha.id) ?? {},
     };
@@ -421,6 +485,10 @@ function linhasDoAmbiente(a: AmbienteDoBanco, dono: string) {
       espessura: null,
       qnt: l.qnt,
       ordem: i,
+      // Nulo é "usa o do catálogo". Zero seria um custo digitado de propósito,
+      // e confundir os dois faria a linha valer nada em vez de valer a tabela.
+      custo_unitario: l.custo ?? null,
+      markup: l.markup ?? null,
     })),
     ...o.maoDeObra.map((l, i) => ({
       dono,
@@ -430,6 +498,8 @@ function linhasDoAmbiente(a: AmbienteDoBanco, dono: string) {
       espessura: null,
       qnt: l.qnt,
       ordem: i,
+      custo_unitario: l.custo ?? null,
+      markup: l.markup ?? null,
     })),
   ];
 }
@@ -448,7 +518,8 @@ async function sincronizar(id: string): Promise<void> {
     antes.situacao !== atual.situacao ||
     antes.etapa !== atual.etapa ||
     antes.prazo !== atual.prazo ||
-    antes.valorPrevisto !== atual.valorPrevisto
+    antes.valorPrevisto !== atual.valorPrevisto ||
+    antes.comArt !== atual.comArt
   ) {
     const { error } = await supabase
       .from("projetos")
@@ -459,6 +530,7 @@ async function sincronizar(id: string): Promise<void> {
         etapa: atual.etapa || null,
         prazo: atual.prazo,
         valor_previsto: atual.valorPrevisto || null,
+        com_art: atual.comArt,
       })
       .eq("id", id);
     if (error) return falhar("Não foi possível salvar o projeto: " + error.message);
