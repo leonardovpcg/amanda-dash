@@ -27,6 +27,14 @@ export type LeadDoFunil = {
   email: string | null;
   origem: string | null;
   etapa: StageKey;
+  /**
+   * A estimativa da abertura do atendimento.
+   *
+   * Registro de como o negócio nasceu. Quem manda no valor que aparece na
+   * tela é o projeto — ele conhece a ordem certa: contrato assinado, senão
+   * orçamento, senão valor previsto. Dois números para a mesma coisa foi o
+   * que fez o funil mostrar valor e a aba Projetos mostrar zero.
+   */
   valorEstimado: number;
   ambientesTexto: string;
   diasParado: number;

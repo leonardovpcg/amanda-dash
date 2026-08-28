@@ -602,12 +602,25 @@ export default function DashboardArquitetura({
 
   // O funil mostra o valor do orçamento quando o lead já virou projeto. Sem
   // vínculo, continua a estimativa que ela digitou ao cadastrar o contato.
+  /*
+    O valor do cartão do funil vem do projeto, sempre que existe projeto.
+
+    Antes só substituía quando havia orçamento lançado; sem orçamento o cartão
+    mostrava `leads.valor_estimado` e a aba Projetos mostrava
+    `projetos.valor_previsto`. Duas colunas para o mesmo número, e elas
+    discordavam — o funil com valor e o projeto zerado.
+
+    Agora o projeto é a fonte, e ele já sabe a ordem de precedência: contrato
+    assinado, senão o orçamento calculado, senão o valor previsto. A
+    estimativa do lead continua gravada como registro de abertura, mas não é
+    mais lida para exibir.
+  */
   const leadsVM = useMemo(
     () =>
       leads.map((l) => {
         if (!l.projetoId) return l;
         const p = decorated.find((x) => x.id === l.projetoId);
-        return p?.doOrcamento ? { ...l, value: Math.round(p.contrato) } : l;
+        return p ? { ...l, value: Math.round(p.contrato) } : l;
       }),
     [leads, decorated],
   );
