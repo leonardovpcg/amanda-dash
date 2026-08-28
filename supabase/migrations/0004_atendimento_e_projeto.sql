@@ -16,6 +16,45 @@
 -- Re-executável, como os anteriores.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Primeiro o que não depende de nada.
+
+   Na primeira versão deste arquivo a coluna `dispensado` estava no fim, depois
+   dos `drop view` e dos laços de emparelhamento. Alguma coisa lá no meio
+   abortou o script na máquina dela, e a coluna — que não tem relação nenhuma
+   com o resto — ficou sem ser criada. O app já dependia dela, e o aviso de
+   "prazos indisponíveis" não saía da tela.
+
+   A lição fica no arquivo: statement independente vai primeiro, para não
+   ficar refém do que pode falhar depois.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+  Marco de projeto que não se aplica.
+
+  Ela pode receber o projeto pronto de um arquiteto de fora, e aí não há
+  briefing; pode não haver visita técnica. Sem uma forma de dispensar, essas
+  etapas ficariam "em curso" para sempre na linha do tempo, e uma linha do
+  tempo que mente sobre onde o projeto está é pior que nenhuma.
+
+  Coluna própria em vez de uma data mágica ou de texto na nota: "dispensado" e
+  "sem data marcada" são estados diferentes, e distinguir os dois é o motivo
+  de a coluna existir.
+*/
+alter table public.projeto_marcos
+  add column if not exists dispensado boolean not null default false;
+
+/*
+  Comissão: 2% vira 2,5%.
+
+  Corrigido pela própria Amanda. `v_comissoes` lê a faixa do banco, então
+  trocar a linha basta — nenhum contrato precisa ser recalculado à mão.
+
+  Vale para o previsto e para o já recebido: diferente do valor do contrato,
+  a comissão não é congelada, e a taxa certa é a que ela recebe de fato.
+*/
+update public.faixas_comissao set taxa = 0.0250 where taxa = 0.0200;
+
 /*
   A etapa "orcamento" sai.
 
@@ -174,28 +213,21 @@ begin
 end;
 $$;
 
-/*
-  Marco de projeto que não se aplica.
-
-  Ela pode receber o projeto pronto de um arquiteto de fora, e aí não há
-  briefing; pode não haver visita técnica. Sem uma forma de dispensar, essas
-  etapas ficariam "em curso" para sempre na linha do tempo, e uma linha do
-  tempo que mente sobre onde o projeto está é pior que nenhuma.
-
-  Coluna própria em vez de uma data mágica ou de texto na nota: "dispensado" e
-  "sem data marcada" são estados diferentes, e distinguir os dois é o motivo
-  de a coluna existir.
-*/
-alter table public.projeto_marcos
-  add column if not exists dispensado boolean not null default false;
 
 /*
-  Comissão: 2% vira 2,5%.
+  Relatório final.
 
-  Corrigido pela própria Amanda. `v_comissoes` lê a faixa do banco, então
-  trocar a linha basta — nenhum contrato precisa ser recalculado à mão.
-
-  Vale para o previsto e para o já recebido: diferente do valor do contrato,
-  a comissão não é congelada, e a taxa certa é a que ela recebe de fato.
+  O editor SQL mostra só o resultado do último comando. Este select existe
+  para o script terminar dizendo o que ficou de pé — se ele não aparecer, é
+  porque alguma coisa acima abortou, e aí a mensagem de erro é o que importa.
 */
-update public.faixas_comissao set taxa = 0.0250 where taxa = 0.0200;
+select
+  (select count(*) from public.leads    where etapa = 'orcamento')  as leads_em_orcamento,
+  (select count(*) from public.leads    l where not exists
+     (select 1 from public.projetos p where p.lead_id = l.id))      as leads_sem_projeto,
+  (select count(*) from public.projetos where lead_id is null
+     and situacao <> 'cancelado')                                   as projetos_sem_lead,
+  (select count(*) from information_schema.columns
+     where table_schema = 'public' and table_name = 'projeto_marcos'
+       and column_name = 'dispensado')                              as coluna_dispensado,
+  (select taxa from public.faixas_comissao limit 1)                 as taxa_comissao;
