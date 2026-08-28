@@ -213,6 +213,24 @@ export async function renomearCliente(clienteId: string, nome: string): Promise<
 }
 
 /**
+ * O texto de ambientes que aparece no cartão do funil.
+ *
+ * É a anotação da abertura — "Cozinha, Closet · Indicação" —, não a lista de
+ * ambientes do projeto. Aqueles são linhas de `ambientes`, com orçamento
+ * pendurado; este é o lembrete de uma frase que ela lê no cartão sem abrir
+ * nada. Por isso continuam separados.
+ */
+export async function atualizarAmbientesTexto(
+  leadId: string,
+  texto: string,
+): Promise<string | null> {
+  if (!supabase) return "Sem conexão.";
+  return armazem.escrever(async () =>
+    supabase!.from("leads").update({ ambientes_texto: texto.trim() || null }).eq("id", leadId),
+  );
+}
+
+/**
  * Move o lead de etapa.
  *
  * Registra a interação junto: mover a etapa **é** um contato, e sem isso o

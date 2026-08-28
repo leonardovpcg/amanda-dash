@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { NEXT_STEPS, STAGES, chip, money, type Lead } from "@/lib/dashboard/data";
 import type { SinalDeBriefing } from "./Funil";
 import { MONO, NUM, mono } from "./ui";
@@ -10,11 +11,95 @@ const box: React.CSSProperties = {
   borderRadius: 20,
 };
 
+/**
+ * Um campo que grava ao sair, não a cada tecla.
+ *
+ * Toda gravação daqui recarrega armazém — renomear cliente mexe em duas
+ * listas. Por tecla digitada seria uma ida ao banco por letra, com o cursor
+ * pulando de volta no meio da palavra.
+ *
+ * A `key` do lead descarta o rascunho ao trocar de cartão: sem ela, abrir
+ * outro lead herdaria o que ficou digitado no anterior. Esc desiste.
+ */
+function CampoQueGrava({
+  id,
+  rotulo,
+  valor,
+  ajuda,
+  somenteLeitura,
+  onSalvar,
+}: {
+  id: string;
+  rotulo: string;
+  valor: string;
+  ajuda?: string;
+  somenteLeitura?: boolean;
+  onSalvar: (v: string) => void;
+}) {
+  const [rascunho, setRascunho] = useState(valor);
+  const gravar = () => {
+    if (rascunho.trim() !== valor) onSalvar(rascunho);
+  };
+  return (
+    <label style={{ display: "block", minWidth: 0 }}>
+      <span style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>{rotulo}</span>
+      {somenteLeitura ? (
+        <div
+          style={{
+            marginTop: 5,
+            padding: "10px 13px",
+            borderRadius: 12,
+            border: "1px dashed #E2DED4",
+            background: "rgba(255,255,255,.4)",
+            fontSize: "13.5px",
+            color: "#8C887C",
+          }}
+        >
+          {valor}
+        </div>
+      ) : (
+        <input
+          key={id}
+          className="dash-field dash-field-sm"
+          value={rascunho}
+          onChange={(e) => setRascunho(e.target.value)}
+          onBlur={gravar}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") setRascunho(valor);
+          }}
+          style={{ width: "100%", marginTop: 5 }}
+        />
+      )}
+      {ajuda && (
+        <span
+          style={{
+            display: "block",
+            fontFamily: MONO,
+            fontSize: "10.5px",
+            color: "#9A9689",
+            marginTop: 5,
+            lineHeight: 1.5,
+          }}
+        >
+          {ajuda}
+        </span>
+      )}
+    </label>
+  );
+}
+
 export default function LeadDrawer({
   lead,
   onClose,
   onAdvance,
   onAbrirProjeto,
+  onCliente,
+  onProjeto,
+  onAmbientes,
+  onValor,
+  projetoNome,
+  valorEditavel,
   briefing,
   onBriefing,
 }: {
@@ -23,6 +108,15 @@ export default function LeadDrawer({
   onAdvance: () => void;
   /** Abre o projeto deste atendimento — eles nascem juntos. */
   onAbrirProjeto: () => void;
+  /** Renomeia o cliente. Vale em todo o histórico: é a mesma pessoa. */
+  onCliente: (nome: string) => void;
+  onProjeto: (nome: string) => void;
+  onAmbientes: (texto: string) => void;
+  onValor: (texto: string) => void;
+  /** Nome do projeto vinculado, ou nulo em lead que não tem um. */
+  projetoNome: string | null;
+  /** Falso quando o valor vem do orçamento ou do contrato — aí não se digita. */
+  valorEditavel: boolean;
   briefing?: SinalDeBriefing;
   onBriefing: () => void;
 }) {
@@ -131,6 +225,55 @@ export default function LeadDrawer({
           >
             ×
           </button>
+        </div>
+
+        {/* ── editar ─────────────────────────────────────────────────────
+            A gaveta era só leitura: dava para avançar a etapa e nada mais.
+            Como o cartão mostra o nome do CLIENTE e o cabeçalho do projeto
+            edita o nome do PROJETO, mexer lá não mudava nada aqui — e como os
+            dois nascem iguais, parecia que tinham parado de sincronizar. Os
+            dois campos ficam lado a lado agora, com o nome de cada um. */}
+        <div style={{ ...box, padding: "18px 20px", marginTop: 18 }}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <CampoQueGrava
+              id={lead.id + ":cliente"}
+              rotulo="Cliente"
+              valor={lead.name}
+              ajuda="Muda em todo lugar: funil, projeto, contrato e garantia."
+              onSalvar={onCliente}
+            />
+            <CampoQueGrava
+              id={lead.id + ":projeto"}
+              rotulo="Projeto"
+              valor={projetoNome ?? "—"}
+              somenteLeitura={projetoNome === null}
+              ajuda={
+                projetoNome === null
+                  ? "Este atendimento é anterior ao vínculo automático e não tem projeto."
+                  : undefined
+              }
+              onSalvar={onProjeto}
+            />
+            <CampoQueGrava
+              id={lead.id + ":ambientes"}
+              rotulo="Ambientes"
+              valor={lead.ambientes}
+              ajuda="A anotação do cartão. Os ambientes que orçam ficam dentro do projeto."
+              onSalvar={onAmbientes}
+            />
+            <CampoQueGrava
+              id={lead.id + ":valor"}
+              rotulo="Valor"
+              valor={valorEditavel ? String(lead.value || "") : money(lead.value)}
+              somenteLeitura={!valorEditavel}
+              ajuda={
+                valorEditavel
+                  ? "Estimativa do projeto, enquanto não há orçamento lançado."
+                  : "Calculado do orçamento ou do contrato assinado — some quando há número de verdade."
+              }
+              onSalvar={onValor}
+            />
+          </div>
         </div>
 
         {/* ── briefing ──────────────────────────────────────────────── */}

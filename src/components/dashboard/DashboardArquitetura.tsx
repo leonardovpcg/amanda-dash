@@ -66,6 +66,7 @@ import {
 } from "@/lib/dados/relogio";
 import {
   assinarFunil,
+  atualizarAmbientesTexto,
   criarAtendimento,
   lerFunil,
   renomearCliente,
@@ -1157,6 +1158,33 @@ export default function DashboardArquitetura({
             mudarAba("projetos");
             selectProject(id);
           }}
+          onCliente={(nome) => {
+            const cliente = clienteDoLead(leadSel.id);
+            if (cliente) void renomearCliente(cliente, nome);
+          }}
+          onProjeto={(nome) => {
+            if (leadSel.projetoId) atualizarProjeto(leadSel.projetoId, (p) => ({ ...p, nome }));
+          }}
+          onAmbientes={(texto) => void atualizarAmbientesTexto(leadSel.id, texto)}
+          onValor={(texto) => {
+            const v = parseInt(String(texto).replace(/[^0-9]/g, ""), 10) || 0;
+            if (leadSel.projetoId) {
+              // O valor mora no projeto: o cartão do funil lê de lá, e gravar
+              // no lead criaria de volta os dois números que discordavam.
+              atualizarProjeto(leadSel.projetoId, (p) => ({ ...p, valorPrevisto: v }));
+            }
+          }}
+          projetoNome={
+            leadSel.projetoId
+              ? (doBanco.find((p) => p.id === leadSel.projetoId)?.nome ?? null)
+              : null
+          }
+          valorEditavel={
+            // Com orçamento lançado ou contrato assinado o número é derivado;
+            // digitar por cima seria uma terceira versão do mesmo valor.
+            !decorated.find((p) => p.id === leadSel.projetoId)?.doOrcamento &&
+            decorated.find((p) => p.id === leadSel.projetoId)?.contratoAssinado === undefined
+          }
           briefing={sinaisDeBriefing[leadSel.id]}
           onBriefing={() => abrirBriefing(leadSel.id)}
         />
