@@ -18,7 +18,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Amanda Dash",
+  title: "Dashboard - Terracota",
   description: "Painel comercial e de projetos de arquitetura",
   // O iOS ignora o manifesto: quem manda no ícone da tela de início e no modo
   // sem barra de endereço são estas meta tags. O ícone em si é
