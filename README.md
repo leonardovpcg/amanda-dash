@@ -88,6 +88,23 @@ Três coisas que a tela deixa de fora de propósito, porque não são digitadas:
 A coluna "Entregas e montagens" da agenda vem dos três prazos de fábrica no
 cartão de cada ambiente, dentro do projeto — não se digita na agenda.
 
+## Ícone de app
+
+Dá para instalar na tela de início do celular: no Android, "Instalar app" no
+menu do Chrome; no iPhone, "Adicionar à Tela de Início" no Safari. Abre sem
+barra de endereço e com ícone próprio.
+
+O símbolo mora em uma fonte só, [`src/app/icon.svg`](src/app/icon.svg). Os
+PNGs que o iOS e o Android exigem são derivados dele — nenhum dos dois aceita
+SVG para o ícone da tela de início. Se a geometria mudar, gere de novo:
+
+```bash
+node scripts/gerar-icones.mjs
+```
+
+No iPhone o app instalado tem armazenamento próprio, separado do Safari.
+Então ele pede o login uma vez, mesmo com a sessão aberta no navegador.
+
 ## Scripts
 
 ```bash
