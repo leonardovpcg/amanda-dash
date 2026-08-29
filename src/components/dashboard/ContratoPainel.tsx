@@ -16,6 +16,7 @@
    primeiro seria burocracia que ninguém cumpre.
    ═════════════════════════════════════════════════════════════════════════ */
 
+import { AlvoDaSecao, useSecaoAberta } from "./SecaoDobravel";
 import { useState, useSyncExternalStore } from "react";
 import {
   apagarContrato,
@@ -32,7 +33,7 @@ import {
 } from "@/lib/dados/contratos";
 import { hojeISO } from "@/lib/dados/relogio";
 import { brl } from "@/lib/orcamento/calculo";
-import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
+import { MONO, NUM, colLabel, mono, panel } from "./ui";
 
 /** Aceita "84000", "84.000" e "84.000,00". */
 function lerValor(s: string): number | null {
@@ -62,25 +63,29 @@ export default function ContratoPainel({
     lerRecebimentosNoServidor,
   );
 
+  const aberta = useSecaoAberta("contrato");
   const contrato = contratos.find((c) => c.projetoId === projetoId) ?? null;
   const entradas = contrato ? recebimentos.filter((r) => r.contratoId === contrato.id) : [];
 
   return (
     <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-        <div style={cardTitle}>Contrato e recebimentos</div>
-        {contrato && (
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689" }}>
-            assinado em {dataCurta(contrato.assinadoEm)}
-          </div>
-        )}
+      <div className="dash-secao-topo">
+        <AlvoDaSecao id="contrato" titulo="Contrato e recebimentos" aberta={aberta} />
+        {/* O resumo continua visível com o bloco fechado: se falta assinar ou
+            se falta entrada, ela precisa saber sem abrir. */}
+        <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689" }}>
+          {contrato
+            ? "assinado em " + dataCurta(contrato.assinadoEm) + " · " + brl(contrato.recebido) + " recebido"
+            : "sem contrato registrado"}
+        </div>
       </div>
 
-      {contrato ? (
-        <Assinado contrato={contrato} entradas={entradas} valorSugerido={valorSugerido} />
-      ) : (
-        <PorAssinar projetoId={projetoId} valorSugerido={valorSugerido} />
-      )}
+      {aberta &&
+        (contrato ? (
+          <Assinado contrato={contrato} entradas={entradas} valorSugerido={valorSugerido} />
+        ) : (
+          <PorAssinar projetoId={projetoId} valorSugerido={valorSugerido} />
+        ))}
     </div>
   );
 }

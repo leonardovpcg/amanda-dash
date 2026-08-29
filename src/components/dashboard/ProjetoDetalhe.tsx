@@ -9,7 +9,8 @@ import type { StatusDosProjetos } from "@/lib/dados/projetos";
 import BriefingResumo from "./BriefingResumo";
 import ContratoPainel from "./ContratoPainel";
 import Orcamento from "./Orcamento";
-import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
+import SecaoDobravel from "./SecaoDobravel";
+import { MONO, NUM, colLabel, mono } from "./ui";
 
 type AmbienteVM = {
   name: string;
@@ -40,6 +41,8 @@ export type DetalheVM = ProjectVM & {
   stagesVM: {
     label: string;
     date: string;
+    /** O estado já derivado pela camada de dados, para o resumo do bloco. */
+    estado: "done" | "current" | "todo" | "dispensado";
     previsto: string;
     feito: boolean;
     dispensado: boolean;
@@ -74,6 +77,22 @@ export type DetalheVM = ProjectVM & {
 };
 
 const MAT_COLS = "2.4fr 1.2fr 0.8fr 1fr 1fr";
+
+/**
+ * "3 de 6 etapas · em Produção" — o que a linha do tempo diz sem abrir.
+ *
+ * Dispensada não conta como pendente nem como feita: sai do total, senão o
+ * projeto que chegou pronto pareceria eternamente incompleto.
+ */
+function resumoDaLinha(
+  etapas: { estado: "done" | "current" | "todo" | "dispensado"; label: string }[],
+): string {
+  const valem = etapas.filter((e) => e.estado !== "dispensado");
+  const feitas = valem.filter((e) => e.estado === "done").length;
+  const atual = valem.find((e) => e.estado === "current");
+  const contagem = feitas + " de " + valem.length + " etapas";
+  return atual ? contagem + " · em " + atual.label : contagem + " · concluído";
+}
 
 /**
  * O nome do cliente.
@@ -321,22 +340,20 @@ export default function ProjetoDetalhe({
       </div>
 
       {/* ── ambientes ───────────────────────────────────────────────────── */}
-      <div style={{ ...panel, padding: "28px 30px", marginTop: 28 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-          <div style={cardTitle}>Ambientes do projeto</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689" }}>
-              {sel.ambienteCount} ambientes · {sel.budgetLabel}
-            </div>
-            <button
-              className="dash-btn-outline"
-              onClick={onAddAmbiente}
-              style={{ borderRadius: 999, padding: "8px 15px", fontSize: "12.5px" }}
-            >
-              + Ambiente
-            </button>
-          </div>
-        </div>
+      <SecaoDobravel
+        id="ambientes"
+        titulo="Ambientes do projeto"
+        resumo={sel.ambienteCount + " ambientes · " + sel.budgetLabel}
+        acoes={
+          <button
+            className="dash-btn-outline"
+            onClick={onAddAmbiente}
+            style={{ borderRadius: 999, padding: "8px 15px", fontSize: "12.5px" }}
+          >
+            + Ambiente
+          </button>
+        }
+      >
         <div className="dash-amb-grid">
           {sel.ambientesVM.map((a, i) => (
             <div
@@ -486,7 +503,7 @@ export default function ProjetoDetalhe({
             </div>
           ))}
         </div>
-      </div>
+      </SecaoDobravel>
 
       {/* ── briefing do cliente ─────────────────────────────────────────── */}
       <BriefingResumo briefing={briefing} onAbrir={onAbrirBriefing} />
@@ -505,8 +522,11 @@ export default function ProjetoDetalhe({
       <ContratoPainel projetoId={sel.id} valorSugerido={sel.orcamentoTotal} />
 
       {/* ── linha do tempo ──────────────────────────────────────────────── */}
-      <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>
-        <div style={cardTitle}>Linha do tempo do projeto</div>
+      <SecaoDobravel
+        id="linhaDoTempo"
+        titulo="Linha do tempo do projeto"
+        resumo={resumoDaLinha(sel.stagesVM)}
+      >
         <div className="dash-timeline">
           {sel.stagesVM.map((s, i) => (
             <div key={i} className="dash-timeline-passo">
@@ -571,12 +591,18 @@ export default function ProjetoDetalhe({
             </div>
           ))}
         </div>
-      </div>
+      </SecaoDobravel>
 
       {/* ── orçamento por categoria + consulta de preço ─────────────────── */}
-      <div className="dash-grid-2" style={{ marginTop: 20 }}>
-        <div style={{ ...panel, padding: "28px 30px" }}>
-          <div style={cardTitle}>Composição do orçamento</div>
+      {/* `align-items: start` para um recolhido não esticar até a altura do
+          outro — sem isso o bloco fechado deixa um vazio do tamanho do
+          aberto, que é o oposto do que se quer aqui. */}
+      <div className="dash-grid-2" style={{ marginTop: 0, alignItems: "start" }}>
+        <SecaoDobravel
+          id="composicao"
+          titulo="Composição do orçamento"
+          resumo={sel.composicaoVM ? sel.composicaoVM.length + " blocos" : "sem orçamento"}
+        >
           <div style={{ fontSize: "12.5px", color: "#8C887C", marginTop: 6 }}>
             {sel.composicaoVM
               ? "custo de compra × preço de venda · a barra é a margem"
@@ -612,10 +638,10 @@ export default function ProjetoDetalhe({
               </div>
             ))}
           </div>
-        </div>
+        </SecaoDobravel>
 
-        <div style={{ ...panel, padding: "28px 30px" }}>
-          <div style={cardTitle}>Consulta de preço</div>
+        <SecaoDobravel id="consulta" titulo="Consulta de preço">
+
           <div style={{ fontSize: "13px", color: "#6E6A5F", marginTop: 6 }}>
             Procura na sua tabela de valores. O preço é o mesmo que entraria no orçamento —
             custo × multiplicador.
@@ -693,17 +719,20 @@ export default function ProjetoDetalhe({
               ))}
             </div>
           )}
-        </div>
+        </SecaoDobravel>
       </div>
 
       {/* ── materiais ───────────────────────────────────────────────────── */}
-      <div style={{ ...panel, padding: "28px 30px 12px", marginTop: 20 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-          <div style={cardTitle}>Itens e materiais do projeto</div>
-          <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689" }}>
-            {sel.materialsCount} itens{sel.composicaoVM ? " · • do orçamento, a preço de custo" : ""}
-          </div>
-        </div>
+      <SecaoDobravel
+        id="materiais"
+        titulo="Itens e materiais do projeto"
+        padding="28px 30px 12px"
+        resumo={
+          sel.materialsCount +
+          " itens" +
+          (sel.composicaoVM ? " · do orçamento, a preço de custo" : "")
+        }
+      >
         <div className="dash-scroll-x">
           <div>
         <div
@@ -757,7 +786,7 @@ export default function ProjetoDetalhe({
         ))}
           </div>
         </div>
-      </div>
+      </SecaoDobravel>
     </div>
   );
 }

@@ -30,9 +30,10 @@ import {
   type Espessura,
   type OrcamentoAmbiente,
 } from "@/lib/orcamento/tipos";
+import { AlvoDaSecao, useSecaoAberta } from "./SecaoDobravel";
 import Proposta from "./Proposta";
 import SugestaoBriefing from "./SugestaoBriefing";
-import { MONO, NUM, cardTitle, colLabel, mono, panel } from "./ui";
+import { MONO, NUM, colLabel, mono, panel } from "./ui";
 
 /** Aceita "12", "1,5" e "1.250,5" — o teclado brasileiro de quem preenche. */
 const lerNumero = (s: string) => {
@@ -63,6 +64,7 @@ export default function Orcamento({
   comArt: boolean;
   onComArt: (v: boolean) => void;
 }) {
+  const aberta = useSecaoAberta("orcamento");
   const [abertos, setAbertos] = useState<string[]>([]);
   const [sugerindo, setSugerindo] = useState(false);
   // A tabela de valores mora fora do React (localStorage), como o perfil.
@@ -121,13 +123,23 @@ export default function Orcamento({
       {/* ── cabeçalho ─────────────────────────────────────────────────── */}
       <div className="dash-orc-cabeca">
         <div style={{ minWidth: 0 }}>
-          <div style={cardTitle}>Orçamento quantitativo</div>
+          <AlvoDaSecao id="orcamento" titulo="Orçamento quantitativo" aberta={aberta} />
           <div style={{ fontFamily: MONO, fontSize: "11px", color: "#9A9689", marginTop: 5 }}>
-            chapas {vezes(cat.markups.chapas)} · fita {vezes(cat.markups.fita)} · acessórios{" "}
-            {vezes(cat.markups.acessorios)} · ART +{Math.round((cat.markups.art - 1) * 100)}%
+            {aberta ? (
+              <>
+                chapas {vezes(cat.markups.chapas)} · fita {vezes(cat.markups.fita)} · acessórios{" "}
+                {vezes(cat.markups.acessorios)} · ART +{Math.round((cat.markups.art - 1) * 100)}%
+              </>
+            ) : (
+              // Fechado, o que importa é o total — não a régua de markups.
+              <>
+                {ambientes.length} {ambientes.length === 1 ? "ambiente" : "ambientes"} ·{" "}
+                {brl(total)}
+              </>
+            )}
           </div>
         </div>
-        <div className="dash-orc-acoes">
+        <div className="dash-orc-acoes" hidden={!aberta}>
           <button
             className="dash-btn-outline"
             onClick={addAmbiente}
@@ -174,6 +186,8 @@ export default function Orcamento({
         </div>
       </div>
 
+      {aberta && (
+        <>
       {/* ── ART ───────────────────────────────────────────────────────── */}
       {/* Nem todo trabalho leva ART, e antes ela entrava sempre. É do projeto
           inteiro, não por ambiente: quem assina a responsabilidade técnica
@@ -251,6 +265,8 @@ export default function Orcamento({
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
