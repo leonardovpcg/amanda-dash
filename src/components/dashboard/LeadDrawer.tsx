@@ -97,6 +97,8 @@ export default function LeadDrawer({
   onCliente,
   onProjeto,
   onAmbientes,
+  onTelefone,
+  onEmail,
   onValor,
   projetoNome,
   valorEditavel,
@@ -112,6 +114,8 @@ export default function LeadDrawer({
   onCliente: (nome: string) => void;
   onProjeto: (nome: string) => void;
   onAmbientes: (texto: string) => void;
+  onTelefone: (v: string) => void;
+  onEmail: (v: string) => void;
   onValor: (texto: string) => void;
   /** Nome do projeto vinculado, ou nulo em lead que não tem um. */
   projetoNome: string | null;
@@ -313,19 +317,22 @@ export default function LeadDrawer({
 
         <div style={{ ...box, padding: "20px 22px", marginTop: 12 }}>
           <div style={{ fontSize: "14px", fontWeight: 600, letterSpacing: "-0.01em" }}>Contato</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-              <span style={{ color: "#8C887C" }}>Telefone</span>
-              <span style={vm.phone ? NUM : { color: "#A8A498" }}>
-                {vm.phone ?? "não informado"}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-              <span style={{ color: "#8C887C" }}>E-mail</span>
-              <span style={vm.email ? undefined : { color: "#A8A498" }}>
-                {vm.email ?? "não informado"}
-              </span>
-            </div>
+          {/* Eram só de leitura: "não está me deixando preencher depois,
+              telefone e e-mail, só na hora de criar". Telefone que ela não
+              tinha em mãos na abertura é o caso comum, não a exceção. */}
+          <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+            <CampoQueGrava
+              id={lead.id + ":telefone"}
+              rotulo="Telefone"
+              valor={vm.phone ?? ""}
+              onSalvar={onTelefone}
+            />
+            <CampoQueGrava
+              id={lead.id + ":email"}
+              rotulo="E-mail"
+              valor={vm.email ?? ""}
+              onSalvar={onEmail}
+            />
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
               <span style={{ color: "#8C887C" }}>Origem</span>
               <span>{vm.origem}</span>

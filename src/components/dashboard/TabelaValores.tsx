@@ -27,18 +27,13 @@ import {
   type Catalogo,
 } from "@/lib/orcamento/catalogo";
 import { ESPESSURAS, type Espessura } from "@/lib/orcamento/tipos";
+import CampoNumero from "./CampoNumero";
 import SinalDeArmazem from "./StatusDoArmazem";
 import { MONO, NUM, cardTitle, colLabel, mono, panel, sectionTitle } from "./ui";
 
-/** Aceita "12", "1,5" e "1.250,5"; devolve `null` para campo vazio. */
-const lerNumero = (s: string): number | null => {
-  if (!s.trim()) return null;
-  const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) && n >= 0 ? n : null;
-};
-
-const paraCampo = (n: number | undefined) =>
-  n === undefined ? "" : String(n).replace(".", ",");
+/* A leitura e a formatação de número vivem em `CampoNumero`, num lugar só.
+   Eram duas cópias com regras diferentes: a daqui recusava negativo, a do
+   orçamento aceitava, e nenhuma das duas deixava digitar a vírgula. */
 
 export default function TabelaValores() {
   const cat = useSyncExternalStore(assinarCatalogo, lerCatalogo, lerCatalogoNoServidor);
@@ -90,7 +85,7 @@ export default function TabelaValores() {
         <div className="dash-tab-markups">
           <Campo
             rotulo="Chapas"
-            valor={paraCampo(cat.markups.chapas)}
+            valor={(cat.markups.chapas)}
             sufixo="×"
             onChange={(v) =>
               salvar((c) => ({ ...c, markups: { ...c.markups, chapas: v ?? c.markups.chapas } }))
@@ -98,7 +93,7 @@ export default function TabelaValores() {
           />
           <Campo
             rotulo="Fita de borda"
-            valor={paraCampo(cat.markups.fita)}
+            valor={(cat.markups.fita)}
             sufixo="×"
             onChange={(v) =>
               salvar((c) => ({ ...c, markups: { ...c.markups, fita: v ?? c.markups.fita } }))
@@ -106,7 +101,7 @@ export default function TabelaValores() {
           />
           <Campo
             rotulo="Acessórios"
-            valor={paraCampo(cat.markups.acessorios)}
+            valor={(cat.markups.acessorios)}
             sufixo="×"
             onChange={(v) =>
               salvar((c) => ({
@@ -117,7 +112,7 @@ export default function TabelaValores() {
           />
           <Campo
             rotulo="ART"
-            valor={paraCampo(Math.round((cat.markups.art - 1) * 1000) / 10)}
+            valor={(Math.round((cat.markups.art - 1) * 1000) / 10)}
             sufixo="%"
             ajuda="acréscimo sobre o total"
             onChange={(v) =>
@@ -129,7 +124,7 @@ export default function TabelaValores() {
           />
           <Campo
             rotulo="Fita por metro"
-            valor={paraCampo(cat.fitaPorMetro)}
+            valor={(cat.fitaPorMetro)}
             prefixo="R$"
             ajuda="custo, igual para toda cor"
             onChange={(v) => salvar((c) => ({ ...c, fitaPorMetro: v ?? c.fitaPorMetro }))}
@@ -175,7 +170,8 @@ export default function TabelaValores() {
                 {ESPESSURAS.map((esp) => (
                   <Preco
                     key={esp}
-                    valor={paraCampo(cor.precos[esp])}
+                    valor={cor.precos[esp] ?? null}
+                    rotulo={cor.nome + ", " + esp + " mm"}
                     onChange={(v) =>
                       salvar((c) => ({
                         ...c,
@@ -249,7 +245,8 @@ export default function TabelaValores() {
                   }
                 />
                 <Preco
-                  valor={paraCampo(a.custo)}
+                  valor={a.custo}
+                  rotulo={"Custo de " + a.nome}
                   onChange={(v) =>
                     salvar((c) => ({
                       ...c,
@@ -324,7 +321,8 @@ export default function TabelaValores() {
                   }
                 />
                 <Preco
-                  valor={paraCampo(s.custo || undefined)}
+                  valor={s.custo || null}
+                  rotulo={"Custo de " + s.nome}
                   onChange={(v) =>
                     salvar((c) => ({
                       ...c,
@@ -338,7 +336,8 @@ export default function TabelaValores() {
                   }
                 />
                 <Preco
-                  valor={paraCampo(s.markup)}
+                  valor={s.markup}
+                  rotulo={"Markup de " + s.nome}
                   sufixo="×"
                   onChange={(v) =>
                     salvar((c) => ({
@@ -402,7 +401,7 @@ function Campo({
   onChange,
 }: {
   rotulo: string;
-  valor: string;
+  valor: number | null;
   prefixo?: string;
   sufixo?: string;
   ajuda?: string;
@@ -413,11 +412,10 @@ function Campo({
       <div style={mono(10, "#9A9689", { ls: "0.07em", upper: true })}>{rotulo}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
         {prefixo && <span style={{ fontSize: "14px", color: "#6E6A5F" }}>{prefixo}</span>}
-        <input
-          className="dash-field dash-field-sm"
-          inputMode="decimal"
-          value={valor}
-          onChange={(e) => onChange(lerNumero(e.target.value))}
+        <CampoNumero
+          valor={valor}
+          onChange={onChange}
+          aria-label={rotulo}
           style={{ width: 84, textAlign: "right", ...NUM }}
         />
         {sufixo && <span style={{ fontSize: "14px", color: "#6E6A5F" }}>{sufixo}</span>}
@@ -440,21 +438,23 @@ function Texto({ valor, onChange }: { valor: string; onChange: (v: string) => vo
 
 function Preco({
   valor,
+  rotulo,
   sufixo,
   onChange,
 }: {
-  valor: string;
+  valor: number | null;
+  /** Para o leitor de tela saber qual preço é: "Branco TX, 18 mm". */
+  rotulo: string;
   sufixo?: string;
   onChange: (v: number | null) => void;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-      <input
-        className="dash-field dash-field-sm"
-        inputMode="decimal"
-        value={valor}
+      <CampoNumero
+        valor={valor}
         placeholder="—"
-        onChange={(e) => onChange(lerNumero(e.target.value))}
+        onChange={onChange}
+        aria-label={rotulo}
         style={{ width: "100%", minWidth: 0, textAlign: "right", ...NUM }}
       />
       {sufixo && <span style={{ fontSize: "12px", color: "#9A9689" }}>{sufixo}</span>}

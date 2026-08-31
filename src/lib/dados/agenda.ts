@@ -23,6 +23,7 @@
 import { supabase } from "@/lib/supabase/cliente";
 import { criarArmazemDeColecao } from "@/lib/supabase/colecao";
 import { lerSessao } from "@/lib/supabase/sessao";
+import { recarregarProjetos } from "./projetos";
 
 export type TipoDeCompromisso =
   | "visita"
@@ -171,6 +172,31 @@ export async function mudarSituacao(
   return armazem.escrever(async () =>
     supabase!.from("compromissos").update({ situacao }).eq("id", id),
   );
+}
+
+/**
+ * Marca (ou desmarca) o marco de fábrica como realizado, direto da agenda.
+ *
+ * Nas palavras dela: "eu fiz a entrega, só que ele não deixa eu marcar como
+ * concluída". Não deixava mesmo — só o compromisso tinha o botão "Feito", e
+ * a entrega é marco de ambiente, que só se movia avançando a etapa do cartão
+ * lá dentro do projeto. Duas telas para dizer "entreguei" é uma a mais.
+ *
+ * A data é a de hoje no fuso da loja, não a prevista: ela marca quando
+ * aconteceu, e o que aconteceu foi hoje.
+ */
+export async function marcarMarcoDeAmbiente(
+  id: string,
+  realizado: string | null,
+): Promise<string | null> {
+  if (!supabase) return "Sem conexão.";
+  const erro = await armazem.escrever(async () =>
+    supabase!.from("ambiente_marcos").update({ realizado }).eq("id", id),
+  );
+  // O projeto guarda os mesmos marcos: sem isto o cartão do ambiente e a
+  // garantia continuariam com o estado antigo até a próxima carga.
+  if (!erro) await recarregarProjetos();
+  return erro;
 }
 
 export async function apagarCompromisso(id: string): Promise<string | null> {

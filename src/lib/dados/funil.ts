@@ -213,6 +213,27 @@ export async function renomearCliente(clienteId: string, nome: string): Promise<
 }
 
 /**
+ * Telefone e e-mail do cliente.
+ *
+ * Só davam para preencher na criação do atendimento, e o caso comum é o
+ * oposto: ela abre o atendimento com o nome e pega o telefone depois. Campo
+ * vazio grava nulo — apagar um telefone errado precisa ser possível.
+ */
+export async function atualizarContato(
+  clienteId: string,
+  campo: "telefone" | "email",
+  valor: string,
+): Promise<string | null> {
+  if (!supabase) return "Sem conexão.";
+  return armazem.escrever(async () =>
+    supabase!
+      .from("clientes")
+      .update({ [campo]: valor.trim() || null })
+      .eq("id", clienteId),
+  );
+}
+
+/**
  * O texto de ambientes que aparece no cartão do funil.
  *
  * É a anotação da abertura — "Cozinha, Closet · Indicação" —, não a lista de

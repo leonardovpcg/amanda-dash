@@ -32,6 +32,7 @@ import {
   lerRetornosNoServidor,
   lerStatusAgenda,
   lerStatusAgendaNoServidor,
+  marcarMarcoDeAmbiente,
   mudarSituacao,
   rotuloDoTipo,
   type TipoDeCompromisso,
@@ -70,19 +71,25 @@ export default function Agenda({
     lerStatusAgendaNoServidor,
   );
   const [novo, setNovo] = useState(false);
+  // "seria legal se eu conseguisse ver os que já passaram, tipo os que já
+  // concluíram, mesmo que retroativos". Fora do padrão porque a agenda é,
+  // antes de tudo, o que ainda vai acontecer — o histórico é consulta.
+  const [verPassado, setVerPassado] = useState(false);
 
   const hoje = hojeISO(agora);
 
-  const { compromissos, fabrica } = useMemo(() => {
-    // Passado resolvido sai da lista: agenda é o que ainda vai acontecer.
-    // O que passou e não foi feito **fica**, em vermelho — sumir com o
-    // compromisso esquecido é o pior jeito de lembrar dele.
-    const vivos = itens.filter((i) => i.situacao !== "feito" || i.dia >= hoje);
+  const { compromissos, fabrica, concluidos } = useMemo(() => {
+    // Passado resolvido sai da lista por padrão: agenda é o que ainda vai
+    // acontecer. O que passou e NÃO foi feito **fica**, em vermelho — sumir
+    // com o compromisso esquecido é o pior jeito de lembrar dele.
+    const passou = (i: (typeof itens)[number]) => i.situacao === "feito" && i.dia < hoje;
+    const vivos = itens.filter((i) => (verPassado ? true : !passou(i)));
     return {
       compromissos: vivos.filter((i) => !DE_FABRICA.has(i.tipo)),
       fabrica: vivos.filter((i) => DE_FABRICA.has(i.tipo)),
+      concluidos: itens.filter(passou).length,
     };
-  }, [itens, hoje]);
+  }, [itens, hoje, verPassado]);
 
   return (
     <div className="dash-tabpad" style={{ maxWidth: 1440 }}>
@@ -90,13 +97,27 @@ export default function Agenda({
         <div style={{ fontFamily: MONO, fontSize: "11px", color: erro ? "#9C2B22" : "#9A9689" }}>
           {erro ?? (carregando ? "carregando…" : `${itens.length + retornos.length} itens`)}
         </div>
-        <button
-          className="dash-btn-dark"
-          onClick={() => setNovo((v) => !v)}
-          style={{ borderRadius: 999, padding: "11px 20px", fontSize: "12.5px" }}
-        >
-          {novo ? "Fechar" : "+ Novo compromisso"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {concluidos > 0 && (
+            <button
+              className="dash-btn-outline"
+              onClick={() => setVerPassado((v) => !v)}
+              aria-pressed={verPassado}
+              style={{ borderRadius: 999, padding: "10px 16px", fontSize: "12.5px" }}
+            >
+              {verPassado
+                ? "Ocultar concluídos"
+                : "Ver " + concluidos + (concluidos === 1 ? " concluído" : " concluídos")}
+            </button>
+          )}
+          <button
+            className="dash-btn-dark"
+            onClick={() => setNovo((v) => !v)}
+            style={{ borderRadius: 999, padding: "11px 20px", fontSize: "12.5px" }}
+          >
+            {novo ? "Fechar" : "+ Novo compromisso"}
+          </button>
+        </div>
       </div>
 
       {novo && <FormNovo hoje={hoje} onPronto={() => setNovo(false)} />}
@@ -180,7 +201,11 @@ export default function Agenda({
         {/* ── o que a fábrica devolve ──────────────────────────────────── */}
         <Coluna
           titulo="Entregas e montagens"
-          subtitulo="Dos prazos marcados no cartão do ambiente"
+          subtitulo={
+            verPassado
+              ? "Prazos do ambiente, incluindo o que já passou"
+              : "Dos prazos marcados no cartão do ambiente"
+          }
           quantidade={fabrica.length}
           vazio="Nenhum prazo de fábrica marcado."
         >
@@ -196,15 +221,31 @@ export default function Agenda({
               }
               atrasado={i.dia < hoje && i.situacao !== "feito"}
               acoes={
-                i.projetoId ? (
+                <>
+                  {/* Faltava: a entrega é marco de ambiente, e só se movia
+                      avançando a etapa do cartão dentro do projeto. */}
                   <button
                     className="dash-btn-link"
-                    onClick={() => onAbrirProjeto(i.projetoId!)}
-                    style={{ fontSize: "11.5px", color: "#A84B1C" }}
+                    onClick={() =>
+                      void marcarMarcoDeAmbiente(i.id, i.situacao === "feito" ? null : hoje)
+                    }
+                    style={{
+                      fontSize: "11.5px",
+                      color: i.situacao === "feito" ? "#9A9689" : "#6B7040",
+                    }}
                   >
-                    Abrir projeto
+                    {i.situacao === "feito" ? "Desfazer" : "Concluída"}
                   </button>
-                ) : null
+                  {i.projetoId && (
+                    <button
+                      className="dash-btn-link"
+                      onClick={() => onAbrirProjeto(i.projetoId!)}
+                      style={{ fontSize: "11.5px", color: "#A84B1C" }}
+                    >
+                      Abrir projeto
+                    </button>
+                  )}
+                </>
               }
             />
           ))}

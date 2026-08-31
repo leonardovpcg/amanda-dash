@@ -67,6 +67,7 @@ import {
 import {
   assinarFunil,
   atualizarAmbientesTexto,
+  atualizarContato,
   criarAtendimento,
   lerFunil,
   renomearCliente,
@@ -1166,6 +1167,14 @@ export default function DashboardArquitetura({
             if (leadSel.projetoId) atualizarProjeto(leadSel.projetoId, (p) => ({ ...p, nome }));
           }}
           onAmbientes={(texto) => void atualizarAmbientesTexto(leadSel.id, texto)}
+          onTelefone={(v) => {
+            const cliente = clienteDoLead(leadSel.id);
+            if (cliente) void atualizarContato(cliente, "telefone", v);
+          }}
+          onEmail={(v) => {
+            const cliente = clienteDoLead(leadSel.id);
+            if (cliente) void atualizarContato(cliente, "email", v);
+          }}
           onValor={(texto) => {
             const v = parseInt(String(texto).replace(/[^0-9]/g, ""), 10) || 0;
             if (leadSel.projetoId) {

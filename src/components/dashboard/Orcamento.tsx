@@ -31,17 +31,10 @@ import {
   type OrcamentoAmbiente,
 } from "@/lib/orcamento/tipos";
 import { AlvoDaSecao, useSecaoAberta } from "./SecaoDobravel";
+import CampoNumero, { paraTexto } from "./CampoNumero";
 import Proposta from "./Proposta";
 import SugestaoBriefing from "./SugestaoBriefing";
 import { MONO, NUM, colLabel, mono, panel } from "./ui";
-
-/** Aceita "12", "1,5" e "1.250,5" — o teclado brasileiro de quem preenche. */
-const lerNumero = (s: string) => {
-  const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) && n >= 0 ? n : 0;
-};
-
-const paraCampo = (n: number) => (n ? String(n).replace(".", ",") : "");
 
 /** "3.6" → "3,6×". Multiplicador com vírgula, como ela escreve. */
 const vezes = (n: number) => String(n).replace(".", ",") + "×";
@@ -683,12 +676,11 @@ function Bloco({
                   <div style={{ fontSize: "12px", color: "#8C887C" }}>
                     {detalhe ? detalhe(i) : c?.detalhe || c?.unidade}
                   </div>
-                  <input
-                    className="dash-field dash-field-sm"
-                    inputMode="decimal"
-                    value={paraCampo(l.qnt)}
+                  <CampoNumero
+                    valor={l.qnt || null}
                     placeholder="0"
-                    onChange={(e) => onQnt(i, lerNumero(e.target.value))}
+                    onChange={(v) => onQnt(i, v ?? 0)}
+                    aria-label="Quantidade"
                     style={{ width: "100%", textAlign: "right", ...NUM }}
                   />
                   <div style={{ fontSize: "12.5px", textAlign: "right", color: "#4A473F", ...NUM }}>
@@ -780,26 +772,21 @@ function ValorDaLinha({
   onChange: (v: { custo?: number; markup?: number }) => void;
 }) {
   const proprio = custo !== undefined || markup !== undefined;
-  const ler = (t: string) => (t.trim() === "" ? undefined : lerNumero(t));
   return (
     <div className="dash-orc-valor">
-      <input
-        className="dash-field dash-field-sm"
-        inputMode="decimal"
-        value={custo === undefined ? "" : paraCampo(custo)}
-        placeholder={paraCampo(custoPadrao) || "0"}
-        onChange={(e) => onChange({ custo: ler(e.target.value), markup })}
+      <CampoNumero
+        valor={custo ?? null}
+        placeholder={paraTexto(custoPadrao) || "0"}
+        onChange={(v) => onChange({ custo: v ?? undefined, markup })}
         aria-label="Custo desta linha"
         title="Custo só neste projeto. Vazio usa o da tabela de valores."
         style={{ width: 74, padding: "5px 8px", fontSize: "11.5px", borderRadius: 9, ...NUM }}
       />
       <span style={{ ...mono(10, "#B4AFA1") }}>×</span>
-      <input
-        className="dash-field dash-field-sm"
-        inputMode="decimal"
-        value={markup === undefined ? "" : paraCampo(markup)}
-        placeholder={paraCampo(markupPadrao) || "1"}
-        onChange={(e) => onChange({ custo, markup: ler(e.target.value) })}
+      <CampoNumero
+        valor={markup ?? null}
+        placeholder={paraTexto(markupPadrao) || "1"}
+        onChange={(v) => onChange({ custo, markup: v ?? undefined })}
         aria-label="Markup desta linha"
         title="Multiplicador só neste projeto. Vazio usa o da tabela de valores."
         style={{ width: 50, padding: "5px 8px", fontSize: "11.5px", borderRadius: 9, ...NUM }}
