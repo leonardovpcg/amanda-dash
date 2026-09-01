@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { Briefing } from "@/lib/briefing/tipos";
 import type { OrcamentoAmbiente } from "@/lib/orcamento/tipos";
 import type { ProjectVM, PriceResult } from "./DashboardArquitetura";
 import type { StatusDosProjetos } from "@/lib/dados/projetos";
+import {
+  assinarModelo,
+  lerModelo,
+  lerModeloNoServidor,
+} from "@/lib/proposta/modelo";
 import BriefingResumo from "./BriefingResumo";
 import ContratoPainel from "./ContratoPainel";
 import Orcamento from "./Orcamento";
@@ -15,15 +20,17 @@ import { MONO, NUM, colLabel, mono } from "./ui";
 type AmbienteVM = {
   name: string;
   /**
-   * Os módulos do ambiente, um por linha — o "Itens" da proposta do cliente.
-   *
-   * Os três campos de texto abaixo são o que ela escrevia no Word: o que tem
-   * neste ambiente, em que material, e com quais acessórios. Ferragens não
-   * está aqui porque não varia — mora no modelo da proposta, em Ajustes.
-   */
+    * O que a proposta do cliente diz deste ambiente, um item por linha.
+    *
+    * São os quatro campos que ela escrevia no Word: o que tem no ambiente, em
+    * que material, com que ferragem e com quais acessórios. Ferragem em
+    * branco cai no padrão da loja — o normal é o padrão, e banheiro e cozinha
+    * é que fogem dele, com corrediça oculta.
+    */
   detail: string;
   material: string;
   acessorios: string;
+  ferragens: string;
   /** Calculado do orçamento do ambiente — não é mais digitável. */
   valueLabel: string;
   eta: string;
@@ -39,6 +46,7 @@ type AmbienteVM = {
   onDetail: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   onMaterial: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   onAcessorios: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  onFerragens: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   up: () => void;
   down: () => void;
   steps: { color: string }[];
@@ -190,6 +198,14 @@ export default function ProjetoDetalhe({
   /** Falha de leitura ou gravação do armazém de projetos. */
   status: StatusDosProjetos;
 }) {
+  // A ferragem padrão da loja vira a dica do campo do ambiente: em branco, é
+  // ela que sai impressa, e ver o texto ali é o que torna isso óbvio.
+  const ferragensPadrao = useSyncExternalStore(
+    assinarModelo,
+    lerModelo,
+    lerModeloNoServidor,
+  ).ferragens;
+
   return (
     <div className="dash-tabpad" style={{ maxWidth: 1440 }}>
       <button
@@ -404,13 +420,19 @@ export default function ProjetoDetalhe({
                   />
                   <CampoDeProposta
                     rotulo="Material"
-                    dica="MDF, cor, acabamento"
+                    dica="Um por linha — interno, externo…"
                     valor={a.material}
                     onChange={a.onMaterial}
                   />
                   <CampoDeProposta
+                    rotulo="Ferragens"
+                    dica={ferragensPadrao || "Um por linha"}
+                    valor={a.ferragens}
+                    onChange={a.onFerragens}
+                  />
+                  <CampoDeProposta
                     rotulo="Acessórios"
-                    dica="Puxadores, cestos, iluminação"
+                    dica="Um por linha"
                     valor={a.acessorios}
                     onChange={a.onAcessorios}
                   />

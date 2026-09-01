@@ -65,6 +65,28 @@ export function linhasImpressas(a: AmbienteCalculado) {
   );
 }
 
+/** Texto de proposta partido em linhas, sem as vazias nem os espaços à toa. */
+function emLinhas(texto: string): string[] {
+  return texto
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+/** Uma categoria: o rótulo na coluna da esquerda, uma linha por item. */
+function Bloco({ rotulo, linhas }: { rotulo: string; linhas: string[] }) {
+  return (
+    <div className="dash-proposta-espec">
+      <span className="dash-proposta-rot-bloco">{rotulo}</span>
+      <ul className="dash-proposta-itens">
+        {linhas.map((linha, i) => (
+          <li key={i}>{linha}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 const hoje = () =>
   new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -273,25 +295,26 @@ export function AmbienteDoCliente({
   modelo: ModeloDaProposta;
   comArt: boolean;
 }) {
-  const itens = (bruto?.descritivo ?? "")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+  /* Os quatro blocos na mesma grade rótulo → conteúdo, e **todos** quebrados
+     por linha. Antes só Itens era: Material e Acessórios saíam num parágrafo
+     corrido, e dois acessórios encostavam um no outro sem nada entre eles —
+     "…separação de resíduos - Tramontina Puxador Seixo P Gold - Zen" não tem
+     onde o leitor saiba que um acabou e o outro começou.
 
-  /* Os quatro blocos na mesma grade rótulo → conteúdo. Antes "Itens" tinha o
-     rótulo em cima e a lista embaixo, e os outros três tinham o rótulo à
-     esquerda: Acessórios acabava uma linha de prosa solta longe do rótulo que
-     a nomeia. Alinhados na mesma coluna, os quatro leem como um bloco só. */
-  const blocos: [string, string | string[]][] = [];
-  if (itens.length > 0) blocos.push(["Itens", itens]);
+     Categoria de uma linha só continua saindo como sempre: uma lista de um
+     item é indistinguível de uma linha de texto. */
+  const blocos: [string, string[]][] = [];
   for (const [rotulo, texto] of [
-    ["Material", (bruto?.material ?? "").trim()],
-    ["Ferragens", modelo.ferragens.trim()],
-    ["Acessórios", (bruto?.acessoriosTexto ?? "").trim()],
+    ["Itens", bruto?.descritivo ?? ""],
+    ["Material", bruto?.material ?? ""],
+    // A do ambiente ganha da do modelo; vazio cai no padrão da loja.
+    ["Ferragens", (bruto?.ferragens ?? "").trim() || modelo.ferragens],
+    ["Acessórios", bruto?.acessoriosTexto ?? ""],
   ] as const) {
+    const linhas = emLinhas(texto);
     // Bloco sem texto não vira rótulo órfão: a proposta é o que o cliente lê,
     // e "Acessórios" com nada embaixo parece esquecimento.
-    if (texto) blocos.push([rotulo, texto]);
+    if (linhas.length > 0) blocos.push([rotulo, linhas]);
   }
 
   return (
@@ -306,19 +329,8 @@ export function AmbienteDoCliente({
           Descritivo a preencher no cartão do ambiente.
         </div>
       ) : (
-        blocos.map(([rotulo, conteudo]) => (
-          <div key={rotulo} className="dash-proposta-espec">
-            <span className="dash-proposta-rot-bloco">{rotulo}</span>
-            {Array.isArray(conteudo) ? (
-              <ul className="dash-proposta-itens">
-                {conteudo.map((linha, i) => (
-                  <li key={i}>{linha}</li>
-                ))}
-              </ul>
-            ) : (
-              <span>{conteudo}</span>
-            )}
-          </div>
+        blocos.map(([rotulo, linhas]) => (
+          <Bloco key={rotulo} rotulo={rotulo} linhas={linhas} />
         ))
       )}
     </section>
@@ -359,13 +371,13 @@ function Fechamento({
         </div>
       )}
 
+      {/* O fecho passa pelo mesmo caminho: condição de várias linhas também
+          sai uma por linha, e no mesmo alinhamento dos ambientes. */}
       {condicoes
-        .filter(([, texto]) => texto)
-        .map(([rotulo, texto]) => (
-          <div key={rotulo} className="dash-proposta-espec">
-            <span className="dash-proposta-rot-bloco">{rotulo}</span>
-            <span>{texto}</span>
-          </div>
+        .map(([rotulo, texto]) => [rotulo, emLinhas(texto)] as const)
+        .filter(([, linhas]) => linhas.length > 0)
+        .map(([rotulo, linhas]) => (
+          <Bloco key={rotulo} rotulo={rotulo} linhas={linhas} />
         ))}
 
       <div className="dash-proposta-total">

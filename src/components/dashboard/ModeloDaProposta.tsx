@@ -31,7 +31,7 @@ import { cardTitle, colLabel, panel, sectionTitle } from "./ui";
 
 /** Os campos de uma linha só, na ordem em que aparecem na proposta. */
 const CURTOS: [keyof ModeloDaProposta, string, string][] = [
-  ["ferragens", "Ferragens", "Repetido em todo ambiente da proposta"],
+  ["ferragens", "Ferragens", "Uma por linha · padrão da loja, que o ambiente pode trocar"],
   ["pagamento", "Forma de pagamento", ""],
   ["garantia", "Garantia", ""],
   ["prazo", "Prazo de entrega", ""],
@@ -76,7 +76,8 @@ export default function ModeloEditor() {
           <h2 style={sectionTitle}>Modelo da proposta</h2>
           <p style={{ fontSize: "13px", color: "#8C887C", margin: "6px 0 0", maxWidth: 620 }}>
             O que sai igual em toda proposta. Itens, material e acessórios de cada ambiente
-            ficam dentro do projeto.
+            ficam dentro do projeto — e a ferragem daqui vale para todo ambiente que não
+            tiver a sua.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

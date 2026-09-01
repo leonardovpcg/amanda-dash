@@ -377,7 +377,7 @@ export default function DashboardArquitetura({
 
   const setAmb = (
     i: number,
-    campo: "nome" | "detalhe" | "material" | "acessoriosTexto",
+    campo: "nome" | "detalhe" | "material" | "acessoriosTexto" | "ferragens",
     v: string,
   ) =>
     editar((p) => ({
@@ -667,6 +667,7 @@ export default function DashboardArquitetura({
           detail: dtl,
           material: cru?.material ?? "",
           acessorios: cru?.acessoriosTexto ?? "",
+          ferragens: cru?.ferragens ?? "",
           valueLabel: calc ? brl(totalFinal(calc, comArtDoProjeto)) : money(0),
           // A legenda era texto livre; agora é o próximo prazo de fábrica em
           // aberto, e cai no nome da etapa quando não há data marcada.
@@ -688,6 +689,8 @@ export default function DashboardArquitetura({
             setAmb(i, "material", e.target.value),
           onAcessorios: (e: React.ChangeEvent<HTMLTextAreaElement>) =>
             setAmb(i, "acessoriosTexto", e.target.value),
+          onFerragens: (e: React.ChangeEvent<HTMLTextAreaElement>) =>
+            setAmb(i, "ferragens", e.target.value),
           up: () => stepAmb(i, 1),
           down: () => stepAmb(i, -1),
           steps: AMB_STEPS.map((_, k) => ({

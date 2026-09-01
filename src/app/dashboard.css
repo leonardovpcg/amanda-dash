@@ -1139,7 +1139,7 @@ textarea.dash-inline:focus {
      pode partir; o que não pode é o título ficar sozinho no pé da página, nem
      uma linha órfã atravessar. */
   .dash-proposta-amb {
-    margin-top: 18pt;
+    margin-top: 22pt;
     orphans: 2;
     widows: 2;
   }
@@ -1268,13 +1268,22 @@ textarea.dash-inline:focus {
     margin: 0;
     padding-left: 0;
     list-style: none;
-    line-height: 1.5;
+    line-height: 1.45;
   }
+  /* Recuo pendente: a primeira linha começa rente à coluna, e o que dobra
+     entra 10pt. Sem isso, um item que ocupa duas linhas termina com a
+     segunda rente à margem — e ela lê como um item novo, que é metade da
+     confusão de quem recebe a proposta. */
   .dash-proposta-itens li {
-    margin-bottom: 2pt;
+    padding-left: 10pt;
+    text-indent: -10pt;
+    margin-bottom: 2.5pt;
     text-align: justify;
     hyphens: auto;
     break-inside: avoid;
+  }
+  .dash-proposta-itens li:last-child {
+    margin-bottom: 0;
   }
 
   /* Rótulo e texto na mesma linha, o rótulo com largura fixa para os três
@@ -1289,7 +1298,7 @@ textarea.dash-inline:focus {
     align-items: baseline;
     font-size: 9.5pt;
     line-height: 1.5;
-    margin-top: 7pt;
+    margin-top: 9pt;
     break-inside: avoid;
   }
   /* Só o conteúdo é justificado; o rótulo é curto e ficaria esticado. */

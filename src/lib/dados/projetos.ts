@@ -102,6 +102,14 @@ export type AmbienteDoBanco = {
   material: string;
   /** Acessórios em prosa — variam por ambiente, ao contrário das ferragens. */
   acessoriosTexto: string;
+  /**
+   * Ferragens deste ambiente. Vazio significa "usa o padrão do modelo".
+   *
+   * O padrão é o normal — banheiro e cozinha é que fogem dele, com corrediça
+   * oculta. Guardar vazio em vez de copiar o texto do modelo faz com que
+   * mudar o padrão da loja alcance todos os ambientes que não fugiram.
+   */
+  ferragens: string;
   marcos: Partial<Record<TipoDeMarcoDeAmbiente, MarcoDeAmbiente>>;
   ordem: number;
   origemBriefing: string | null;
@@ -166,6 +174,7 @@ type LinhaAmbiente = {
   origem_briefing: string | null;
   material?: string | null;
   acessorios_texto?: string | null;
+  ferragens?: string | null;
 };
 
 type LinhaProjeto = {
@@ -241,8 +250,9 @@ async function buscar() {
   const LINHA = "id, ambiente_id, bloco, item_id, espessura, qnt, ordem, custo_unitario, markup";
   const LINHA_ANTES = "id, ambiente_id, bloco, item_id, espessura, qnt, ordem";
   const AMBIENTE =
+    "id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing, material, acessorios_texto, ferragens";
+  const AMBIENTE_ANTES =
     "id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing, material, acessorios_texto";
-  const AMBIENTE_ANTES = "id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing";
 
   const [ps, ambs, linhas, marcos, marcosAmb] = await Promise.all([
     comQuedaDeColuna<LinhaProjeto>(
@@ -352,6 +362,7 @@ async function buscar() {
       eta: linha.eta ?? "",
       material: linha.material ?? "",
       acessoriosTexto: linha.acessorios_texto ?? "",
+      ferragens: linha.ferragens ?? "",
       marcos: marcosPorAmbiente.get(linha.id) ?? {},
       ordem: linha.ordem,
       origemBriefing: linha.origem_briefing,
@@ -579,6 +590,7 @@ async function sincronizar(id: string): Promise<void> {
         detalhe: a.detalhe || null,
         material: a.material || null,
         acessorios_texto: a.acessoriosTexto || null,
+        ferragens: a.ferragens || null,
         etapa: a.etapa,
         eta: a.eta || null,
         ordem: i,
@@ -590,6 +602,7 @@ async function sincronizar(id: string): Promise<void> {
       antigo.detalhe !== a.detalhe ||
       antigo.material !== a.material ||
       antigo.acessoriosTexto !== a.acessoriosTexto ||
+      antigo.ferragens !== a.ferragens ||
       antigo.etapa !== a.etapa ||
       antigo.eta !== a.eta ||
       antigo.ordem !== i ||
@@ -602,6 +615,7 @@ async function sincronizar(id: string): Promise<void> {
           detalhe: a.detalhe || null,
           material: a.material || null,
           acessorios_texto: a.acessoriosTexto || null,
+          ferragens: a.ferragens || null,
           etapa: a.etapa,
           eta: a.eta || null,
           ordem: i,
@@ -875,6 +889,7 @@ export function adicionarAmbiente(projetoId: string, nome = "Novo ambiente"): vo
         eta: "",
         material: "",
         acessoriosTexto: "",
+        ferragens: "",
         marcos: {},
         ordem: p.ambientes.length,
         origemBriefing: null,
@@ -910,6 +925,7 @@ export function orcamentoDoProjeto(p: ProjetoDoBanco): OrcamentoAmbiente[] {
     descritivo: a.detalhe,
     material: a.material,
     acessoriosTexto: a.acessoriosTexto,
+    ferragens: a.ferragens,
     ...a.orcamento,
   }));
 }
@@ -936,6 +952,7 @@ export function aplicarOrcamento(projetoId: string, novos: OrcamentoAmbiente[]):
           // Vêm do orçamento quando ela editou lá; senão preserva o que estava.
           material: n.material ?? antigo?.material ?? "",
           acessoriosTexto: n.acessoriosTexto ?? antigo?.acessoriosTexto ?? "",
+          ferragens: n.ferragens ?? antigo?.ferragens ?? "",
           marcos: antigo?.marcos ?? {},
           ordem: i,
           origemBriefing: n.origemBriefing ?? antigo?.origemBriefing ?? null,

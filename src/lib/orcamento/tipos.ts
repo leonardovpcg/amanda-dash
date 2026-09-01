@@ -95,6 +95,8 @@ export type OrcamentoAmbiente = {
   material?: string;
   /** Texto de proposta — não confundir com o bloco `acessorios`, que é lista. */
   acessoriosTexto?: string;
+  /** Ferragem só deste ambiente. Vazio cai no padrão do modelo da proposta. */
+  ferragens?: string;
   /**
    * Ambiente do briefing que originou este, quando veio da ponte.
    *
