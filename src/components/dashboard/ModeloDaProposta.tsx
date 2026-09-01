@@ -42,10 +42,10 @@ const LONGOS: [keyof ModeloDaProposta, string, string][] = [
   ["despedida", "Despedida", ""],
 ];
 
-const ASSINATURA: [keyof ModeloDaProposta, string][] = [
-  ["proprietario", "Proprietário"],
-  ["consultora", "Consultora"],
-  ["contato", "Endereço e contato"],
+/** Nome e telefone de quem responde pela proposta, lado a lado no fecho. */
+const ASSINATURA: [keyof ModeloDaProposta, keyof ModeloDaProposta, string][] = [
+  ["proprietario", "telefoneProprietario", "Proprietário"],
+  ["consultora", "telefoneConsultora", "Consultora"],
 ];
 
 export default function ModeloEditor() {
@@ -136,14 +136,26 @@ export default function ModeloEditor() {
             onChange={(v) => trocar(campo, v)}
           />
         ))}
-        {ASSINATURA.map(([campo, rotulo]) => (
-          <Campo
-            key={campo}
-            rotulo={rotulo}
-            valor={modelo[campo] as string}
-            onChange={(v) => trocar(campo, v)}
-          />
+        {ASSINATURA.map(([campo, tel, rotulo]) => (
+          <div key={campo} style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 14 }}>
+            <Campo
+              rotulo={rotulo}
+              valor={modelo[campo] as string}
+              onChange={(v) => trocar(campo, v)}
+            />
+            <Campo
+              rotulo="Telefone"
+              valor={modelo[tel] as string}
+              onChange={(v) => trocar(tel, v)}
+            />
+          </div>
         ))}
+        <Campo
+          rotulo="Endereço e contato"
+          dica="Fecha a última página, abaixo das assinaturas"
+          valor={modelo.contato}
+          onChange={(v) => trocar("contato", v)}
+        />
       </div>
     </>
   );

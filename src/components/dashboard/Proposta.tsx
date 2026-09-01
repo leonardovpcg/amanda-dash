@@ -14,6 +14,7 @@
 
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { SimboloTerracota } from "./LogoTerracota";
 import { brl } from "@/lib/orcamento/calculo";
 import { totalFinal } from "@/lib/orcamento/derivar";
 import type {
@@ -101,14 +102,52 @@ export default function Proposta({
   // O portal só existe depois de montar: no servidor não há `document.body`.
   const montado = useSyncExternalStore(semOuvintes, noCliente, noServidor);
   if (!montado) return null;
-  const paraCliente = modo === "cliente";
 
   return createPortal(
+    <CorpoDaProposta
+      projeto={projeto}
+      proj={proj}
+      ambientes={ambientes}
+      modelo={modelo}
+      comArt={comArt}
+      modo={modo}
+    />,
+    document.body,
+  );
+}
+
+/**
+ * O documento em si, sem o portal nem a leitura do armazém.
+ *
+ * Separado para poder ser montado fora do navegador — é o que permite provar
+ * o que sai impresso sem depender de uma sessão aberta.
+ */
+export function CorpoDaProposta({
+  projeto,
+  proj,
+  ambientes,
+  modelo,
+  comArt,
+  modo,
+}: {
+  projeto: { nome: string; cliente: string; endereco: string };
+  proj: ProjetoCalculado;
+  ambientes: OrcamentoAmbiente[];
+  modelo: ModeloDaProposta;
+  comArt: boolean;
+  modo: "cliente" | "interna";
+}) {
+  const paraCliente = modo === "cliente";
+
+  return (
     <div className="dash-proposta">
       <header className="dash-proposta-topo">
-        <div>
-          <div className="dash-proposta-marca">TERRACOTA</div>
-          <div className="dash-proposta-marca-sub">Móveis Planejados</div>
+        <div className="dash-proposta-marca-bloco">
+          <SimboloTerracota size={40} />
+          <div>
+            <div className="dash-proposta-marca">TERRACOTA</div>
+            <div className="dash-proposta-marca-sub">Móveis Planejados</div>
+          </div>
         </div>
         <div className="dash-proposta-data">
           Proposta comercial
@@ -164,8 +203,7 @@ export default function Proposta({
           </footer>
         </>
       )}
-    </div>,
-    document.body,
+    </div>
   );
 }
 
@@ -301,6 +339,8 @@ function Fechamento({
 
   return (
     <section className="dash-proposta-fecho">
+      <h2>Condições comerciais</h2>
+
       {observacoes.length > 0 && (
         <ol className="dash-proposta-obs">
           {observacoes.map((o, i) => (
@@ -335,13 +375,20 @@ function Fechamento({
       )}
 
       <div className="dash-proposta-assina">
-        {[modelo.proprietario, modelo.consultora].filter((n) => n.trim()).map((nome, i) => (
-          <div key={i}>
-            <div className="dash-proposta-linha-assina" />
-            <div>{nome}</div>
-            <div className="dash-proposta-papel">{i === 0 ? "Proprietário" : "Consultora"}</div>
-          </div>
-        ))}
+        {(
+          [
+            [modelo.proprietario, "Proprietário", modelo.telefoneProprietario],
+            [modelo.consultora, "Consultora", modelo.telefoneConsultora],
+          ] as const
+        )
+          .filter(([nome]) => nome.trim())
+          .map(([nome, papel, telefone]) => (
+            <div key={papel} className="dash-proposta-cartao">
+              <div className="dash-proposta-papel">{papel}</div>
+              <div className="dash-proposta-nome">{nome}</div>
+              {telefone.trim() && <div className="dash-proposta-tel">{telefone}</div>}
+            </div>
+          ))}
       </div>
 
       {modelo.contato.trim() && (

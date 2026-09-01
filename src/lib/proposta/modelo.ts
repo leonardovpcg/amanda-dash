@@ -30,10 +30,13 @@ export type ModeloDaProposta = {
   prazo: string;
   /** O texto de "Nossa empresa", na segunda página. */
   empresa: string;
-  /** O fecho: quem assina e como falar com a loja. */
+  /** O fecho: quem responde pela proposta e como falar com a loja. */
   despedida: string;
   proprietario: string;
+  /** Ao lado do nome, não no rodapé: é por ali que o cliente liga. */
+  telefoneProprietario: string;
   consultora: string;
+  telefoneConsultora: string;
   contato: string;
 };
 
@@ -56,7 +59,9 @@ export const MODELO_PADRAO: ModeloDaProposta = {
   despedida:
     "Esperamos poder atender suas necessidades. Qualquer dúvida, favor entrar em contato.",
   proprietario: "Hugo Dias",
+  telefoneProprietario: "(67) 99916-1155",
   consultora: "Amanda Lourenço",
+  telefoneConsultora: "(67) 99227-4043",
   contato: "R. Cotegipe · Paquetá · Campo Grande, MS · @planejados.terracota",
 };
 
@@ -84,7 +89,9 @@ function interpretar(bruto: unknown): ModeloDaProposta {
     empresa: texto(m.empresa, MODELO_PADRAO.empresa),
     despedida: texto(m.despedida, MODELO_PADRAO.despedida),
     proprietario: texto(m.proprietario, MODELO_PADRAO.proprietario),
+    telefoneProprietario: texto(m.telefoneProprietario, MODELO_PADRAO.telefoneProprietario),
     consultora: texto(m.consultora, MODELO_PADRAO.consultora),
+    telefoneConsultora: texto(m.telefoneConsultora, MODELO_PADRAO.telefoneConsultora),
     contato: texto(m.contato, MODELO_PADRAO.contato),
   };
 }
