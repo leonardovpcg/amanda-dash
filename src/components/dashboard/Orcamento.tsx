@@ -232,7 +232,13 @@ export default function Orcamento({
           );
         })}
         {!vazio && (
-          <Proposta projeto={projeto} proj={proj} comArt={comArt} modo={modoImpressao} />
+          <Proposta
+            projeto={projeto}
+            proj={proj}
+            ambientes={ambientes}
+            comArt={comArt}
+            modo={modoImpressao}
+          />
         )}
         {sugerindo && briefing && (
           <SugestaoBriefing

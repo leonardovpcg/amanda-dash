@@ -14,7 +14,16 @@ import { MONO, NUM, colLabel, mono } from "./ui";
 
 type AmbienteVM = {
   name: string;
+  /**
+   * Os módulos do ambiente, um por linha — o "Itens" da proposta do cliente.
+   *
+   * Os três campos de texto abaixo são o que ela escrevia no Word: o que tem
+   * neste ambiente, em que material, e com quais acessórios. Ferragens não
+   * está aqui porque não varia — mora no modelo da proposta, em Ajustes.
+   */
   detail: string;
+  material: string;
+  acessorios: string;
   /** Calculado do orçamento do ambiente — não é mais digitável. */
   valueLabel: string;
   eta: string;
@@ -28,6 +37,8 @@ type AmbienteVM = {
   }[];
   onName: (e: ChangeEvent<HTMLInputElement>) => void;
   onDetail: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  onMaterial: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  onAcessorios: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   up: () => void;
   down: () => void;
   steps: { color: string }[];
@@ -385,20 +396,23 @@ export default function ProjetoDetalhe({
                       width: "100%",
                     }}
                   />
-                  <textarea
-                    className="dash-inline"
-                    value={a.detail}
+                  <CampoDeProposta
+                    rotulo="Itens"
+                    dica="Um módulo por linha"
+                    valor={a.detail}
                     onChange={a.onDetail}
-                    rows={2}
-                    style={{
-                      fontSize: "12px",
-                      lineHeight: 1.45,
-                      color: "#8C887C",
-                      width: "100%",
-                      marginTop: 2,
-                      resize: "none",
-                      overflow: "hidden",
-                    }}
+                  />
+                  <CampoDeProposta
+                    rotulo="Material"
+                    dica="MDF, cor, acabamento"
+                    valor={a.material}
+                    onChange={a.onMaterial}
+                  />
+                  <CampoDeProposta
+                    rotulo="Acessórios"
+                    dica="Puxadores, cestos, iluminação"
+                    valor={a.acessorios}
+                    onChange={a.onAcessorios}
                   />
                 </div>
                 {/* Sai do orçamento do ambiente. Digitável seria uma segunda
@@ -791,6 +805,48 @@ export default function ProjetoDetalhe({
           </div>
         </div>
       </SecaoDobravel>
+    </div>
+  );
+}
+
+/**
+ * Um dos três textos de proposta do ambiente.
+ *
+ * Cresce com o conteúdo. A caixa era `rows={2}` com `overflow: hidden`, o que
+ * escondia o texto a partir da terceira linha — e o descritivo de um roupeiro
+ * tem oito. Sem barra de rolagem porque uma barra dentro do cartão do
+ * ambiente, dentro do bloco, dentro da página, é uma a mais do que dá para
+ * usar; a caixa simplesmente fica do tamanho do que está escrito.
+ */
+function CampoDeProposta({
+  rotulo,
+  dica,
+  valor,
+  onChange,
+}: {
+  rotulo: string;
+  dica: string;
+  valor: string;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+}) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ ...colLabel(), marginBottom: 3 }}>{rotulo}</div>
+      <textarea
+        className="dash-inline"
+        value={valor}
+        onChange={onChange}
+        placeholder={dica}
+        rows={Math.max(1, valor.split("\n").length)}
+        style={{
+          fontSize: "12px",
+          lineHeight: 1.5,
+          color: "#5C594F",
+          width: "100%",
+          resize: "none",
+          overflow: "hidden",
+        }}
+      />
     </div>
   );
 }

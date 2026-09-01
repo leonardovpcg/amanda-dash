@@ -98,6 +98,10 @@ export type AmbienteDoBanco = {
   etapa: number;
   /** @deprecated Texto livre que virou `marcos`. Não é mais lido pela tela. */
   eta: string;
+  /** Especificação de material, em prosa, para a proposta do cliente. */
+  material: string;
+  /** Acessórios em prosa — variam por ambiente, ao contrário das ferragens. */
+  acessoriosTexto: string;
   marcos: Partial<Record<TipoDeMarcoDeAmbiente, MarcoDeAmbiente>>;
   ordem: number;
   origemBriefing: string | null;
@@ -160,6 +164,8 @@ type LinhaAmbiente = {
   eta: string | null;
   ordem: number;
   origem_briefing: string | null;
+  material?: string | null;
+  acessorios_texto?: string | null;
 };
 
 type LinhaProjeto = {
@@ -234,6 +240,9 @@ async function buscar() {
     "id, cliente_id, lead_id, nome, endereco, situacao, etapa, prazo, valor_previsto, clientes(nome)";
   const LINHA = "id, ambiente_id, bloco, item_id, espessura, qnt, ordem, custo_unitario, markup";
   const LINHA_ANTES = "id, ambiente_id, bloco, item_id, espessura, qnt, ordem";
+  const AMBIENTE =
+    "id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing, material, acessorios_texto";
+  const AMBIENTE_ANTES = "id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing";
 
   const [ps, ambs, linhas, marcos, marcosAmb] = await Promise.all([
     comQuedaDeColuna<LinhaProjeto>(
@@ -244,10 +253,10 @@ async function buscar() {
           .order("criado_em", { ascending: false }),
       () => supabase!.from("projetos").select(PROJETO_ANTES).order("criado_em", { ascending: false }),
     ),
-    supabase
-      .from("ambientes")
-      .select("id, projeto_id, nome, detalhe, etapa, eta, ordem, origem_briefing")
-      .order("ordem"),
+    comQuedaDeColuna<LinhaAmbiente>(
+      () => supabase!.from("ambientes").select(AMBIENTE).order("ordem"),
+      () => supabase!.from("ambientes").select(AMBIENTE_ANTES).order("ordem"),
+    ),
     comQuedaDeColuna<LinhaOrcamento>(
       () =>
         supabase!
@@ -290,7 +299,7 @@ async function buscar() {
   const falhaDeMarcos = marcos.error ?? marcosAmb.error;
   // Coluna que ainda não foi migrada não apaga a lista: a consulta caiu para
   // a versão anterior e a tela diz o que falta rodar.
-  const colunaFaltando = ps.faltando ?? linhas.faltando;
+  const colunaFaltando = ps.faltando ?? linhas.faltando ?? ambs.faltando;
   aviso =
     falhaDeMarcos
       ? "Prazos e linha do tempo indisponíveis: " + falhaDeMarcos.message
@@ -333,7 +342,7 @@ async function buscar() {
   }
 
   const ambientesPorProjeto = new Map<string, AmbienteDoBanco[]>();
-  for (const linha of (ambs.data ?? []) as unknown as LinhaAmbiente[]) {
+  for (const linha of (ambs.data ?? []) as LinhaAmbiente[]) {
     const lista = ambientesPorProjeto.get(linha.projeto_id) ?? [];
     lista.push({
       id: linha.id,
@@ -341,6 +350,8 @@ async function buscar() {
       detalhe: linha.detalhe ?? "",
       etapa: linha.etapa,
       eta: linha.eta ?? "",
+      material: linha.material ?? "",
+      acessoriosTexto: linha.acessorios_texto ?? "",
       marcos: marcosPorAmbiente.get(linha.id) ?? {},
       ordem: linha.ordem,
       origemBriefing: linha.origem_briefing,
@@ -566,6 +577,8 @@ async function sincronizar(id: string): Promise<void> {
         projeto_id: id,
         nome: a.nome,
         detalhe: a.detalhe || null,
+        material: a.material || null,
+        acessorios_texto: a.acessoriosTexto || null,
         etapa: a.etapa,
         eta: a.eta || null,
         ordem: i,
@@ -575,6 +588,8 @@ async function sincronizar(id: string): Promise<void> {
     } else if (
       antigo.nome !== a.nome ||
       antigo.detalhe !== a.detalhe ||
+      antigo.material !== a.material ||
+      antigo.acessoriosTexto !== a.acessoriosTexto ||
       antigo.etapa !== a.etapa ||
       antigo.eta !== a.eta ||
       antigo.ordem !== i ||
@@ -585,6 +600,8 @@ async function sincronizar(id: string): Promise<void> {
         .update({
           nome: a.nome,
           detalhe: a.detalhe || null,
+          material: a.material || null,
+          acessorios_texto: a.acessoriosTexto || null,
           etapa: a.etapa,
           eta: a.eta || null,
           ordem: i,
@@ -856,6 +873,8 @@ export function adicionarAmbiente(projetoId: string, nome = "Novo ambiente"): vo
         detalhe: "",
         etapa: 0,
         eta: "",
+        material: "",
+        acessoriosTexto: "",
         marcos: {},
         ordem: p.ambientes.length,
         origemBriefing: null,
@@ -886,6 +905,11 @@ export function orcamentoDoProjeto(p: ProjetoDoBanco): OrcamentoAmbiente[] {
     id: a.id,
     nome: a.nome,
     origemBriefing: a.origemBriefing ?? undefined,
+    // O que a proposta do cliente imprime. Ficava para trás aqui, e era por
+    // isso que o descritivo não tinha como chegar na impressão.
+    descritivo: a.detalhe,
+    material: a.material,
+    acessoriosTexto: a.acessoriosTexto,
     ...a.orcamento,
   }));
 }
@@ -906,9 +930,12 @@ export function aplicarOrcamento(projetoId: string, novos: OrcamentoAmbiente[]):
         return {
           id: n.id,
           nome: n.nome,
-          detalhe: antigo?.detalhe ?? "",
+          detalhe: n.descritivo ?? antigo?.detalhe ?? "",
           etapa: antigo?.etapa ?? 0,
           eta: antigo?.eta ?? "",
+          // Vêm do orçamento quando ela editou lá; senão preserva o que estava.
+          material: n.material ?? antigo?.material ?? "",
+          acessoriosTexto: n.acessoriosTexto ?? antigo?.acessoriosTexto ?? "",
           marcos: antigo?.marcos ?? {},
           ordem: i,
           origemBriefing: n.origemBriefing ?? antigo?.origemBriefing ?? null,

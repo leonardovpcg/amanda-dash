@@ -84,6 +84,18 @@ export type OrcamentoAmbiente = {
   id: string;
   nome: string;
   /**
+   * O que a proposta do cliente mostra deste ambiente.
+   *
+   * `descritivo` é o texto dos módulos que ela escreve no cartão — "01 UN ·
+   * Armário roupeiro com porta de giro em MDF Greige". Os três viajam junto
+   * com o orçamento porque é a tela do orçamento que imprime a proposta, e
+   * antes eles ficavam para trás no caminho.
+   */
+  descritivo?: string;
+  material?: string;
+  /** Texto de proposta — não confundir com o bloco `acessorios`, que é lista. */
+  acessoriosTexto?: string;
+  /**
    * Ambiente do briefing que originou este, quando veio da ponte.
    *
    * Vínculo explícito em vez de casar por nome: os dois lados são editáveis,

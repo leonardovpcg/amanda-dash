@@ -1216,6 +1216,108 @@ textarea.dash-inline:focus {
     line-height: 1.6;
     color: #6e6a5f;
   }
+
+  /* ── via do cliente ──────────────────────────────────────────────────
+     Os quatro blocos em prosa que substituíram a lista do orçamento. */
+
+  .dash-proposta-empresa {
+    font-size: 9.5pt;
+    line-height: 1.6;
+    color: #6e6a5f;
+    margin: 12pt 0 0;
+    max-width: 46em;
+  }
+
+  .dash-proposta-rot-bloco {
+    display: block;
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 7.5pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9a9689;
+    margin-top: 7pt;
+  }
+
+  .dash-proposta-itens {
+    margin: 4pt 0 0;
+    padding-left: 12pt;
+    font-size: 10pt;
+    line-height: 1.55;
+  }
+  .dash-proposta-itens li {
+    margin-bottom: 1.5pt;
+  }
+
+  /* Rótulo e texto na mesma linha, o rótulo com largura fixa para os três
+     blocos alinharem entre si. */
+  .dash-proposta-espec {
+    display: grid;
+    grid-template-columns: 62pt 1fr;
+    gap: 8pt;
+    align-items: baseline;
+    font-size: 9.5pt;
+    line-height: 1.5;
+    margin-top: 5pt;
+  }
+  .dash-proposta-espec .dash-proposta-rot-bloco {
+    margin-top: 0;
+  }
+
+  /* O fechamento começa em página nova: as condições e o total são a última
+     folha da proposta, não um rodapé do último ambiente. */
+  .dash-proposta-fecho {
+    break-before: page;
+    padding-top: 4pt;
+  }
+  .dash-proposta-obs {
+    margin: 0 0 14pt;
+    padding-left: 12pt;
+    font-size: 9pt;
+    line-height: 1.6;
+    color: #6e6a5f;
+  }
+  .dash-proposta-obs li {
+    margin-bottom: 4pt;
+  }
+  .dash-proposta-obs-art {
+    font-size: 9pt;
+    color: #6e6a5f;
+    margin-top: 3pt;
+  }
+
+  .dash-proposta-despedida {
+    font-size: 10pt;
+    line-height: 1.6;
+    margin: 22pt 0 0;
+  }
+
+  .dash-proposta-assina {
+    display: flex;
+    gap: 40pt;
+    margin-top: 34pt;
+  }
+  .dash-proposta-assina > div {
+    flex: 1;
+    text-align: center;
+    font-size: 9.5pt;
+  }
+  .dash-proposta-linha-assina {
+    border-top: 0.75pt solid #23231f;
+    margin-bottom: 5pt;
+  }
+  .dash-proposta-papel {
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 8pt;
+    color: #9a9689;
+    margin-top: 2pt;
+  }
+  .dash-proposta-contato {
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 8.5pt;
+    color: #8c887c;
+    text-align: center;
+    margin-top: 26pt;
+  }
 }
 
 /* botões do cabeçalho do orçamento — quebram para baixo antes de espremer */

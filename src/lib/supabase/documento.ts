@@ -21,7 +21,7 @@
 import { supabase } from "./cliente";
 import { assinarSessao, lerSessao } from "./sessao";
 
-export type ChaveDeConfiguracao = "catalogo" | "roteiro" | "regras" | "perfil";
+export type ChaveDeConfiguracao = "catalogo" | "roteiro" | "regras" | "perfil" | "proposta";
 
 export type StatusDoArmazem = {
   /** `true` até a primeira resposta do banco. */
