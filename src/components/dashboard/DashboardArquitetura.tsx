@@ -493,7 +493,7 @@ export default function DashboardArquitetura({
               a.detalhe,
               0,
               a.etapa,
-              legendaDoAmbiente(a, AMB_STEPS[Math.min(a.etapa, 5)]),
+              legendaDoAmbiente(a),
             ] as Ambiente,
         ),
         stages: linhaDoTempo(p),
@@ -664,7 +664,7 @@ export default function DashboardArquitetura({
           valueLabel: calc ? brl(totalFinal(calc, comArtDoProjeto)) : money(0),
           // A legenda era texto livre; agora é o próximo prazo de fábrica em
           // aberto, e cai no nome da etapa quando não há data marcada.
-          eta: cru ? legendaDoAmbiente(cru, AMB_STEPS[Math.min(step, 5)]) : AMB_STEPS[Math.min(step, 5)],
+          eta: cru ? legendaDoAmbiente(cru) : "",
           status: AMB_STEPS[Math.min(step, 5)],
           prazos: MARCOS_DE_AMBIENTE.map(([tipo, rotulo, naEtapa]) => ({
             tipo,

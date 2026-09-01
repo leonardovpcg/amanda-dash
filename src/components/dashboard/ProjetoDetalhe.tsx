@@ -479,9 +479,13 @@ export default function ProjetoDetalhe({
                   {a.status}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9A9689" }}>
-                    {a.eta}
-                  </div>
+                  {/* Vazia quando não há prazo marcado: o nome da etapa já
+                      aparece à esquerda, e repetir só parecia defeito. */}
+                  {a.eta && (
+                    <div style={{ fontFamily: MONO, fontSize: "10.5px", color: "#9A9689" }}>
+                      {a.eta}
+                    </div>
+                  )}
                   <button
                     className="dash-btn-step"
                     onClick={a.down}

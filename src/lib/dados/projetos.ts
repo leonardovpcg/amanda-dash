@@ -27,17 +27,29 @@ export type TipoDeMarco =
   | "briefing"
   | "projeto"
   | "aprovacao"
+  | "executivo"
   | "producao"
-  | "entrega"
-  | "montagem";
+  | "montagem"
+  | "entrega";
 
+/**
+ * A régua do projeto, na ordem em que ela trabalha.
+ *
+ * "Executivo" é o projeto executivo, desenhado depois de o cliente aprovar.
+ * "Entrega" fecha, depois da montagem — é assim que a obra termina para ela.
+ *
+ * Não confundir com a entrega de `MARCOS_DE_AMBIENTE`: aquela é a fábrica
+ * despachando cada ambiente, que acontece em datas diferentes (a cozinha
+ * embarca antes do closet). Esta é o encerramento do projeto inteiro.
+ */
 export const MARCOS: [TipoDeMarco, string][] = [
   ["briefing", "Briefing"],
   ["projeto", "Projeto"],
   ["aprovacao", "Aprovação"],
+  ["executivo", "Executivo"],
   ["producao", "Produção"],
-  ["entrega", "Entrega"],
   ["montagem", "Montagem"],
+  ["entrega", "Entrega"],
 ];
 
 export type SituacaoDoProjeto = "aguardando" | "andamento" | "concluido" | "cancelado";
@@ -809,16 +821,19 @@ export function definirPrevisto(
 /**
  * A legenda de prazo do cartão do ambiente.
  *
- * Mostra o próximo marco ainda não realizado que tenha data. Sem data
- * nenhuma, cai no nome da etapa — que é o que o cartão já dizia antes de
- * `ambiente_marcos` ganhar tela.
+ * Mostra o próximo marco ainda não realizado que tenha data — "18 set ·
+ * montagem". Sem data nenhuma devolve vazio, e o cartão esconde a legenda.
+ *
+ * Caía no nome da etapa antes, o que fazia o cartão escrever "Medição" duas
+ * vezes: o nome já aparece ao lado, em terracota. Legenda que repete o vizinho
+ * não informa nada e ainda parece defeito.
  */
-export function legendaDoAmbiente(a: AmbienteDoBanco, nomeDaEtapa: string): string {
+export function legendaDoAmbiente(a: AmbienteDoBanco): string {
   for (const [tipo, rotulo] of MARCOS_DE_AMBIENTE) {
     const m = a.marcos[tipo];
     if (m?.previsto && !m.realizado) return `${diaCurto(m.previsto)} · ${rotulo.toLowerCase()}`;
   }
-  return nomeDaEtapa;
+  return "";
 }
 
 const MES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
