@@ -946,10 +946,13 @@ textarea.dash-inline:focus {
 }
 
 /* uma linha de lançamento: item · detalhe · qtd · unitário · custo · remover */
+/* A coluna de venda entrou porque a linha dizia "markup 3×" e mostrava só
+   custo — a multiplicação acontecia no total do bloco e nunca na linha, o que
+   fazia parecer que o markup não estava sendo aplicado. */
 .dash-orc-row {
   display: grid;
-  grid-template-columns: minmax(150px, 2.2fr) 108px 74px 1fr 1fr 30px;
-  gap: 12px;
+  grid-template-columns: minmax(140px, 2fr) 100px 68px 1fr 1fr 1fr 30px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -2071,4 +2074,12 @@ textarea.dash-inline:focus {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+/* A tabela do orçamento pede mais que os 620px das outras: são sete colunas
+   desde que a venda por linha entrou. Seletor com dois níveis de propósito —
+   `.dash-scroll-x > *` tem a mesma especificidade, e depender da ordem do
+   arquivo é como a regra da pílula do perfil deixou de valer uma vez. */
+.dash-scroll-x > .dash-orc-tabela {
+  min-width: 760px;
 }

@@ -131,6 +131,16 @@ export type LinhaCalculada = {
   unidade: string;
   custoUnitario: number;
   custo: number;
+  /**
+   * O que esta linha vende: custo × markup × quantidade.
+   *
+   * Nasce na linha, e não no fim do bloco, porque acessórios e mão de obra
+   * têm markup por item — o bloco não tem um multiplicador único para
+   * aplicar. E porque a tela precisa mostrar o número: antes a linha dizia
+   * "markup 3×" e só exibia custo, então a multiplicação parecia não estar
+   * acontecendo.
+   */
+  venda: number;
 };
 
 export type BlocoCalculado = {

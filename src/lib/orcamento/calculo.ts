@@ -67,9 +67,24 @@ function indexar(cat: Catalogo): Indice {
   return novo;
 }
 
+/*
+  A venda do bloco é a soma das vendas das linhas.
+
+  Era `custo × markup`, o que só funciona quando o bloco inteiro tem um
+  multiplicador só. Acessórios e mão de obra não têm — cada item pode ter o
+  seu — e por isso os dois precisavam sobrescrever `venda` depois. Somando as
+  linhas, os quatro blocos passam a ser calculados do mesmo jeito, e não há
+  como um deles ficar para trás.
+*/
 function bloco(id: BlocoId, linhas: LinhaCalculada[], markup: number): BlocoCalculado {
-  const custo = cents(soma(linhas.map((l) => l.custo)));
-  return { id, titulo: TITULOS[id], linhas, custo, markup, venda: cents(custo * markup) };
+  return {
+    id,
+    titulo: TITULOS[id],
+    linhas,
+    custo: cents(soma(linhas.map((l) => l.custo))),
+    markup,
+    venda: cents(soma(linhas.map((l) => l.venda))),
+  };
 }
 
 /**
@@ -118,6 +133,7 @@ export function calcularAmbiente(
         unidade: "chapa",
         custoUnitario: 0,
         custo: 0,
+        venda: 0,
       };
     }
     const preco = cor.precos[l.espessura];
@@ -133,6 +149,7 @@ export function calcularAmbiente(
       unidade: "chapa",
       custoUnitario: preco ?? 0,
       custo: (preco ?? 0) * l.qnt,
+      venda: (preco ?? 0) * l.qnt * markups.chapas,
     };
   });
 
@@ -154,6 +171,7 @@ export function calcularAmbiente(
       unidade: "m",
       custoUnitario: cat.fitaPorMetro,
       custo: cat.fitaPorMetro * l.metros,
+      venda: cat.fitaPorMetro * l.metros * markups.fita,
     };
   });
 
@@ -162,7 +180,6 @@ export function calcularAmbiente(
   // item ou digitado no projeto, e o bloco soma a venda linha a linha — como
   // a mão de obra sempre fez.
   const acessorios: LinhaCalculada[] = [];
-  let acessoriosVenda = 0;
   amb.acessorios.forEach((l, i) => {
     const item = ix.acessorios.get(l.acessorioId);
     if (!item) {
@@ -179,13 +196,13 @@ export function calcularAmbiente(
         unidade: "un",
         custoUnitario: 0,
         custo: 0,
+        venda: 0,
       });
       return;
     }
     if (!l.qnt) avisar("acessorios", i, "sem-quantidade", `${item.nome} está sem quantidade.`);
     const custo = l.custo ?? item.custo;
     const markup = l.markup ?? item.markup ?? markups.acessorios;
-    acessoriosVenda += custo * markup * l.qnt;
     acessorios.push({
       nome: item.nome,
       detalhe: rotuloDoValor(l, item.custo, item.markup ?? markups.acessorios, markup),
@@ -193,14 +210,13 @@ export function calcularAmbiente(
       unidade: item.unidade,
       custoUnitario: custo,
       custo: custo * l.qnt,
+      venda: custo * markup * l.qnt,
     });
   });
 
   // ── mão de obra ────────────────────────────────────────────────────────
-  // Único bloco com markup por item: usinagem sai a 3×, espelho e porta de
-  // vidro a 2×. Por isso a venda é somada linha a linha, não no fim.
+  // Markup por item: usinagem sai a 3×, espelho e porta de vidro a 2×.
   const maoDeObraLinhas: LinhaCalculada[] = [];
-  let maoDeObraVenda = 0;
   amb.maoDeObra.forEach((l, i) => {
     const s = ix.maoDeObra.get(l.servicoId);
     if (!s) {
@@ -212,6 +228,7 @@ export function calcularAmbiente(
         unidade: "un",
         custoUnitario: 0,
         custo: 0,
+        venda: 0,
       });
       return;
     }
@@ -221,7 +238,6 @@ export function calcularAmbiente(
     const custo = l.custo ?? s.custo;
     const markup = l.markup ?? s.markup;
     if (!custo) avisar("maoDeObra", i, "sem-preco", `${s.nome} ainda não tem custo cotado.`);
-    maoDeObraVenda += custo * markup * l.qnt;
     maoDeObraLinhas.push({
       nome: s.nome,
       detalhe: rotuloDoValor(l, s.custo, s.markup, markup),
@@ -229,26 +245,22 @@ export function calcularAmbiente(
       unidade: s.unidade,
       custoUnitario: custo,
       custo: custo * l.qnt,
+      venda: custo * markup * l.qnt,
     });
   });
 
   const blocos = {
     chapas: bloco("chapas", chapas, markups.chapas),
     fita: bloco("fita", fita, markups.fita),
+    // A venda dos quatro sai da soma das linhas. O `markup` do bloco é só
+    // rótulo — 0 quando varia por item, e aí a tela escreve "markup por item".
     acessorios: {
       ...bloco("acessorios", acessorios, markups.acessorios),
-      // Como a mão de obra: markup 0 é o sinal de "varia por item".
       markup: amb.acessorios.some((l) => l.markup ?? ix.acessorios.get(l.acessorioId)?.markup)
         ? 0
         : markups.acessorios,
-      venda: cents(acessoriosVenda),
-    } as BlocoCalculado,
-    maoDeObra: {
-      ...bloco("maoDeObra", maoDeObraLinhas, 1),
-      // markup 0 sinaliza "varia por item" — a UI mostra "por item".
-      markup: 0,
-      venda: cents(maoDeObraVenda),
-    } as BlocoCalculado,
+    },
+    maoDeObra: { ...bloco("maoDeObra", maoDeObraLinhas, 1), markup: 0 },
   };
 
   const total = cents(

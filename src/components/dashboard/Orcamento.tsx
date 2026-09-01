@@ -645,7 +645,7 @@ function Bloco({
       </div>
 
       <div className="dash-scroll-x">
-        <div>
+        <div className="dash-orc-tabela">
           <div
             className="dash-orc-row"
             style={{ padding: "12px 0 8px", borderBottom: "1px solid #EDEAE2" }}
@@ -655,6 +655,7 @@ function Bloco({
             <div style={colLabel()}>Qtd</div>
             <div style={colLabel("right")}>Unitário</div>
             <div style={colLabel("right")}>Custo</div>
+            <div style={colLabel("right")}>Venda</div>
             <div />
           </div>
 
@@ -686,8 +687,21 @@ function Bloco({
                   <div style={{ fontSize: "12.5px", textAlign: "right", color: "#4A473F", ...NUM }}>
                     {c ? brl(c.custoUnitario) : "—"}
                   </div>
-                  <div style={{ fontSize: "12.5px", textAlign: "right", fontWeight: 600, ...NUM }}>
+                  <div style={{ fontSize: "12.5px", textAlign: "right", color: "#4A473F", ...NUM }}>
                     {c ? brl(c.custo) : "—"}
+                  </div>
+                  {/* O resultado do markup, na própria linha. Sem ele o "× 3"
+                      do detalhe era uma promessa que a linha nunca cumpria. */}
+                  <div
+                    style={{
+                      fontSize: "12.5px",
+                      textAlign: "right",
+                      fontWeight: 600,
+                      color: "#A84B1C",
+                      ...NUM,
+                    }}
+                  >
+                    {c ? brl(c.venda) : "—"}
                   </div>
                   <button
                     className="dash-btn-step"
