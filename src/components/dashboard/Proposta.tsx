@@ -278,11 +278,21 @@ export function AmbienteDoCliente({
     .map((l) => l.trim())
     .filter(Boolean);
 
-  const blocos: [string, string][] = [
+  /* Os quatro blocos na mesma grade rótulo → conteúdo. Antes "Itens" tinha o
+     rótulo em cima e a lista embaixo, e os outros três tinham o rótulo à
+     esquerda: Acessórios acabava uma linha de prosa solta longe do rótulo que
+     a nomeia. Alinhados na mesma coluna, os quatro leem como um bloco só. */
+  const blocos: [string, string | string[]][] = [];
+  if (itens.length > 0) blocos.push(["Itens", itens]);
+  for (const [rotulo, texto] of [
     ["Material", (bruto?.material ?? "").trim()],
     ["Ferragens", modelo.ferragens.trim()],
     ["Acessórios", (bruto?.acessoriosTexto ?? "").trim()],
-  ];
+  ] as const) {
+    // Bloco sem texto não vira rótulo órfão: a proposta é o que o cliente lê,
+    // e "Acessórios" com nada embaixo parece esquecimento.
+    if (texto) blocos.push([rotulo, texto]);
+  }
 
   return (
     <section className="dash-proposta-amb">
@@ -291,31 +301,26 @@ export function AmbienteDoCliente({
         <div className="dash-proposta-amb-valor">{brl(totalFinal(a, comArt))}</div>
       </div>
 
-      {itens.length > 0 ? (
-        <>
-          <div className="dash-proposta-rot-bloco">Itens</div>
-          <ul className="dash-proposta-itens">
-            {itens.map((linha, i) => (
-              <li key={i}>{linha}</li>
-            ))}
-          </ul>
-        </>
-      ) : (
+      {blocos.length === 0 ? (
         <div className="dash-proposta-vazio">
           Descritivo a preencher no cartão do ambiente.
         </div>
-      )}
-
-      {/* Bloco sem texto não vira título órfão: a proposta é o que o cliente
-          lê, e "Acessórios" com nada embaixo parece esquecimento. */}
-      {blocos
-        .filter(([, texto]) => texto)
-        .map(([rotulo, texto]) => (
+      ) : (
+        blocos.map(([rotulo, conteudo]) => (
           <div key={rotulo} className="dash-proposta-espec">
             <span className="dash-proposta-rot-bloco">{rotulo}</span>
-            <span>{texto}</span>
+            {Array.isArray(conteudo) ? (
+              <ul className="dash-proposta-itens">
+                {conteudo.map((linha, i) => (
+                  <li key={i}>{linha}</li>
+                ))}
+              </ul>
+            ) : (
+              <span>{conteudo}</span>
+            )}
           </div>
-        ))}
+        ))
+      )}
     </section>
   );
 }
@@ -341,12 +346,17 @@ function Fechamento({
     <section className="dash-proposta-fecho">
       <h2>Condições comerciais</h2>
 
+      {/* Na mesma grade das condições e dos ambientes: com recuo próprio a
+          lista ficava num terceiro alinhamento, sem rótulo que a nomeasse. */}
       {observacoes.length > 0 && (
-        <ol className="dash-proposta-obs">
-          {observacoes.map((o, i) => (
-            <li key={i}>{o}</li>
-          ))}
-        </ol>
+        <div className="dash-proposta-espec">
+          <span className="dash-proposta-rot-bloco">Observações</span>
+          <ol className="dash-proposta-obs">
+            {observacoes.map((o, i) => (
+              <li key={i}>{o}</li>
+            ))}
+          </ol>
+        </div>
       )}
 
       {condicoes

@@ -1134,9 +1134,14 @@ textarea.dash-inline:focus {
   }
 
   /* Um ambiente nunca é partido entre duas páginas. */
+  /* Deixar o ambiente inteiro indivisível empurrava um bloco de meia página
+     para a folha seguinte e abria um vão branco no fim da anterior. Agora ele
+     pode partir; o que não pode é o título ficar sozinho no pé da página, nem
+     uma linha órfã atravessar. */
   .dash-proposta-amb {
-    break-inside: avoid;
-    margin-top: 22pt;
+    margin-top: 18pt;
+    orphans: 2;
+    widows: 2;
   }
   .dash-proposta-amb-topo {
     display: flex;
@@ -1145,6 +1150,7 @@ textarea.dash-inline:focus {
     gap: 16pt;
     border-bottom: 0.75pt solid #e6e1d6;
     padding-bottom: 5pt;
+    break-after: avoid;
   }
   .dash-proposta-amb-topo h2 {
     font-size: 12.5pt;
@@ -1248,25 +1254,27 @@ textarea.dash-inline:focus {
   }
 
   .dash-proposta-rot-bloco {
-    display: block;
     font-family: var(--font-plex-mono), monospace;
     font-size: 7.5pt;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #9a9689;
-    margin-top: 7pt;
   }
 
+  /* Sem marcador e sem recuo: cada item já começa com "01 UN ·", e o ponto
+     do bullet só empurraria o texto para fora da coluna onde Material e
+     Acessórios começam. Alinhados, os quatro blocos leem como um só. */
   .dash-proposta-itens {
-    margin: 4pt 0 0;
-    padding-left: 12pt;
-    font-size: 10pt;
-    line-height: 1.55;
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    line-height: 1.5;
   }
   .dash-proposta-itens li {
-    margin-bottom: 1.5pt;
+    margin-bottom: 2pt;
     text-align: justify;
     hyphens: auto;
+    break-inside: avoid;
   }
 
   /* Rótulo e texto na mesma linha, o rótulo com largura fixa para os três
@@ -1274,28 +1282,29 @@ textarea.dash-inline:focus {
   .dash-proposta-espec {
     display: grid;
     /* Larga o bastante para "FORMA DE PAGAMENTO" caber numa linha: em 62pt
-       ela quebrava e desalinhava o rótulo do texto que ele nomeia. */
+       ela quebrava e desalinhava o rótulo do texto que ele nomeia. Uma só
+       medida no documento inteiro — é ela que faz tudo alinhar na vertical. */
     grid-template-columns: 100pt 1fr;
     gap: 10pt;
     align-items: baseline;
     font-size: 9.5pt;
     line-height: 1.5;
-    margin-top: 5pt;
+    margin-top: 7pt;
+    break-inside: avoid;
   }
-  .dash-proposta-espec .dash-proposta-rot-bloco {
-    margin-top: 0;
-  }
-  /* Só o valor é justificado; o rótulo é curto e ficaria esticado. */
-  .dash-proposta-espec > span + span {
+  /* Só o conteúdo é justificado; o rótulo é curto e ficaria esticado. */
+  .dash-proposta-espec > *:nth-child(2) {
     text-align: justify;
     hyphens: auto;
   }
 
   /* O fechamento começa em página nova: as condições e o total são a última
      folha da proposta, não um rodapé do último ambiente. */
+  /* Forçar folha nova aqui deixava o fim da anterior em branco quando os
+     ambientes acabavam no meio da página. Flui; o que o segura junto é o
+     título não se separar do que vem embaixo. */
   .dash-proposta-fecho {
-    break-before: page;
-    padding-top: 4pt;
+    margin-top: 24pt;
   }
   .dash-proposta-fecho h2 {
     font-size: 12.5pt;
@@ -1303,18 +1312,23 @@ textarea.dash-inline:focus {
     margin: 0 0 12pt;
     padding-bottom: 5pt;
     border-bottom: 0.75pt solid #e6e1d6;
+    break-after: avoid;
   }
+  /* O recuo é só o que o número ocupa: o texto precisa começar na mesma
+     coluna do conteúdo dos outros blocos. */
   .dash-proposta-obs {
-    margin: 0 0 14pt;
+    margin: 0;
     padding-left: 12pt;
     font-size: 9pt;
-    line-height: 1.6;
+    line-height: 1.55;
     color: #6e6a5f;
   }
   .dash-proposta-obs li {
     margin-bottom: 4pt;
+    padding-left: 4pt;
     text-align: justify;
     hyphens: auto;
+    break-inside: avoid;
   }
   .dash-proposta-obs-art {
     font-size: 9pt;
@@ -1325,15 +1339,17 @@ textarea.dash-inline:focus {
   .dash-proposta-despedida {
     font-size: 10pt;
     line-height: 1.6;
-    margin: 22pt 0 0;
+    margin: 20pt 0 0;
     text-align: justify;
     hyphens: auto;
+    break-after: avoid;
   }
 
   .dash-proposta-assina {
     display: flex;
     gap: 14pt;
-    margin-top: 26pt;
+    margin-top: 22pt;
+    break-inside: avoid;
   }
   /* Cartão com a barra da marca à esquerda, no lugar do traço para assinar:
      a proposta vai por WhatsApp, ninguém assina à caneta. O que o cliente
