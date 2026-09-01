@@ -20,19 +20,32 @@ import { AlvoDaSecao, useSecaoAberta } from "./SecaoDobravel";
 import { useState, useSyncExternalStore } from "react";
 import {
   apagarContrato,
+  apagarParcela,
   apagarRecebimento,
   assinarContrato,
   assinarContratos,
+  assinarParcelas,
   assinarRecebimentos,
+  criarParcela,
   lerContratos,
   lerContratosNoServidor,
+  lerParcelas,
+  lerParcelasNoServidor,
   lerRecebimentos,
   lerRecebimentosNoServidor,
   registrarRecebimento,
   type Contrato,
+  type Parcela,
+  type Recebimento,
 } from "@/lib/dados/contratos";
-import { hojeISO } from "@/lib/dados/relogio";
+import {
+  assinarRelogio,
+  hojeISO,
+  lerRelogio,
+  lerRelogioNoServidor,
+} from "@/lib/dados/relogio";
 import { brl } from "@/lib/orcamento/calculo";
+import CampoNumero from "./CampoNumero";
 import { MONO, NUM, colLabel, mono, panel } from "./ui";
 
 /** Aceita "84000", "84.000" e "84.000,00". */
@@ -57,15 +70,18 @@ export default function ContratoPainel({
   valorSugerido: number;
 }) {
   const contratos = useSyncExternalStore(assinarContratos, lerContratos, lerContratosNoServidor);
+  const parcelas = useSyncExternalStore(assinarParcelas, lerParcelas, lerParcelasNoServidor);
+  // As baixas, para ela poder desfazer uma lançada errada. Sem isso a parcela
+  // ficaria "recebida" para sempre, sem caminho de volta.
   const recebimentos = useSyncExternalStore(
     assinarRecebimentos,
     lerRecebimentos,
     lerRecebimentosNoServidor,
   );
+  const agora = useSyncExternalStore(assinarRelogio, lerRelogio, lerRelogioNoServidor);
 
   const aberta = useSecaoAberta("contrato");
   const contrato = contratos.find((c) => c.projetoId === projetoId) ?? null;
-  const entradas = contrato ? recebimentos.filter((r) => r.contratoId === contrato.id) : [];
 
   return (
     <div style={{ ...panel, padding: "28px 30px", marginTop: 20 }}>
@@ -82,7 +98,13 @@ export default function ContratoPainel({
 
       {aberta &&
         (contrato ? (
-          <Assinado contrato={contrato} entradas={entradas} valorSugerido={valorSugerido} />
+          <Assinado
+            contrato={contrato}
+            parcelas={parcelas}
+            recebimentos={recebimentos}
+            hoje={hojeISO(agora)}
+            valorSugerido={valorSugerido}
+          />
         ) : (
           <PorAssinar projetoId={projetoId} valorSugerido={valorSugerido} />
         ))}
@@ -218,13 +240,22 @@ function PorAssinar({
 
 function Assinado({
   contrato,
-  entradas,
+  parcelas,
+  recebimentos,
+  hoje,
   valorSugerido,
 }: {
   contrato: Contrato;
-  entradas: { id: string; parcelaId: string; numero: number; valor: number; recebidoEm: string; forma: string }[];
+  parcelas: Parcela[];
+  recebimentos: Recebimento[];
+  hoje: string;
   valorSugerido: number;
 }) {
+  const minhas = parcelas.filter((p) => p.contratoId === contrato.id);
+  // O que ainda não foi posto em nenhuma parcela. Negativo quer dizer que o
+  // plano passou do contrato — que é erro de digitação, não desconto.
+  const aDistribuir = contrato.valor - minhas.reduce((t, p) => t + p.valor, 0);
+  const vencida = (p: Parcela) => !p.quitada && p.venceEm < hoje;
   const saldo = contrato.valor - contrato.recebido;
   const pct = contrato.valor > 0 ? Math.min(100, Math.round((contrato.recebido / contrato.valor) * 100)) : 0;
   // Um real de diferença é arredondamento de centavo, não reajuste.
@@ -272,40 +303,80 @@ function Assinado({
         </div>
       )}
 
-      {/* O número sai do maior já usado, não da contagem: remover a 1ª de três
-          entradas e contar de novo daria 3, que já existe — e o banco tem
-          `unique (contrato_id, numero)`. */}
-      <NovaEntrada
-        contratoId={contrato.id}
-        saldo={saldo}
-        proximo={Math.max(0, ...entradas.map((r) => r.numero)) + 1}
-      />
+      {/* ── o plano de pagamento ────────────────────────────────────────
+          O parcelamento é combinado na assinatura, antes de qualquer dinheiro
+          entrar. Antes só existia "registrar entrada", que criava a parcela e
+          a baixa no mesmo gesto — e aí não havia como escrever o combinado. */}
+      <div style={{ marginTop: 26, paddingTop: 22, borderTop: "1px solid #F0EDE5" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={colLabel()}>Plano de pagamento</div>
+          <div style={{ ...mono(11, aDistribuir > 0.01 ? "#A84B1C" : "#9A9689"), ...NUM }}>
+            {aDistribuir > 0.01
+              ? "falta distribuir " + brl(aDistribuir)
+              : aDistribuir < -0.01
+                ? "as parcelas passam do contrato em " + brl(-aDistribuir)
+                : "parcelas fecham com o contrato"}
+          </div>
+        </div>
 
-      {entradas.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <div style={colLabel()}>Entradas</div>
+        {minhas.length > 0 && (
           <div style={{ marginTop: 10 }}>
-            {entradas.map((r) => (
-              <div key={r.id} className="dash-meta-item">
+            {minhas.map((p) => (
+              <div key={p.id} className="dash-parcela">
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "13.5px", fontWeight: 600, ...NUM }}>{brl(r.valor)}</div>
-                  <div style={{ ...mono(11, "#9A9689"), marginTop: 3 }}>
-                    {dataCurta(r.recebidoEm)}
-                    {r.forma ? ` · ${r.forma}` : ""}
+                  <div style={{ fontSize: "13.5px", fontWeight: 600, ...NUM }}>
+                    {p.numero}ª · {brl(p.valor)}
+                  </div>
+                  <div style={{ ...mono(11, vencida(p) ? "#9C2B22" : "#9A9689"), marginTop: 3 }}>
+                    {p.quitada
+                      ? "recebida"
+                      : (vencida(p) ? "venceu em " : "vence em ") + dataCurta(p.venceEm)}
+                    {!p.quitada && p.recebido > 0 ? " · " + brl(p.recebido) + " parcial" : ""}
                   </div>
                 </div>
-                <button
-                  className="dash-btn-link"
-                  onClick={() => void apagarRecebimento(r.id, r.parcelaId)}
-                  style={{ fontSize: "12.5px", color: "#9C2B22" }}
-                >
-                  Remover
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  {!p.quitada && <BaixaRapida parcela={p} hoje={hoje} />}
+                  <button
+                    className="dash-btn-link"
+                    onClick={() => void apagarParcela(p.id)}
+                    style={{ fontSize: "12px", color: "#9C2B22" }}
+                  >
+                    Remover
+                  </button>
+                </div>
+
+                {/* As baixas desta parcela, para desfazer a que foi lançada
+                    errada. Desfazer devolve a parcela ao plano em vez de
+                    apagá-la: o combinado com o cliente não mudou. */}
+                {recebimentos
+                  .filter((r) => r.parcelaId === p.id)
+                  .map((r) => (
+                    <div key={r.id} className="dash-parcela-baixa-feita">
+                      <span style={mono(11, "#6B7040")}>
+                        {brl(r.valor)} · {dataCurta(r.recebidoEm)}
+                        {r.forma ? " · " + r.forma : ""}
+                      </span>
+                      <button
+                        className="dash-btn-link"
+                        onClick={() => void apagarRecebimento(r.id)}
+                        style={{ fontSize: "11px", color: "#9A9689" }}
+                      >
+                        desfazer
+                      </button>
+                    </div>
+                  ))}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+
+        <NovaParcela
+          contratoId={contrato.id}
+          aDistribuir={aDistribuir}
+          proximo={Math.max(0, ...minhas.map((p) => p.numero)) + 1}
+          hoje={hoje}
+        />
+      </div>
 
       <div style={{ marginTop: 22 }}>
         <button
@@ -316,63 +387,63 @@ function Assinado({
           Desfazer contrato
         </button>
         <span style={{ ...mono(11, "#B4AFA1"), marginLeft: 10 }}>
-          apaga também as entradas registradas
+          apaga o plano de pagamento e as baixas
         </span>
       </div>
     </>
   );
 }
 
-function NovaEntrada({
+/**
+ * Uma parcela nova no plano.
+ *
+ * O valor já vem sugerido com o que falta distribuir: o caso comum é fechar o
+ * plano na assinatura, e digitar de novo um número que a tela acabou de
+ * calcular é trabalho à toa.
+ *
+ * O número sai do maior já usado, não da contagem: remover a 1ª de três e
+ * contar de novo daria 3, que já existe — e o banco tem
+ * `unique (contrato_id, numero)`.
+ */
+function NovaParcela({
   contratoId,
-  saldo,
+  aDistribuir,
   proximo,
+  hoje,
 }: {
   contratoId: string;
-  saldo: number;
+  aDistribuir: number;
   proximo: number;
+  hoje: string;
 }) {
-  const [valor, setValor] = useState("");
-  const [data, setData] = useState(hojeISO());
-  const [forma, setForma] = useState("");
+  const [valor, setValor] = useState<number | null>(null);
+  const [data, setData] = useState(hoje);
   const [salvando, setSalvando] = useState(false);
   const [falha, setFalha] = useState<string | null>(null);
 
-  const registrar = async () => {
-    const v = lerValor(valor);
-    if (v === null) {
-      setFalha("Informe o valor recebido.");
-      return;
-    }
+  const emUso = valor ?? (aDistribuir > 0.01 ? Math.round(aDistribuir * 100) / 100 : null);
+
+  const salvar = async () => {
     setSalvando(true);
-    const erro = await registrarRecebimento({
+    const erro = await criarParcela({
       contratoId,
-      valor: v,
-      recebidoEm: data,
-      forma,
-      numeroDaParcela: proximo,
+      numero: proximo,
+      valor: emUso ?? 0,
+      venceEm: data,
     });
     setSalvando(false);
     setFalha(erro);
-    if (!erro) {
-      setValor("");
-      setForma("");
-    }
+    if (!erro) setValor(null);
   };
 
   return (
-    <div style={{ marginTop: 26, paddingTop: 22, borderTop: "1px solid #F0EDE5" }}>
-      <div style={colLabel()}>Registrar entrada</div>
-      <div className="dash-receb-form">
-        <input
-          className="dash-field dash-field-sm"
-          inputMode="numeric"
-          placeholder={saldo > 0 ? `Valor · saldo ${brl(saldo)}` : "Valor"}
-          value={valor}
-          onChange={(e) => setValor(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void registrar();
-          }}
+    <div style={{ marginTop: 18 }}>
+      <div className="dash-parcela-form">
+        <CampoNumero
+          valor={emUso}
+          onChange={setValor}
+          placeholder="Valor da parcela"
+          aria-label={"Valor da " + proximo + "ª parcela"}
           style={{ minWidth: 0, ...NUM }}
         />
         <input
@@ -380,25 +451,21 @@ function NovaEntrada({
           type="date"
           value={data}
           onChange={(e) => setData(e.target.value)}
+          aria-label={"Vencimento da " + proximo + "ª parcela"}
           style={{ minWidth: 0, ...NUM }}
-        />
-        <input
-          className="dash-field dash-field-sm"
-          placeholder="Forma (pix, boleto…)"
-          value={forma}
-          onChange={(e) => setForma(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void registrar();
-          }}
-          style={{ minWidth: 0 }}
         />
         <button
           className="dash-btn-outline"
-          disabled={salvando}
-          onClick={() => void registrar()}
-          style={{ borderRadius: 999, padding: "10px 18px", fontSize: "12.5px", whiteSpace: "nowrap" }}
+          disabled={salvando || !emUso}
+          onClick={() => void salvar()}
+          style={{
+            borderRadius: 999,
+            padding: "10px 18px",
+            fontSize: "12.5px",
+            opacity: salvando || !emUso ? 0.45 : 1,
+          }}
         >
-          {salvando ? "Salvando…" : "Registrar"}
+          {salvando ? "Salvando…" : "+ Parcela"}
         </button>
       </div>
       {falha && (
@@ -410,6 +477,98 @@ function NovaEntrada({
   );
 }
 
+/**
+ * A baixa de uma parcela, ali na linha dela.
+ *
+ * Abre só quando ela clica: a lista é para consultar o plano, e um formulário
+ * aberto em toda parcela transformaria o painel numa parede de campos.
+ *
+ * O valor vem preenchido com o que falta na parcela, mas continua editável —
+ * cliente paga a menos, paga em duas vezes, paga com desconto.
+ */
+function BaixaRapida({ parcela, hoje }: { parcela: Parcela; hoje: string }) {
+  const [aberto, setAberto] = useState(false);
+  const [valor, setValor] = useState<number | null>(null);
+  const [data, setData] = useState(hoje);
+  const [forma, setForma] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [falha, setFalha] = useState<string | null>(null);
+
+  const falta = Math.round((parcela.valor - parcela.recebido) * 100) / 100;
+  const emUso = valor ?? falta;
+
+  if (!aberto) {
+    return (
+      <button
+        className="dash-btn-link"
+        onClick={() => setAberto(true)}
+        style={{ fontSize: "12px", color: "#6B7040" }}
+      >
+        Dar baixa
+      </button>
+    );
+  }
+
+  const salvar = async () => {
+    setSalvando(true);
+    const erro = await registrarRecebimento({
+      parcelaId: parcela.id,
+      valor: emUso,
+      recebidoEm: data,
+      forma,
+    });
+    setSalvando(false);
+    setFalha(erro);
+    if (!erro) setAberto(false);
+  };
+
+  return (
+    <div className="dash-parcela-baixa">
+      <CampoNumero
+        valor={emUso}
+        onChange={setValor}
+        aria-label="Valor recebido"
+        style={{ width: 110, ...NUM }}
+      />
+      <input
+        className="dash-field dash-field-sm"
+        type="date"
+        value={data}
+        onChange={(e) => setData(e.target.value)}
+        aria-label="Data do recebimento"
+        style={{ width: 140, ...NUM }}
+      />
+      <input
+        className="dash-field dash-field-sm"
+        placeholder="pix, boleto…"
+        value={forma}
+        onChange={(e) => setForma(e.target.value)}
+        aria-label="Forma de pagamento"
+        style={{ width: 120 }}
+      />
+      <button
+        className="dash-btn-dark"
+        disabled={salvando}
+        onClick={() => void salvar()}
+        style={{ borderRadius: 999, padding: "9px 16px", fontSize: "12px" }}
+      >
+        {salvando ? "…" : "Receber"}
+      </button>
+      <button
+        className="dash-btn-link"
+        onClick={() => setAberto(false)}
+        style={{ fontSize: "12px", color: "#9A9689" }}
+      >
+        Cancelar
+      </button>
+      {falha && (
+        <div role="alert" style={{ ...mono(11, "#9C2B22"), width: "100%" }}>
+          {falha}
+        </div>
+      )}
+    </div>
+  );
+}
 function Numero({ rotulo, valor, cor }: { rotulo: string; valor: string; cor?: string }) {
   return (
     <div>

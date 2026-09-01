@@ -1,10 +1,35 @@
 "use client";
 
+import { useState, useSyncExternalStore } from "react";
+import {
+  assinarParcelas,
+  lerParcelas,
+  lerParcelasNoServidor,
+  lerStatusParcelas,
+  lerStatusParcelasNoServidor,
+  registrarRecebimento,
+  type Parcela,
+} from "@/lib/dados/contratos";
+import {
+  assinarRelogio,
+  hojeISO,
+  lerRelogio,
+  lerRelogioNoServidor,
+} from "@/lib/dados/relogio";
 import { money } from "@/lib/dashboard/data";
 import type { ProjectVM } from "./DashboardArquitetura";
+import CampoNumero from "./CampoNumero";
 import { MONO, NUM, cardTitle, mono, panel } from "./ui";
 
+const MES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+/** "2026-09-18" → "18 set". */
+const dataCurta = (iso: string) => {
+  const [, m, d] = iso.split("-");
+  return Number(d) + " " + (MES_CURTO[Number(m) - 1] ?? "");
+};
+
 export default function Financeiro({ projects }: { projects: ProjectVM[] }) {
+  const agora = useSyncExternalStore(assinarRelogio, lerRelogio, lerRelogioNoServidor);
   /*
     Os três totais.
 
@@ -42,6 +67,8 @@ export default function Financeiro({ projects }: { projects: ProjectVM[] }) {
           </div>
         ))}
       </div>
+
+      <AReceber hoje={hojeISO(agora)} />
 
       <div style={{ ...panel, padding: "30px 32px", marginTop: 20 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
@@ -108,6 +135,180 @@ export default function Financeiro({ projects }: { projects: ProjectVM[] }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Tudo que está para receber, de todos os projetos.
+ *
+ * É a razão de a baixa morar aqui e não só dentro do projeto: para saber o
+ * que vence esta semana ela teria que abrir projeto por projeto. Aqui é uma
+ * lista só, por vencimento, com o vencido em vermelho no topo.
+ *
+ * A baixa é a mesma função do painel do contrato — nenhuma conta é refeita
+ * aqui, e as duas telas não têm como discordar.
+ */
+function AReceber({ hoje }: { hoje: string }) {
+  const parcelas = useSyncExternalStore(assinarParcelas, lerParcelas, lerParcelasNoServidor);
+  const { carregando, erro } = useSyncExternalStore(
+    assinarParcelas,
+    lerStatusParcelas,
+    lerStatusParcelasNoServidor,
+  );
+
+  const abertas = parcelas.filter((p) => !p.quitada);
+  const vencidas = abertas.filter((p) => p.venceEm < hoje);
+  const aVencer = abertas.reduce((t, p) => t + (p.valor - p.recebido), 0);
+
+  return (
+    <div style={{ ...panel, padding: "28px 30px 14px", marginTop: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 14,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={cardTitle}>A receber</div>
+        <div style={{ fontFamily: MONO, fontSize: "11px", color: erro ? "#9C2B22" : "#9A9689" }}>
+          {erro ??
+            (carregando
+              ? "carregando…"
+              : abertas.length === 0
+                ? "nada em aberto"
+                : `${abertas.length} ${abertas.length === 1 ? "parcela" : "parcelas"} · ${money(aVencer)}` +
+                  (vencidas.length > 0 ? ` · ${vencidas.length} vencida${vencidas.length > 1 ? "s" : ""}` : ""))}
+        </div>
+      </div>
+
+      {abertas.length === 0 ? (
+        <div style={{ fontSize: "13px", color: "#6E6A5F", padding: "18px 0 20px", lineHeight: 1.5 }}>
+          Nada a receber. As parcelas são cadastradas no painel de contrato de cada projeto, ao
+          fechar a venda.
+        </div>
+      ) : (
+        <div style={{ marginTop: 14 }}>
+          {abertas.map((p) => {
+            const vencida = p.venceEm < hoje;
+            return (
+              <div key={p.id} className="dash-parcela">
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{p.cliente}</div>
+                  <div style={{ fontSize: "12px", color: "#8C887C", marginTop: 2 }}>
+                    {p.projeto} · {p.numero}ª parcela
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flex: "none" }}>
+                  <div style={{ fontSize: "13.5px", fontWeight: 600, ...NUM }}>
+                    {money(p.valor - p.recebido)}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: "10.5px",
+                      color: vencida ? "#9C2B22" : "#9A9689",
+                      marginTop: 2,
+                    }}
+                  >
+                    {vencida ? "venceu em " : "vence em "}
+                    {dataCurta(p.venceEm)}
+                    {p.recebido > 0 ? " · " + money(p.recebido) + " parcial" : ""}
+                  </div>
+                </div>
+                <BaixaDaParcela parcela={p} hoje={hoje} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A baixa, aberta só quando ela clica — igual à do painel do contrato. */
+function BaixaDaParcela({ parcela, hoje }: { parcela: Parcela; hoje: string }) {
+  const [aberto, setAberto] = useState(false);
+  const [valor, setValor] = useState<number | null>(null);
+  const [data, setData] = useState(hoje);
+  const [forma, setForma] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [falha, setFalha] = useState<string | null>(null);
+
+  const falta = Math.round((parcela.valor - parcela.recebido) * 100) / 100;
+  const emUso = valor ?? falta;
+
+  if (!aberto) {
+    return (
+      <button
+        className="dash-btn-outline"
+        onClick={() => setAberto(true)}
+        style={{ borderRadius: 999, padding: "8px 15px", fontSize: "12.5px", flex: "none" }}
+      >
+        Dar baixa
+      </button>
+    );
+  }
+
+  const salvar = async () => {
+    setSalvando(true);
+    const erro = await registrarRecebimento({
+      parcelaId: parcela.id,
+      valor: emUso,
+      recebidoEm: data,
+      forma,
+    });
+    setSalvando(false);
+    setFalha(erro);
+    if (!erro) setAberto(false);
+  };
+
+  return (
+    <div className="dash-parcela-baixa">
+      <CampoNumero
+        valor={emUso}
+        onChange={setValor}
+        aria-label={"Valor recebido de " + parcela.cliente}
+        style={{ width: 110, ...NUM }}
+      />
+      <input
+        className="dash-field dash-field-sm"
+        type="date"
+        value={data}
+        onChange={(e) => setData(e.target.value)}
+        aria-label="Data do recebimento"
+        style={{ width: 140, ...NUM }}
+      />
+      <input
+        className="dash-field dash-field-sm"
+        placeholder="pix, boleto…"
+        value={forma}
+        onChange={(e) => setForma(e.target.value)}
+        aria-label="Forma de pagamento"
+        style={{ width: 120 }}
+      />
+      <button
+        className="dash-btn-dark"
+        disabled={salvando}
+        onClick={() => void salvar()}
+        style={{ borderRadius: 999, padding: "9px 16px", fontSize: "12px" }}
+      >
+        {salvando ? "…" : "Receber"}
+      </button>
+      <button
+        className="dash-btn-link"
+        onClick={() => setAberto(false)}
+        style={{ fontSize: "12px", color: "#9A9689" }}
+      >
+        Cancelar
+      </button>
+      {falha && (
+        <div role="alert" style={{ fontFamily: MONO, fontSize: "11px", color: "#9C2B22", width: "100%" }}>
+          {falha}
+        </div>
+      )}
     </div>
   );
 }

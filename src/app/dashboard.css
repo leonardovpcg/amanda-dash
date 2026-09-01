@@ -2089,3 +2089,51 @@ textarea.dash-inline:focus {
 .dash-scroll-x > .dash-orc-tabela {
   min-width: 760px;
 }
+
+/* — plano de pagamento no painel do contrato — */
+.dash-parcela {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 13px 0;
+  border-bottom: 1px solid #f4f1ea;
+}
+.dash-parcela:last-of-type {
+  border-bottom: none;
+}
+.dash-parcela-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  max-width: 520px;
+}
+/* A baixa abre na própria linha da parcela e quebra em telas estreitas, em
+   vez de espremer os campos até não dar para digitar a data. */
+.dash-parcela-baixa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (max-width: 767px) {
+  .dash-parcela-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-parcela-baixa > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/* As baixas de uma parcela, listadas abaixo dela. `width: 100%` para quebrar
+   a linha do flex pai e ficarem embaixo, não ao lado dos botões. */
+.dash-parcela-baixa-feita {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding-left: 2px;
+}

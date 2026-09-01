@@ -129,48 +129,151 @@ export async function apagarContrato(id: string): Promise<string | null> {
 }
 
 /**
- * Registra uma entrada.
+ * Dá baixa numa parcela: o dinheiro entrou.
  *
- * Cria a parcela junto: no dia a dia ela recebe um sinal e depois o resto,
- * sem plano de parcelamento montado antes. Exigir a parcela cadastrada
- * primeiro seria burocracia que ninguém cumpre.
+ * Recebe a parcela pronta, não a cria. Antes fazia as duas coisas de uma vez,
+ * o que impedia planejar o parcelamento antes de o dinheiro entrar — e é
+ * exatamente esse plano que ela combina com o cliente na assinatura.
+ *
+ * O valor é separado do valor da parcela de propósito: cliente paga a menos,
+ * paga em duas vezes, paga com desconto. A parcela só fica quitada quando a
+ * soma das baixas alcança o previsto.
  */
 export async function registrarRecebimento(dados: {
-  contratoId: string;
+  parcelaId: string;
   valor: number;
   recebidoEm: string;
   forma?: string;
-  numeroDaParcela: number;
 }): Promise<string | null> {
   const dono = lerSessao().sessao?.user.id;
   if (!supabase || !dono) return "Sem sessão.";
+  if (!(dados.valor > 0)) return "Informe o valor recebido.";
 
-  return armazem.escrever(async () => {
-    const { data: parcela, error: erroParcela } = await supabase!
-      .from("parcelas")
-      .insert({
-        dono,
-        contrato_id: dados.contratoId,
-        numero: dados.numeroDaParcela,
-        valor: dados.valor,
-        vence_em: dados.recebidoEm,
-      })
-      .select("id")
-      .single();
-    if (erroParcela) return { error: erroParcela };
-
-    const r = await supabase!.from("recebimentos").insert({
+  const erro = await entradas.escrever(async () =>
+    supabase!.from("recebimentos").insert({
       dono,
-      parcela_id: parcela.id,
+      parcela_id: dados.parcelaId,
       valor: dados.valor,
       recebido_em: dados.recebidoEm,
       forma: dados.forma?.trim() || null,
-    });
-    // A lista de entradas é outro armazém; sem isto o painel do projeto
-    // mostraria o total novo com a última entrada faltando na lista.
-    if (!r.error) await entradas.recarregar();
-    return r;
+    }),
+  );
+  // Três armazéns olham para o mesmo dinheiro: a parcela para saber se
+  // quitou, o contrato para o "Faturado" e a comissão. Sem recarregar, cada
+  // tela mostraria um total diferente até a próxima carga.
+  if (!erro) await Promise.all([parcelas.recarregar(), armazem.recarregar()]);
+  return erro;
+}
+
+/* ── parcelas ──────────────────────────────────────────────────────────────
+
+   Planejar e receber deixaram de ser o mesmo gesto.
+
+   `registrarRecebimento` criava a parcela e a baixa na mesma chamada, porque
+   não havia tela para planejar o parcelamento — o que impedia justamente o
+   que ela pediu: dizer "entrada na assinatura, 30 dias depois a segunda,
+   entrega a terceira" antes de qualquer dinheiro entrar.
+
+   Agora a parcela nasce no projeto, ao fechar o contrato, e a baixa acontece
+   depois — no Financeiro, onde ela vê tudo que está para receber de todos os
+   projetos, ou no próprio projeto quando já estiver com ele aberto. É a mesma
+   função nos dois lugares, não duas listas que podem discordar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+export type Parcela = {
+  id: string;
+  contratoId: string;
+  projetoId: string;
+  projeto: string;
+  cliente: string;
+  numero: number;
+  valor: number;
+  /** "2026-09-18" */
+  venceEm: string;
+  /** Soma do que já entrou nesta parcela. */
+  recebido: number;
+  /** Quitada quando o recebido alcança o valor. */
+  quitada: boolean;
+};
+
+const parcelas = criarArmazemDeColecao<Parcela>(async () => {
+  if (!supabase) return { dados: null, erro: null };
+  // `!inner` no contrato e no projeto porque parcela sem contrato não existe;
+  // `recebimentos` fica solto, que é o caso normal de uma parcela em aberto.
+  const { data, error } = await supabase
+    .from("parcelas")
+    .select(
+      "id, contrato_id, numero, valor, vence_em, contratos!inner(projeto_id, projetos!inner(nome, clientes!inner(nome))), recebimentos(valor)",
+    )
+    .order("vence_em");
+  if (error) return { dados: null, erro: "Não foi possível carregar as parcelas: " + error.message };
+
+  type Linha = {
+    id: string;
+    contrato_id: string;
+    numero: number;
+    valor: number;
+    vence_em: string;
+    contratos: { projeto_id: string; projetos: { nome: string; clientes: { nome: string } } };
+    recebimentos: { valor: number }[];
+  };
+  const dados = (data as unknown as Linha[]).map((p) => {
+    const valor = Number(p.valor);
+    const recebido = p.recebimentos.reduce((t, r) => t + Number(r.valor), 0);
+    return {
+      id: p.id,
+      contratoId: p.contrato_id,
+      projetoId: p.contratos.projeto_id,
+      projeto: p.contratos.projetos.nome,
+      cliente: p.contratos.projetos.clientes.nome,
+      numero: p.numero,
+      valor,
+      venceEm: p.vence_em,
+      recebido,
+      // Centavo de folga: soma de decimais não fecha exata, e uma parcela
+      // paga por R$ 0,004 a menos não pode ficar aberta para sempre.
+      quitada: recebido >= valor - 0.01,
+    };
   });
+  return { dados, erro: null };
+});
+
+export const lerParcelas = parcelas.ler;
+export const lerParcelasNoServidor = parcelas.lerNoServidor;
+export const assinarParcelas = parcelas.assinar;
+export const lerStatusParcelas = parcelas.lerStatus;
+export const lerStatusParcelasNoServidor = parcelas.lerStatusNoServidor;
+
+/** Uma parcela prevista: valor e vencimento, sem dinheiro nenhum ainda. */
+export async function criarParcela(dados: {
+  contratoId: string;
+  numero: number;
+  valor: number;
+  venceEm: string;
+}): Promise<string | null> {
+  const dono = lerSessao().sessao?.user.id;
+  if (!supabase || !dono) return "Sem sessão.";
+  if (!(dados.valor > 0)) return "Informe o valor da parcela.";
+  if (!dados.venceEm) return "Escolha o vencimento.";
+  return parcelas.escrever(async () =>
+    supabase!.from("parcelas").insert({
+      dono,
+      contrato_id: dados.contratoId,
+      numero: dados.numero,
+      valor: dados.valor,
+      vence_em: dados.venceEm,
+    }),
+  );
+}
+
+/** Apaga a parcela. As baixas dela caem junto, por `on delete cascade`. */
+export async function apagarParcela(id: string): Promise<string | null> {
+  if (!supabase) return "Sem conexão.";
+  const erro = await parcelas.escrever(async () =>
+    supabase!.from("parcelas").delete().eq("id", id),
+  );
+  if (!erro) await Promise.all([entradas.recarregar(), armazem.recarregar()]);
+  return erro;
 }
 
 /* ── recebimentos ──────────────────────────────────────────────────────── */
@@ -223,19 +326,20 @@ export const lerRecebimentosNoServidor = entradas.lerNoServidor;
 export const assinarRecebimentos = entradas.assinar;
 
 /**
- * Apaga a entrada.
+ * Desfaz a baixa: apaga só o recebimento, e a parcela volta a ficar em
+ * aberto.
  *
- * A parcela criada junto com ela some por tabela: apagar o recebimento e
- * deixar a parcela viva faria o contrato parecer ter cobrança em aberto que
- * nunca existiu.
+ * Antes apagava a parcela junto, porque as duas nasciam no mesmo gesto e
+ * deixar a parcela órfã inventaria uma cobrança que nunca existiu. Agora a
+ * parcela é o plano combinado com o cliente — desfazer um lançamento errado
+ * não pode apagar o plano.
  */
-export async function apagarRecebimento(id: string, parcelaId: string): Promise<string | null> {
+export async function apagarRecebimento(id: string): Promise<string | null> {
   if (!supabase) return "Sem conexão.";
   const erro = await entradas.escrever(async () =>
-    supabase!.from("parcelas").delete().eq("id", parcelaId),
+    supabase!.from("recebimentos").delete().eq("id", id),
   );
-  // O total do contrato mudou junto.
-  await armazem.recarregar();
+  if (!erro) await Promise.all([parcelas.recarregar(), armazem.recarregar()]);
   return erro;
 }
 
