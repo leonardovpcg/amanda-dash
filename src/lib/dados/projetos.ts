@@ -924,6 +924,51 @@ export function duplicarAmbiente(projetoId: string, ambienteId: string): void {
 }
 
 /**
+ * Tira um ambiente do projeto.
+ *
+ * A remoção já existia, mas só no fim da sanfona de dentro do orçamento —
+ * dois blocos para abrir antes de aparecer. No cartão do ambiente, que é onde
+ * ela nomeia e escreve, não havia nenhuma.
+ *
+ * O banco faz o resto na sincronização: o diff vê o id que sumiu da lista e
+ * apaga a linha, e dela caem por cascata as linhas de orçamento e os marcos
+ * de fábrica.
+ */
+export function removerAmbiente(projetoId: string, ambienteId: string): void {
+  atualizarProjeto(projetoId, (p) => semAmbiente(p, ambienteId));
+}
+
+/** A remoção como transformação pura, pelo mesmo motivo da duplicação. */
+export function semAmbiente(p: ProjetoDoBanco, ambienteId: string): ProjetoDoBanco {
+  const ambientes = p.ambientes.filter((a) => a.id !== ambienteId);
+  if (ambientes.length === p.ambientes.length) return p;
+  // Renumera: deixar buracos na ordem faria o próximo ambiente novo nascer
+  // com um número já usado, e a lista trocaria de ordem sozinha ao recarregar.
+  return { ...p, ambientes: ambientes.map((a, k) => ({ ...a, ordem: k })) };
+}
+
+/**
+ * O que se perde ao apagar um ambiente, em uma linha.
+ *
+ * Existe porque "Excluir" sozinho não diz se o que vai embora são duas
+ * palavras digitadas ou trinta linhas de orçamento lançadas — e é essa
+ * diferença que faz ela parar ou seguir.
+ */
+export function oQueSePerdeNoAmbiente(a: AmbienteDoBanco): string {
+  const linhas =
+    a.orcamento.chapas.length +
+    a.orcamento.fita.length +
+    a.orcamento.acessorios.length +
+    a.orcamento.maoDeObra.length;
+  const prazos = Object.keys(a.marcos).length;
+  const partes = [
+    linhas ? `${linhas} linha${linhas === 1 ? "" : "s"} de orçamento` : null,
+    prazos ? `${prazos} prazo${prazos === 1 ? "" : "s"} de fábrica` : null,
+  ].filter(Boolean);
+  return partes.length ? "perde " + partes.join(" e ") : "não tem orçamento nem prazo lançado";
+}
+
+/**
  * A regra de duplicação, separada da gravação.
  *
  * Transformação pura porque é aqui que está a decisão do que se copia e do

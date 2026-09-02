@@ -81,6 +81,8 @@ import {
   SITUACOES_DO_PROJETO,
   adicionarAmbiente,
   duplicarAmbiente,
+  oQueSePerdeNoAmbiente,
+  removerAmbiente,
   aplicarOrcamento,
   avancarAmbiente,
   definirPrevisto,
@@ -665,6 +667,10 @@ export default function DashboardArquitetura({
         const calc = orcamentoCalculado?.ambientes[i];
         const cru = doBanco.find((p) => p.id === sel.id)?.ambientes[i];
         return {
+          // Chaveia o cartão. Por índice, apagar um ambiente faria o React
+          // reaproveitar o componente para o seguinte — e uma confirmação de
+          // exclusão já armada passaria a apontar para o ambiente errado.
+          id: cru?.id ?? "amb-" + i,
           name,
           detail: dtl,
           material: cru?.material ?? "",
@@ -700,6 +706,10 @@ export default function DashboardArquitetura({
           duplicar: () => {
             if (selected && cru) duplicarAmbiente(selected, cru.id);
           },
+          excluir: () => {
+            if (selected && cru) removerAmbiente(selected, cru.id);
+          },
+          aoExcluir: cru ? oQueSePerdeNoAmbiente(cru) : "",
           steps: AMB_STEPS.map((_, k) => ({
             color: k <= step ? (step >= 5 ? "#6B7040" : "#A84B1C") : "#EDEAE2",
           })),
@@ -1128,6 +1138,13 @@ export default function DashboardArquitetura({
             }}
             onDuplicarAmbiente={(ambienteId) => {
               if (selected) duplicarAmbiente(selected, ambienteId);
+            }}
+            onRemoverAmbiente={(ambienteId) => {
+              if (selected) removerAmbiente(selected, ambienteId);
+            }}
+            aoExcluirAmbiente={(ambienteId) => {
+              const a = doBanco.find((p) => p.id === selected)?.ambientes.find((x) => x.id === ambienteId);
+              return a ? oQueSePerdeNoAmbiente(a) : "";
             }}
             status={statusProjetos}
             briefing={leadDoProjeto ? (briefings[leadDoProjeto.id] ?? null) : null}

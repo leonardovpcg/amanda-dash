@@ -32,6 +32,7 @@ import {
 } from "@/lib/orcamento/tipos";
 import { AlvoDaSecao, useSecaoAberta } from "./SecaoDobravel";
 import CampoNumero, { paraTexto } from "./CampoNumero";
+import ConfirmarExclusao from "./ConfirmarExclusao";
 import Proposta from "./Proposta";
 import SugestaoBriefing from "./SugestaoBriefing";
 import { MONO, NUM, colLabel, mono, panel } from "./ui";
@@ -47,6 +48,8 @@ export default function Orcamento({
   comArt,
   onComArt,
   onDuplicar,
+  onRemover,
+  aoRemover,
 }: {
   ambientes: OrcamentoAmbiente[];
   onChange: (a: OrcamentoAmbiente[]) => void;
@@ -66,6 +69,16 @@ export default function Orcamento({
    * na primeira vez que uma das duas mudasse.
    */
   onDuplicar: (ambienteId: string) => void;
+  /**
+   * Tira o ambiente do projeto.
+   *
+   * Vinha de `onChange` com a lista filtrada, o que funcionava — mas então
+   * havia duas formas de apagar a mesma coisa, e só uma delas passava pelas
+   * regras do projeto. Agora é a mesma dos dois lados.
+   */
+  onRemover: (ambienteId: string) => void;
+  /** O que se perde, para a confirmação dizer o tamanho do estrago. */
+  aoRemover: (ambienteId: string) => string;
 }) {
   const aberta = useSecaoAberta("orcamento");
   const [abertos, setAbertos] = useState<string[]>([]);
@@ -235,7 +248,8 @@ export default function Orcamento({
               aberto={abertos.includes(calc.id)}
               onAlternar={() => alternar(calc.id)}
               onEditar={(fn) => editar(calc.id, fn)}
-              onRemover={() => onChange(ambientes.filter((a) => a.id !== calc.id))}
+              onRemover={() => onRemover(calc.id)}
+              aoRemover={aoRemover(calc.id)}
               onDuplicar={() => onDuplicar(calc.id)}
               cat={cat}
               comArt={comArt}
@@ -320,6 +334,7 @@ function AmbienteCartao({
   onAlternar,
   onEditar,
   onRemover,
+  aoRemover,
   onDuplicar,
   cat,
   comArt,
@@ -330,6 +345,7 @@ function AmbienteCartao({
   onAlternar: () => void;
   onEditar: (fn: (a: OrcamentoAmbiente) => OrcamentoAmbiente) => void;
   onRemover: () => void;
+  aoRemover: string;
   onDuplicar: () => void;
   cat: Catalogo;
   /** ART do projeto: decide qual dos dois totais o cartão mostra. */
@@ -580,17 +596,11 @@ function AmbienteCartao({
               >
                 Duplicar ambiente
               </button>
-              <button
-                className="dash-btn-link"
-                onClick={onRemover}
-                style={{
-                  padding: "6px 0",
-                  fontSize: "12px",
-                  color: "#9C2B22",
-                }}
-              >
-                Remover ambiente
-              </button>
+              <ConfirmarExclusao
+                rotulo="Remover ambiente"
+                aviso={aoRemover}
+                onExcluir={onRemover}
+              />
             </div>
             <div style={{ display: "flex", gap: 26, alignItems: "baseline" }}>
               <Fecho rotulo="Custo" valor={brl(calc.custoTotal)} />

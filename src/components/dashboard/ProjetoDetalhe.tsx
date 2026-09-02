@@ -12,12 +12,15 @@ import {
   lerModeloNoServidor,
 } from "@/lib/proposta/modelo";
 import BriefingResumo from "./BriefingResumo";
+import ConfirmarExclusao from "./ConfirmarExclusao";
 import ContratoPainel from "./ContratoPainel";
 import Orcamento from "./Orcamento";
 import SecaoDobravel from "./SecaoDobravel";
 import { MONO, NUM, colLabel, mono } from "./ui";
 
 type AmbienteVM = {
+  /** Id do ambiente no banco — é a chave da lista, não o índice. */
+  id: string;
   name: string;
   /**
     * O que a proposta do cliente diz deste ambiente, um item por linha.
@@ -50,6 +53,9 @@ type AmbienteVM = {
   up: () => void;
   down: () => void;
   duplicar: () => void;
+  excluir: () => void;
+  /** O que se perde ao apagar este ambiente — só aparece na confirmação. */
+  aoExcluir: string;
   steps: { color: string }[];
 };
 
@@ -175,6 +181,8 @@ export default function ProjetoDetalhe({
   result,
   onOrcamento,
   onDuplicarAmbiente,
+  onRemoverAmbiente,
+  aoExcluirAmbiente,
   briefing,
   onAbrirBriefing,
   status,
@@ -196,6 +204,9 @@ export default function ProjetoDetalhe({
   onOrcamento: (a: OrcamentoAmbiente[]) => void;
   /** Copia um ambiente logo abaixo do original, com o orçamento junto. */
   onDuplicarAmbiente: (ambienteId: string) => void;
+  /** Tira o ambiente do projeto. Some do orçamento e da proposta junto. */
+  onRemoverAmbiente: (ambienteId: string) => void;
+  aoExcluirAmbiente: (ambienteId: string) => string;
   /** Briefing do lead que originou este projeto, quando existe o vínculo. */
   briefing: Briefing | null;
   onAbrirBriefing: () => void;
@@ -386,9 +397,9 @@ export default function ProjetoDetalhe({
         }
       >
         <div className="dash-amb-grid">
-          {sel.ambientesVM.map((a, i) => (
+          {sel.ambientesVM.map((a) => (
             <div
-              key={i}
+              key={a.id}
               style={{
                 border: "1px solid rgba(255,255,255,.9)",
                 background: "rgba(255,255,255,.5)",
@@ -530,10 +541,16 @@ export default function ProjetoDetalhe({
                     className="dash-btn-link"
                     onClick={a.duplicar}
                     title="Cria uma cópia logo abaixo, com o orçamento junto"
-                    style={{ fontSize: "11.5px", marginRight: 4 }}
+                    style={{ fontSize: "11.5px" }}
                   >
                     Duplicar
                   </button>
+                  <ConfirmarExclusao
+                    rotulo="Excluir"
+                    aviso={a.aoExcluir}
+                    onExcluir={a.excluir}
+                    compacto
+                  />
                   <button
                     className="dash-btn-step"
                     onClick={a.down}
@@ -565,6 +582,8 @@ export default function ProjetoDetalhe({
         ambientes={sel.orcamento}
         onChange={onOrcamento}
         onDuplicar={onDuplicarAmbiente}
+        onRemover={onRemoverAmbiente}
+        aoRemover={aoExcluirAmbiente}
         projeto={{ nome: sel.name, cliente: sel.client, endereco: sel.address }}
         briefing={briefing}
         comArt={sel.comArt}
