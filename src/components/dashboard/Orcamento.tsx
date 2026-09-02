@@ -46,6 +46,7 @@ export default function Orcamento({
   briefing,
   comArt,
   onComArt,
+  onDuplicar,
 }: {
   ambientes: OrcamentoAmbiente[];
   onChange: (a: OrcamentoAmbiente[]) => void;
@@ -56,6 +57,15 @@ export default function Orcamento({
   /** ART entra no total deste projeto. */
   comArt: boolean;
   onComArt: (v: boolean) => void;
+  /**
+   * Copia o ambiente com estas linhas junto.
+   *
+   * Vem de fora, e não é feito aqui com `onChange`, porque a regra do que
+   * **não** se copia — etapa, prazos de fábrica, vínculo com o briefing — é do
+   * projeto, não do orçamento. Duplicada aqui, ela sairia do passo com a de lá
+   * na primeira vez que uma das duas mudasse.
+   */
+  onDuplicar: (ambienteId: string) => void;
 }) {
   const aberta = useSecaoAberta("orcamento");
   const [abertos, setAbertos] = useState<string[]>([]);
@@ -226,6 +236,7 @@ export default function Orcamento({
               onAlternar={() => alternar(calc.id)}
               onEditar={(fn) => editar(calc.id, fn)}
               onRemover={() => onChange(ambientes.filter((a) => a.id !== calc.id))}
+              onDuplicar={() => onDuplicar(calc.id)}
               cat={cat}
               comArt={comArt}
             />
@@ -309,6 +320,7 @@ function AmbienteCartao({
   onAlternar,
   onEditar,
   onRemover,
+  onDuplicar,
   cat,
   comArt,
 }: {
@@ -318,6 +330,7 @@ function AmbienteCartao({
   onAlternar: () => void;
   onEditar: (fn: (a: OrcamentoAmbiente) => OrcamentoAmbiente) => void;
   onRemover: () => void;
+  onDuplicar: () => void;
   cat: Catalogo;
   /** ART do projeto: decide qual dos dois totais o cartão mostra. */
   comArt: boolean;
@@ -558,17 +571,27 @@ function AmbienteCartao({
 
           {/* fecho do ambiente */}
           <div className="dash-orc-fecho">
-            <button
-              className="dash-btn-link"
-              onClick={onRemover}
-              style={{
-                padding: "6px 0",
-                fontSize: "12px",
-                color: "#9C2B22",
-              }}
-            >
-              Remover ambiente
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <button
+                className="dash-btn-link"
+                onClick={onDuplicar}
+                title="Cria uma cópia logo abaixo, com estas linhas junto"
+                style={{ padding: "6px 0", fontSize: "12px" }}
+              >
+                Duplicar ambiente
+              </button>
+              <button
+                className="dash-btn-link"
+                onClick={onRemover}
+                style={{
+                  padding: "6px 0",
+                  fontSize: "12px",
+                  color: "#9C2B22",
+                }}
+              >
+                Remover ambiente
+              </button>
+            </div>
             <div style={{ display: "flex", gap: 26, alignItems: "baseline" }}>
               <Fecho rotulo="Custo" valor={brl(calc.custoTotal)} />
               <Fecho rotulo="Venda" valor={brl(calc.total)} />

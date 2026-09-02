@@ -899,6 +899,73 @@ export function adicionarAmbiente(projetoId: string, nome = "Novo ambiente"): vo
   }));
 }
 
+/**
+ * Copia um ambiente inteiro logo abaixo do original.
+ *
+ * O caso é o segundo dormitório, o segundo banheiro: mesmo material, mesma
+ * ferragem, quase o mesmo orçamento. Lançar de novo as vinte linhas de chapa,
+ * fita e acessório à mão é o trabalho que isso evita.
+ *
+ * **O que não vem junto** é onde mora a decisão:
+ *
+ * - **A etapa e os prazos de fábrica.** São da produção do original. Um
+ *   ambiente recém-criado marcado como "montado", com data de entrega que já
+ *   passou, apareceria pronto sem nada ter sido feito — e contaminaria a
+ *   agenda e os avisos, que leem esses prazos.
+ * - **O vínculo com o briefing.** `origem_briefing` é um para um: dois
+ *   ambientes apontando para a mesma resposta fariam a ponte duplicar o
+ *   ambiente na próxima vez que ela reaplicasse.
+ *
+ * O nome ganha "(cópia)" para os dois não ficarem indistinguíveis na lista —
+ * ela renomeia para "Dormitório da filha" e o marcador some.
+ */
+export function duplicarAmbiente(projetoId: string, ambienteId: string): void {
+  atualizarProjeto(projetoId, (p) => comAmbienteDuplicado(p, ambienteId));
+}
+
+/**
+ * A regra de duplicação, separada da gravação.
+ *
+ * Transformação pura porque é aqui que está a decisão do que se copia e do
+ * que não — e decisão assim merece teste. Exportada só para isso.
+ */
+export function comAmbienteDuplicado(p: ProjetoDoBanco, ambienteId: string): ProjetoDoBanco {
+  {
+    const i = p.ambientes.findIndex((a) => a.id === ambienteId);
+    if (i < 0) return p;
+    const original = p.ambientes[i];
+
+    const copia: AmbienteDoBanco = {
+      id: novoId(),
+      nome: original.nome + " (cópia)",
+      // O que a proposta imprime vem junto: é o que dá trabalho de escrever.
+      detalhe: original.detalhe,
+      material: original.material,
+      acessoriosTexto: original.acessoriosTexto,
+      ferragens: original.ferragens,
+      etapa: 0,
+      eta: "",
+      marcos: {},
+      ordem: i + 1,
+      origemBriefing: null,
+      // Listas novas, não as mesmas: partilhar o array faria editar uma linha
+      // do original mexer na cópia, e o diff da gravação não veria diferença
+      // nenhuma para gravar.
+      orcamento: {
+        chapas: original.orcamento.chapas.map((l) => ({ ...l })),
+        fita: original.orcamento.fita.map((l) => ({ ...l })),
+        acessorios: original.orcamento.acessorios.map((l) => ({ ...l })),
+        maoDeObra: original.orcamento.maoDeObra.map((l) => ({ ...l })),
+      },
+    };
+
+    // Logo abaixo do original, não no fim: a cópia do terceiro ambiente
+    // aparecendo depois do décimo obrigaria a procurar o que acabou de nascer.
+    const ambientes = [...p.ambientes.slice(0, i + 1), copia, ...p.ambientes.slice(i + 1)];
+    return { ...p, ambientes: ambientes.map((a, k) => ({ ...a, ordem: k })) };
+  }
+}
+
 export async function apagarProjeto(id: string): Promise<string | null> {
   if (!supabase) return "Sem conexão.";
   projetos = projetos.filter((p) => p.id !== id);

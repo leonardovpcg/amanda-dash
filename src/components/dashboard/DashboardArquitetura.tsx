@@ -80,6 +80,7 @@ import {
   MARCOS_DE_AMBIENTE,
   SITUACOES_DO_PROJETO,
   adicionarAmbiente,
+  duplicarAmbiente,
   aplicarOrcamento,
   avancarAmbiente,
   definirPrevisto,
@@ -694,6 +695,11 @@ export default function DashboardArquitetura({
             setAmb(i, "ferragens", e.target.value),
           up: () => stepAmb(i, 1),
           down: () => stepAmb(i, -1),
+          // `cru` é a linha do banco deste ambiente; `sel.ambientes` é tupla
+          // de apresentação e não carrega id.
+          duplicar: () => {
+            if (selected && cru) duplicarAmbiente(selected, cru.id);
+          },
           steps: AMB_STEPS.map((_, k) => ({
             color: k <= step ? (step >= 5 ? "#6B7040" : "#A84B1C") : "#EDEAE2",
           })),
@@ -1119,6 +1125,9 @@ export default function DashboardArquitetura({
             result={result}
             onOrcamento={(orcamento) => {
               if (selected) aplicarOrcamento(selected, orcamento);
+            }}
+            onDuplicarAmbiente={(ambienteId) => {
+              if (selected) duplicarAmbiente(selected, ambienteId);
             }}
             status={statusProjetos}
             briefing={leadDoProjeto ? (briefings[leadDoProjeto.id] ?? null) : null}

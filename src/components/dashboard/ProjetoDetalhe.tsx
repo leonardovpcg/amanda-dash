@@ -49,6 +49,7 @@ type AmbienteVM = {
   onFerragens: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   up: () => void;
   down: () => void;
+  duplicar: () => void;
   steps: { color: string }[];
 };
 
@@ -173,6 +174,7 @@ export default function ProjetoDetalhe({
   onSearch,
   result,
   onOrcamento,
+  onDuplicarAmbiente,
   briefing,
   onAbrirBriefing,
   status,
@@ -192,6 +194,8 @@ export default function ProjetoDetalhe({
   onSearch: () => void;
   result: PriceResult | null;
   onOrcamento: (a: OrcamentoAmbiente[]) => void;
+  /** Copia um ambiente logo abaixo do original, com o orçamento junto. */
+  onDuplicarAmbiente: (ambienteId: string) => void;
   /** Briefing do lead que originou este projeto, quando existe o vínculo. */
   briefing: Briefing | null;
   onAbrirBriefing: () => void;
@@ -523,6 +527,14 @@ export default function ProjetoDetalhe({
                     </div>
                   )}
                   <button
+                    className="dash-btn-link"
+                    onClick={a.duplicar}
+                    title="Cria uma cópia logo abaixo, com o orçamento junto"
+                    style={{ fontSize: "11.5px", marginRight: 4 }}
+                  >
+                    Duplicar
+                  </button>
+                  <button
                     className="dash-btn-step"
                     onClick={a.down}
                     style={{ borderRadius: 999, width: 24, height: 24, fontSize: "13px", lineHeight: 1 }}
@@ -552,6 +564,7 @@ export default function ProjetoDetalhe({
       <Orcamento
         ambientes={sel.orcamento}
         onChange={onOrcamento}
+        onDuplicar={onDuplicarAmbiente}
         projeto={{ nome: sel.name, cliente: sel.client, endereco: sel.address }}
         briefing={briefing}
         comArt={sel.comArt}
