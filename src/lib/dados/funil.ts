@@ -188,6 +188,80 @@ export async function criarAtendimento(dados: {
 }
 
 /**
+ * Apaga o atendimento inteiro — lead, projeto e, quando fica sozinho, o
+ * cliente.
+ *
+ * O inverso de `criarAtendimento`, e por isso apaga as três coisas que ela
+ * cria. Apagar só o lead seria pior que não apagar: `projetos.lead_id` é
+ * `on delete set null`, então o projeto sobreviveria órfão na aba Projetos,
+ * sem cartão no funil por onde chegar nele.
+ *
+ * O resto vem por cascata do banco: do projeto saem ambientes, orçamento e
+ * marcos; do lead sai o briefing com as respostas; do cliente saem as
+ * interações. Não há transação — o PostgREST não expõe uma —, então a ordem
+ * é do mais dependente para o menos: se parar no meio, o que sobra é o
+ * cliente, que ainda aparece na tela e pode ser apagado de novo.
+ *
+ * **Recusa contrato assinado.** Ali já há dinheiro lançado, que a comissão, a
+ * meta do mês e o financeiro leem; sumir com isso em silêncio deixaria os três
+ * mentindo. O caminho é desfazer o contrato no projeto e voltar aqui — que é
+ * uma decisão dela, tomada de olho no que vai perder.
+ */
+export async function apagarAtendimento(leadId: string): Promise<string | null> {
+  const dono = lerSessao().sessao?.user.id;
+  if (!supabase || !dono) return "Sem sessão.";
+
+  const { data: projetos, error: erroBusca } = await supabase
+    .from("projetos")
+    .select("id, contratos(id)")
+    .eq("lead_id", leadId);
+  if (erroBusca) return "Não foi possível conferir o projeto: " + erroBusca.message;
+
+  const comContrato = (projetos ?? []).filter((p) => (p.contratos ?? []).length > 0);
+  if (comContrato.length > 0) {
+    return (
+      "Este atendimento tem contrato assinado. Desfaça o contrato dentro do " +
+      "projeto antes de apagar — assim você vê o que está perdendo."
+    );
+  }
+
+  return armazem.escrever(async () => {
+    for (const projeto of projetos ?? []) {
+      const { error } = await supabase!.from("projetos").delete().eq("id", projeto.id);
+      if (error) return { error };
+    }
+
+    // Guarda o cliente antes: depois de apagar o lead não há mais por onde
+    // chegar nele.
+    const clienteId = lerFunil().find((l) => l.id === leadId)?.clienteId ?? null;
+
+    const { error: erroLead } = await supabase!.from("leads").delete().eq("id", leadId);
+    if (erroLead) return { error: erroLead };
+
+    if (clienteId) {
+      // Só apaga o cliente se ele ficou sem nada. Um cliente pode ter mais de
+      // um atendimento — a segunda obra do mesmo dono —, e levar os outros
+      // junto seria apagar o que ninguém pediu.
+      const [outrosLeads, outrosProjetos] = await Promise.all([
+        supabase!.from("leads").select("id").eq("cliente_id", clienteId).limit(1),
+        supabase!.from("projetos").select("id").eq("cliente_id", clienteId).limit(1),
+      ]);
+      const erro = outrosLeads.error ?? outrosProjetos.error;
+      if (erro) return { error: erro };
+      if ((outrosLeads.data ?? []).length === 0 && (outrosProjetos.data ?? []).length === 0) {
+        const { error } = await supabase!.from("clientes").delete().eq("id", clienteId);
+        if (error) return { error };
+      }
+    }
+    return { error: null };
+  }).then(async (erro) => {
+    // A aba Projetos tem armazém próprio e não fica sabendo por si.
+    if (!erro) await recarregarProjetos();
+    return erro;
+  });
+}
+
+/**
  * Corrige o nome do cliente.
  *
  * Muda em todo lugar de uma vez — funil, projeto, contrato, garantia — porque

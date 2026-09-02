@@ -65,6 +65,7 @@ import {
   saudacao,
 } from "@/lib/dados/relogio";
 import {
+  apagarAtendimento,
   assinarFunil,
   atualizarAmbientesTexto,
   atualizarContato,
@@ -1209,6 +1210,13 @@ export default function DashboardArquitetura({
           }
           briefing={sinaisDeBriefing[leadSel.id]}
           onBriefing={() => abrirBriefing(leadSel.id)}
+          onApagar={async () => {
+            const erro = await apagarAtendimento(leadSel.id);
+            // Fecha só quando deu certo: com erro a gaveta tem de continuar
+            // aberta para ela ler o motivo.
+            if (!erro) closeOverlay();
+            return erro;
+          }}
         />
       )}
       {briefingLead && (

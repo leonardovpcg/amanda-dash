@@ -104,6 +104,7 @@ export default function LeadDrawer({
   valorEditavel,
   briefing,
   onBriefing,
+  onApagar,
 }: {
   lead: Lead;
   onClose: () => void;
@@ -123,6 +124,8 @@ export default function LeadDrawer({
   valorEditavel: boolean;
   briefing?: SinalDeBriefing;
   onBriefing: () => void;
+  /** Apaga o atendimento inteiro. Devolve a mensagem de erro, ou nulo. */
+  onApagar: () => Promise<string | null>;
 }) {
   const stageIdx = STAGES.findIndex((s) => s[0] === lead.stage);
   const parts = lead.ambientes.split(" · ");
@@ -417,6 +420,120 @@ export default function LeadDrawer({
             Abrir projeto
           </button>
         </div>
+
+        <BlocoDeApagar
+          key={lead.id}
+          nome={lead.name}
+          temProjeto={Boolean(lead.projetoId)}
+          temBriefing={Boolean(briefing?.existe)}
+          onApagar={onApagar}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Apagar o atendimento.
+ *
+ * Nasceu de um lead salvo duas vezes por engano — e é para isso que serve: o
+ * duplicado que ainda não virou nada. Fica no fim da gaveta, longe de
+ * "Avançar", porque não é uma ação do dia a dia.
+ *
+ * Dois toques, e o segundo diz o nome de quem vai sumir. Não há como desfazer
+ * do lado do banco, então a confirmação é a única rede — e "Apagar" sozinho,
+ * num painel onde tudo o mais é um clique só, seria fácil demais de acertar
+ * sem querer. A `key` do lead lá em cima reverte o estado ao trocar de
+ * cartão: sem ela, a gaveta abriria já armada no lead seguinte.
+ */
+function BlocoDeApagar({
+  nome,
+  temProjeto,
+  temBriefing,
+  onApagar,
+}: {
+  nome: string;
+  temProjeto: boolean;
+  temBriefing: boolean;
+  onApagar: () => Promise<string | null>;
+}) {
+  const [armado, setArmado] = useState(false);
+  const [apagando, setApagando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const apagar = async () => {
+    setApagando(true);
+    const falha = await onApagar();
+    // Em caso de sucesso a gaveta fecha e este componente some — mexer no
+    // estado depois disso avisaria o React de atualização em algo desmontado.
+    if (falha) {
+      setErro(falha);
+      setApagando(false);
+      setArmado(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 26, paddingTop: 18, borderTop: "1px solid rgba(0,0,0,.07)" }}>
+      {erro && (
+        <div style={{ fontSize: "12.5px", color: "#9C2B22", marginBottom: 12, lineHeight: 1.5 }}>
+          {erro}
+        </div>
+      )}
+
+      {armado ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <button
+            className="dash-btn"
+            onClick={() => void apagar()}
+            disabled={apagando}
+            style={{
+              borderRadius: 999,
+              padding: "11px 18px",
+              fontSize: "12.5px",
+              background: "#9C2B22",
+              borderColor: "#9C2B22",
+              color: "#FFFFFF",
+            }}
+          >
+            {apagando ? "Apagando…" : "Apagar " + nome}
+          </button>
+          <button
+            className="dash-btn-link"
+            onClick={() => setArmado(false)}
+            disabled={apagando}
+            style={{ fontSize: "12.5px" }}
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <button
+          className="dash-btn-link"
+          onClick={() => {
+            setErro(null);
+            setArmado(true);
+          }}
+          style={{ fontSize: "12.5px", color: "#9C2B22" }}
+        >
+          Apagar atendimento
+        </button>
+      )}
+
+      {/* A legenda diz o que **este** atendimento carrega, não o que um
+          atendimento pode carregar. Quando o duplicado é um cartão sem
+          projeto, "apaga o projeto" seria mentira — e é justamente por essa
+          diferença que ela escolhe qual dos dois apagar. */}
+      <div style={{ ...mono(11, "#B4AFA1"), marginTop: 8, lineHeight: 1.6 }}>
+        apaga {[
+          "o lead",
+          temProjeto ? "o projeto com o orçamento" : null,
+          temBriefing ? "o briefing" : null,
+        ]
+          .filter(Boolean)
+          .join(", ")}
+        {temProjeto ? "" : " · este atendimento não tem projeto vinculado"}
+        {" · não tem como desfazer"}
       </div>
     </div>
   );
