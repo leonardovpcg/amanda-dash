@@ -380,15 +380,14 @@ function Fechamento({
           <Bloco key={rotulo} rotulo={rotulo} linhas={linhas} />
         ))}
 
+      {/* Só o número, com ou sem ART. `totalFinal` já embute a ART quando ela
+          está ligada — a linha "R$ X + ART" embaixo abria a conta para o
+          cliente, que é justamente o que a proposta não faz. A decomposição
+          continua na via interna, que é onde ela confere. */}
       <div className="dash-proposta-total">
         <div>
           <div className="dash-proposta-rot">Valor total</div>
           <div className="dash-proposta-total-num">{brl(totalFinal(proj, comArt))}</div>
-          {comArt && (
-            <div className="dash-proposta-obs-art">
-              {brl(proj.total)} + ART (Anotação de Responsabilidade Técnica)
-            </div>
-          )}
         </div>
       </div>
 
