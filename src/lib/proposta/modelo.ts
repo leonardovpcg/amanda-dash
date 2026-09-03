@@ -28,6 +28,14 @@ export type ModeloDaProposta = {
   pagamento: string;
   garantia: string;
   prazo: string;
+  /**
+   * Quanto tempo a proposta vale.
+   *
+   * Prazo diferente de "prazo de entrega": este é a validade do preço, e o
+   * de entrega é quando o móvel fica pronto. Sai embaixo de "Prazo de
+   * entrega" na página de condições, como ela pediu.
+   */
+  validade: string;
   /** O texto de "Nossa empresa", na segunda página. */
   empresa: string;
   /** O fecho: quem responde pela proposta e como falar com a loja. */
@@ -50,6 +58,7 @@ export const MODELO_PADRAO: ModeloDaProposta = {
   pagamento: "Em até 10 vezes sem juros no cartão de crédito. À vista, 5% de desconto.",
   garantia: "5 anos",
   prazo: "A definir",
+  validade: "15 dias a partir da data de emissão",
   empresa:
     "A Planejados Terracota atua no mercado de Campo Grande (MS) com uma equipe de " +
     "designers dedicados à criação de projetos exclusivos, e marceneiros experientes, " +
@@ -86,6 +95,7 @@ function interpretar(bruto: unknown): ModeloDaProposta {
     pagamento: texto(m.pagamento, MODELO_PADRAO.pagamento),
     garantia: texto(m.garantia, MODELO_PADRAO.garantia),
     prazo: texto(m.prazo, MODELO_PADRAO.prazo),
+    validade: texto(m.validade, MODELO_PADRAO.validade),
     empresa: texto(m.empresa, MODELO_PADRAO.empresa),
     despedida: texto(m.despedida, MODELO_PADRAO.despedida),
     proprietario: texto(m.proprietario, MODELO_PADRAO.proprietario),

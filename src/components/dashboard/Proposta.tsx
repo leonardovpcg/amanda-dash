@@ -351,6 +351,10 @@ function Fechamento({
     ["Forma de pagamento", modelo.pagamento.trim()],
     ["Garantia", modelo.garantia.trim()],
     ["Prazo de entrega", modelo.prazo.trim()],
+    // "Prazo de entrega" fala do móvel pronto na obra; validade fala da
+    // proposta em si — dois prazos diferentes, um embaixo do outro na mesma
+    // página como ela pediu.
+    ["Validade da proposta", modelo.validade.trim()],
   ];
   const observacoes = modelo.observacoes.map((o) => o.trim()).filter(Boolean);
 
@@ -358,16 +362,21 @@ function Fechamento({
     <section className="dash-proposta-fecho">
       <h2>Condições comerciais</h2>
 
-      {/* Na mesma grade das condições e dos ambientes: com recuo próprio a
-          lista ficava num terceiro alinhamento, sem rótulo que a nomeasse. */}
+      {/* Mesma marcação dos outros blocos — `dash-proposta-itens`, com o
+          número na frente do texto em vez de vir do `<ol>`. A `<ol>` trazia
+          a numeração num recuo próprio, com cor e tamanho diferentes; a lista
+          padrão do documento não tem esse recuo, então as observações
+          destoavam do resto. */}
       {observacoes.length > 0 && (
         <div className="dash-proposta-espec">
           <span className="dash-proposta-rot-bloco">Observações</span>
-          <ol className="dash-proposta-obs">
+          <ul className="dash-proposta-itens">
             {observacoes.map((o, i) => (
-              <li key={i}>{o}</li>
+              <li key={i}>
+                {i + 1}. {o}
+              </li>
             ))}
-          </ol>
+          </ul>
         </div>
       )}
 

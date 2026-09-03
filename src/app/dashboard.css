@@ -1226,12 +1226,6 @@ textarea.dash-inline:focus {
     font-variant-numeric: tabular-nums;
     margin-top: 3pt;
   }
-  .dash-proposta-obs {
-    font-size: 9pt;
-    color: #6e6a5f;
-    margin-top: 3pt;
-  }
-
   .dash-proposta-rodape {
     margin-top: 22pt;
     padding-top: 8pt;
@@ -1322,22 +1316,6 @@ textarea.dash-inline:focus {
     padding-bottom: 5pt;
     border-bottom: 0.75pt solid #e6e1d6;
     break-after: avoid;
-  }
-  /* O recuo é só o que o número ocupa: o texto precisa começar na mesma
-     coluna do conteúdo dos outros blocos. */
-  .dash-proposta-obs {
-    margin: 0;
-    padding-left: 12pt;
-    font-size: 9pt;
-    line-height: 1.55;
-    color: #6e6a5f;
-  }
-  .dash-proposta-obs li {
-    margin-bottom: 4pt;
-    padding-left: 4pt;
-    text-align: justify;
-    hyphens: auto;
-    break-inside: avoid;
   }
   .dash-proposta-obs-art {
     font-size: 9pt;

@@ -35,6 +35,7 @@ const CURTOS: [keyof ModeloDaProposta, string, string][] = [
   ["pagamento", "Forma de pagamento", ""],
   ["garantia", "Garantia", ""],
   ["prazo", "Prazo de entrega", ""],
+  ["validade", "Validade da proposta", "Quanto tempo o preço vale"],
 ];
 
 const LONGOS: [keyof ModeloDaProposta, string, string][] = [
